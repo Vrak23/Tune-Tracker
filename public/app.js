@@ -3126,12 +3126,42 @@ async function showItemStats(type, name, artist, isBack = false) {
     const hours = (totalMs / (1000 * 60 * 60));
     const timeFormatted = hours >= 1 ? `${hours.toFixed(1)} hrs` : `${Math.max(1, Math.round(totalMs / 60000))} mins`;
     const skips = data.skips || 0;
-    const firstDate = formatSimpleDate(data.first || lastDeltaIso);
-    const lastDate = lastDeltaIso ? `${formatSimpleDate(lastDeltaIso)} (En vivo)` : formatSimpleDate(data.last);
 
-    // Barras de evolución anual (2019-2026) con suma en vivo
+    // Barras de evolución anual (2019-2026) con suma en vivo y cuadratura estricta
     const yearsObj = { ...(data.years || {}) };
     Object.entries(deltaYears).forEach(([y, c]) => { yearsObj[y] = (yearsObj[y] || 0) + c; });
+
+    // Cuadratura matemática estricta: la suma de las barras de los años DEBE igualar a totalPlays
+    const sumYearsPlays = Object.values(yearsObj).reduce((a, b) => a + b, 0);
+    if (sumYearsPlays !== totalPlays) {
+        const diff = totalPlays - sumYearsPlays;
+        if (diff > 0) {
+            // Asignar diferencia pendiente proporcionalmente a la era de streaming / Tidal (2025 y 2026)
+            const add25 = Math.round(diff * 0.35);
+            const add26 = diff - add25;
+            yearsObj['2025'] = (yearsObj['2025'] || 0) + add25;
+            yearsObj['2026'] = (yearsObj['2026'] || 0) + add26;
+        } else if (diff < 0) {
+            yearsObj['2026'] = Math.max(0, (yearsObj['2026'] || 0) + diff);
+        }
+    }
+
+    // Primera y última escucha consistente con reproducciones reales (>0 plays)
+    let effectiveFirstDate = data.first;
+    if (effectiveFirstDate) {
+        const firstYr = String(new Date(effectiveFirstDate).getFullYear());
+        if (!yearsObj[firstYr] || yearsObj[firstYr] === 0) {
+            const activeY = Object.keys(yearsObj).filter(y => (yearsObj[y] || 0) > 0).sort()[0];
+            if (activeY) {
+                effectiveFirstDate = (activeY === '2025') ? '2025-08-01T00:00:00Z' : `${activeY}-01-01T00:00:00Z`;
+            } else if (lastDeltaIso) {
+                effectiveFirstDate = lastDeltaIso;
+            }
+        }
+    }
+    const firstDate = formatSimpleDate(effectiveFirstDate || lastDeltaIso);
+    const lastDate = lastDeltaIso ? `${formatSimpleDate(lastDeltaIso)} (En vivo)` : formatSimpleDate(data.last);
+
     const yearsList = [];
     for (let y = 2019; y <= Math.max(2026, new Date().getFullYear()); y++) yearsList.push(String(y));
     const maxYearPlays = Math.max(1, ...Object.values(yearsObj));
@@ -3153,7 +3183,17 @@ async function showItemStats(type, name, artist, isBack = false) {
 
     // Meses con mayor actividad (Top 3)
     let peakMonthsHtml = '';
-    const monthsObj = { ...(data.months || {}) };
+    let monthsObj = { ...(data.months || {}) };
+    if (type === 'artist' && Object.keys(monthsObj).length === 0 && activeDb?.tracksLookup) {
+        const normCurrentArt = normalizeKey(name);
+        Object.values(activeDb.tracksLookup).forEach(t => {
+            if (normalizeKey(t.artist) === normCurrentArt && t.months) {
+                Object.entries(t.months).forEach(([mk, cnt]) => {
+                    monthsObj[mk] = (monthsObj[mk] || 0) + cnt;
+                });
+            }
+        });
+    }
     Object.entries(deltaMonths).forEach(([mk, c]) => { monthsObj[mk] = (monthsObj[mk] || 0) + c; });
     if (Object.keys(monthsObj).length > 0) {
         const sortedMonths = Object.entries(monthsObj).sort((a, b) => b[1] - a[1]).slice(0, 3);
@@ -8044,6 +8084,10 @@ window.onAdjustTotalInputChanged = onAdjustTotalInputChanged;
 
 function onAdjustYearsInputChanged() {
     if (!currentAdjustingItem) return;
+    const autoSplitCheck = document.getElementById('adjust-auto-split-check');
+    if (autoSplitCheck && autoSplitCheck.checked) {
+        autoSplitCheck.checked = false;
+    }
     const addedInput = document.getElementById('adjust-added-input');
     const totalInput = document.getElementById('adjust-total-input');
     const addedBadge = document.getElementById('adjust-added-badge-display');
@@ -8086,11 +8130,12 @@ async function handleSaveStreamAdjustment() {
     let y26 = Math.max(0, parseInt(y26Input?.value, 10) || 0);
     let added = Math.max(0, parseInt(addedInput?.value, 10) || 0);
 
-    if (autoSplitCheck && !autoSplitCheck.checked) {
-        added = y25 + y26;
-    } else {
+    if (autoSplitCheck && autoSplitCheck.checked) {
         y25 = Math.round(added * 0.35);
         y26 = added - y25;
+    } else {
+        // En modo manual / personalizado, los años definen el total exacto
+        added = y25 + y26;
     }
 
     const { type, name, artist } = currentAdjustingItem;

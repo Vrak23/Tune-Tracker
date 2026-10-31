@@ -180,8 +180,8 @@
     "Trivium": {
       "plays": 220,
       "years": {
-        "2025": 0,
-        "2026": 220
+        "2025": 75,
+        "2026": 145
       }
     },
     "Life Cycles": {
@@ -829,6 +829,83 @@
         "2025-11": 5,
         "2026-02": 10,
         "2026-03": 11
+      }
+    },
+    "whatthedeadmensay:::trivium": {
+      "name": "What The Dead Men Say",
+      "artist": "Trivium",
+      "album": "What The Dead Men Say",
+      "plays": 55,
+      "years": {
+        "2025": 20,
+        "2026": 35
+      },
+      "months": {
+        "2025-10": 10,
+        "2025-11": 10,
+        "2026-02": 15,
+        "2026-03": 20
+      }
+    },
+    "deadinsideofme:::trivium": {
+      "name": "Dead Inside Of Me",
+      "artist": "Trivium",
+      "album": "Dead Inside Of Me",
+      "plays": 50,
+      "years": {
+        "2025": 15,
+        "2026": 35
+      },
+      "months": {
+        "2025-10": 10,
+        "2025-11": 5,
+        "2026-02": 15,
+        "2026-03": 20
+      }
+    },
+    "ix:::trivium": {
+      "name": "IX",
+      "artist": "Trivium",
+      "album": "What The Dead Men Say",
+      "plays": 40,
+      "years": {
+        "2025": 15,
+        "2026": 25
+      },
+      "months": {
+        "2025-11": 15,
+        "2026-02": 10,
+        "2026-03": 15
+      }
+    },
+    "deadandgone:::trivium": {
+      "name": "Dead and Gone",
+      "artist": "Trivium",
+      "album": "Silence in the Snow",
+      "plays": 40,
+      "years": {
+        "2025": 15,
+        "2026": 25
+      },
+      "months": {
+        "2025-11": 15,
+        "2026-02": 10,
+        "2026-03": 15
+      }
+    },
+    "scatteringtheashes:::trivium": {
+      "name": "Scattering The Ashes",
+      "artist": "Trivium",
+      "album": "What The Dead Men Say",
+      "plays": 35,
+      "years": {
+        "2025": 10,
+        "2026": 25
+      },
+      "months": {
+        "2025-11": 10,
+        "2026-02": 10,
+        "2026-03": 15
       }
     }
   }
