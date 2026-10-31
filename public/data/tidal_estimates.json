@@ -77,8 +77,7 @@
         "Megadeth": 258,
         "Sylosis": 226,
         "Linkin Park": 158,
-        "Bleed From Within": 72,
-        "Michael Jackson": 39
+        "Bleed From Within": 72
       }
     },
     "2026-03": {
@@ -87,8 +86,7 @@
         "Megadeth": 474,
         "Sylosis": 309,
         "Linkin Park": 228,
-        "Bleed From Within": 108,
-        "Death": 69
+        "Bleed From Within": 108
       }
     },
     "2026-04": {
@@ -127,8 +125,6 @@
         "Sylosis": 243,
         "Megadeth": 234,
         "Linkin Park": 196,
-        "Trivium": 177,
-        "Life Cycles": 148,
         "Slipknot": 101,
         "Bleed From Within": 86
       }
@@ -177,20 +173,6 @@
         "2026": 46
       }
     },
-    "Trivium": {
-      "plays": 220,
-      "years": {
-        "2025": 75,
-        "2026": 145
-      }
-    },
-    "Life Cycles": {
-      "plays": 170,
-      "years": {
-        "2025": 0,
-        "2026": 170
-      }
-    },
     "Rodrigo y Gabriela": {
       "plays": 165,
       "years": {
@@ -219,25 +201,11 @@
         "2026": 60
       }
     },
-    "Death": {
-      "plays": 90,
-      "years": {
-        "2025": 0,
-        "2026": 90
-      }
-    },
     "Kid Bookie": {
       "plays": 65,
       "years": {
         "2025": 25,
         "2026": 40
-      }
-    },
-    "Michael Jackson": {
-      "plays": 55,
-      "years": {
-        "2025": 10,
-        "2026": 45
       }
     }
   },
@@ -829,83 +797,6 @@
         "2025-11": 5,
         "2026-02": 10,
         "2026-03": 11
-      }
-    },
-    "whatthedeadmensay:::trivium": {
-      "name": "What The Dead Men Say",
-      "artist": "Trivium",
-      "album": "What The Dead Men Say",
-      "plays": 55,
-      "years": {
-        "2025": 20,
-        "2026": 35
-      },
-      "months": {
-        "2025-10": 10,
-        "2025-11": 10,
-        "2026-02": 15,
-        "2026-03": 20
-      }
-    },
-    "deadinsideofme:::trivium": {
-      "name": "Dead Inside Of Me",
-      "artist": "Trivium",
-      "album": "Dead Inside Of Me",
-      "plays": 50,
-      "years": {
-        "2025": 15,
-        "2026": 35
-      },
-      "months": {
-        "2025-10": 10,
-        "2025-11": 5,
-        "2026-02": 15,
-        "2026-03": 20
-      }
-    },
-    "ix:::trivium": {
-      "name": "IX",
-      "artist": "Trivium",
-      "album": "What The Dead Men Say",
-      "plays": 40,
-      "years": {
-        "2025": 15,
-        "2026": 25
-      },
-      "months": {
-        "2025-11": 15,
-        "2026-02": 10,
-        "2026-03": 15
-      }
-    },
-    "deadandgone:::trivium": {
-      "name": "Dead and Gone",
-      "artist": "Trivium",
-      "album": "Silence in the Snow",
-      "plays": 40,
-      "years": {
-        "2025": 15,
-        "2026": 25
-      },
-      "months": {
-        "2025-11": 15,
-        "2026-02": 10,
-        "2026-03": 15
-      }
-    },
-    "scatteringtheashes:::trivium": {
-      "name": "Scattering The Ashes",
-      "artist": "Trivium",
-      "album": "What The Dead Men Say",
-      "plays": 35,
-      "years": {
-        "2025": 10,
-        "2026": 25
-      },
-      "months": {
-        "2025-11": 10,
-        "2026-02": 10,
-        "2026-03": 15
       }
     }
   }

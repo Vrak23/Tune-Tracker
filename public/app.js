@@ -47,7 +47,29 @@ let isTidalLoading = false;
 function getCustomStreamOverrides() {
     try {
         const raw = localStorage.getItem('spoti_stream_overrides');
-        if (raw) return JSON.parse(raw);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            // Limpieza de artistas removidos de la Era Tidal por solicitud del usuario
+            let cleaned = false;
+            ['trivium', 'lifecycles', 'death', 'michaeljackson'].forEach(k => {
+                if (parsed.artists && parsed.artists[k]) {
+                    delete parsed.artists[k];
+                    cleaned = true;
+                }
+            });
+            if (parsed.tracks) {
+                Object.keys(parsed.tracks).forEach(tk => {
+                    if (tk.includes('trivium') || tk.includes('lifecycles')) {
+                        delete parsed.tracks[tk];
+                        cleaned = true;
+                    }
+                });
+            }
+            if (cleaned) {
+                localStorage.setItem('spoti_stream_overrides', JSON.stringify(parsed));
+            }
+            return parsed;
+        }
     } catch (e) {
         console.warn('Error reading spoti_stream_overrides:', e);
     }
