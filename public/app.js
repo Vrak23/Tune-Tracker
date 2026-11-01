@@ -3465,10 +3465,25 @@ async function resolveSpotifyArtwork(name, artist, type = 'track', elementId) {
         } catch (e) {}
     }
 
-    // 2. Fallback público instantáneo usando búsqueda de Apple / iTunes (sin necesidad de token)
+    // 2. Consultar el endpoint serverless unificado /api/artwork (con soporte para fotos de artistas y CDN cache)
     try {
-        const queryTerm = `${name} ${artist || ''}`.trim();
-        const itunesEntity = type === 'artist' ? 'musicArtist' : (type === 'album' ? 'album' : 'song');
+        const apiRes = await fetch(`/api/artwork?type=${encodeURIComponent(type)}&name=${encodeURIComponent(name)}&artist=${encodeURIComponent(artist || '')}`);
+        if (apiRes.ok) {
+            const apiData = await apiRes.json();
+            if (apiData && apiData.url) {
+                artCache[key] = apiData.url;
+                saveArtCache();
+                const el = document.getElementById(elementId);
+                if (el) el.src = apiData.url;
+                return apiData.url;
+            }
+        }
+    } catch (e) {}
+
+    // 3. Fallback directo en cliente (Apple / iTunes)
+    try {
+        const itunesEntity = type === 'artist' ? 'album' : (type === 'album' ? 'album' : 'song');
+        const queryTerm = type === 'artist' ? name : `${name} ${artist || ''}`.trim();
         const itRes = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(queryTerm)}&entity=${itunesEntity}&limit=1`);
         if (itRes.ok) {
             const itData = await itRes.json();
