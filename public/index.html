@@ -3,31 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SpotiTracker — Tus Estadísticas Musicales Reales</title>
-    <meta name="description" content="Visualiza tus tops de canciones, artistas y horas de escucha unificando tu historial de Spotify y Last.fm en tiempo real.">
+    <title>Tune Tracker — Tus Estadísticas Musicales Reales</title>
+    <meta name="description" content="Visualiza tus tops de canciones, artistas y horas de escucha con estadísticas musicales reales en tiempo real.">
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://spotitracker.app/">
-    <meta property="og:title" content="SpotiTracker — Tus Estadísticas Musicales Reales">
-    <meta property="og:description" content="Visualiza tus tops de canciones, artistas y horas de escucha unificando tu historial de Spotify y Last.fm en tiempo real.">
+    <meta property="og:url" content="https://tunetracker.app/">
+    <meta property="og:title" content="Tune Tracker — Tus Estadísticas Musicales Reales">
+    <meta property="og:description" content="Visualiza tus tops de canciones, artistas y horas de escucha con estadísticas musicales reales en tiempo real.">
     <meta property="og:image" content="/logo_square_1024.png">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:url" content="https://spotitracker.app/">
-    <meta name="twitter:title" content="SpotiTracker — Tus Estadísticas Musicales Reales">
-    <meta name="twitter:description" content="Visualiza tus tops de canciones, artistas y horas de escucha unificando tu historial de Spotify y Last.fm en tiempo real.">
+    <meta name="twitter:url" content="https://tunetracker.app/">
+    <meta name="twitter:title" content="Tune Tracker — Tus Estadísticas Musicales Reales">
+    <meta name="twitter:description" content="Visualiza tus tops de canciones, artistas y horas de escucha con estadísticas musicales reales en tiempo real.">
     <meta name="twitter:image" content="/logo_square_1024.png">
 
     <!-- PWA & Mobile Meta Tags -->
     <meta name="theme-color" content="#a855f7">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="SpotiTracker">
+    <meta name="apple-mobile-web-app-title" content="Tune Tracker">
     <link rel="manifest" href="/manifest.json">
-    <link rel="icon" type="image/png" href="/logo.png">
-    <link rel="apple-touch-icon" href="/logo.png">
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/logo-192.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -1148,8 +1149,8 @@
     <nav class="navbar border-bottom border-secondary border-opacity-10 py-2 sticky-top" style="background-color: rgba(0, 0, 0, 0.80) !important; backdrop-filter: saturate(180%) blur(20px) !important; -webkit-backdrop-filter: saturate(180%) blur(20px) !important; border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;">
         <div class="app-container d-flex align-items-center justify-content-between">
             <a class="navbar-brand d-flex align-items-center gap-2 fw-bold text-white text-decoration-none" href="#">
-                <img src="/logo.png" alt="SpotiTracker Logo">
-                <span class="fs-6 tracking-wide">Spotify<span style="color: var(--brand-primary);">Tracker</span></span>
+                <img src="/logo.png" alt="Tune Tracker Logo">
+                <span class="fs-6 tracking-wide">Tune<span style="color: var(--brand-primary);">Tracker</span></span>
             </a>
 
             <!-- Right Navbar Controls (Avatar + Burger Menu Button) -->
@@ -1177,11 +1178,11 @@
         <!-- Login View -->
         <div id="login-view" class="text-center py-5 my-auto">
             <div class="mb-4">
-                <img src="/logo.png" alt="Logo" style="width: 100px; height: 100px; filter: drop-shadow(0 0 25px var(--brand-glow));" class="rounded-4">
+                <img src="/logo.png" alt="Tune Tracker Logo" style="width: 104px; height: 104px; filter: drop-shadow(0 0 25px var(--brand-glow));" class="rounded-4">
             </div>
-            <h1 class="fw-bold mb-2 display-6">Tus Estadísticas de Spotify</h1>
-            <p class="text-secondary fs-6 mb-4 mx-auto" style="max-width: 420px;">
-                Descubre tus tops de canciones y artistas, streams reales sincronizados con Last.fm y genera playlists automáticas.
+            <h1 class="fw-bold mb-2 display-6">Tune Tracker</h1>
+            <p class="text-secondary fs-6 mb-4 mx-auto" style="max-width: 440px;">
+                Tus estadísticas musicales reales, escucha en vivo con Dynamic Island y tops sin esperar a fin de año.
             </p>
             <div class="d-flex flex-column align-items-center gap-2">
                 <button id="btn-login" class="btn btn-brand btn-lg shadow px-4 py-2.5">
@@ -1191,8 +1192,16 @@
                     <button id="btn-login-lastfm" class="btn btn-outline-secondary rounded-pill py-1.5 px-3" style="font-size: 0.84rem;" data-bs-toggle="modal" data-bs-target="#lastFmModal">
                         <i class="fa-brands fa-lastfm me-1.5 text-danger"></i> Conectar Last.fm
                     </button>
+                    <button id="btn-login-demo" class="btn btn-outline-light rounded-pill py-1.5 px-3" style="font-size: 0.84rem; background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.15);">
+                        <i class="fa-solid fa-compass me-1.5 text-info"></i> Explorar Demo
+                    </button>
                 </div>
-                <button id="btn-install-login" class="btn btn-link text-secondary text-decoration-none mt-2" style="font-size: 0.82rem;">
+                <div class="mt-3">
+                    <button id="btn-owner-unlock" class="btn btn-link text-muted text-decoration-none p-0" style="font-size: 0.76rem;" onclick="promptOwnerUnlock()">
+                        <i class="fa-solid fa-crown me-1 text-warning opacity-75"></i> Acceso Modo Dueño
+                    </button>
+                </div>
+                <button id="btn-install-login" class="btn btn-link text-secondary text-decoration-none mt-1" style="font-size: 0.82rem;">
                     <i class="fa-solid fa-download me-1.5"></i> Descargar App Web (PWA)
                 </button>
             </div>
@@ -1243,7 +1252,7 @@
                 <!-- Header Pro Titanium -->
                 <div class="d-flex align-items-end justify-content-between mb-3 pt-1 px-1 flex-wrap gap-2">
                     <div>
-                        <div class="apple-eyebrow mb-0.5"><i class="fa-brands fa-apple text-white"></i> SpotiTracker Pro</div>
+                        <div class="apple-eyebrow mb-0.5"><i class="fa-solid fa-wave-square text-primary me-1"></i> Tune Tracker Pro</div>
                         <div id="home-greeting" class="apple-headline-gradient fs-3" style="line-height: 1.15;">¡Hola de nuevo!</div>
                     </div>
                     <div class="d-flex align-items-center gap-2">
@@ -1427,7 +1436,7 @@
                                 </optgroup>
                                 <optgroup label="⚙️ Avanzado">
                                     <option value="era-spotify">Era Spotify (2019 - Ago 2025)</option>
-                                    <option value="era-tidal">Era Tidal (Ago 2025 - Jul 2026 ≈)</option>
+                                    <option value="era-tidal" class="owner-only-element d-none">Era Tidal (Ago 2025 - Jul 2026 ≈)</option>
                                     <option value="era-lastfm">Nueva Era Last.fm (Ago 2025 - Hoy)</option>
                                     <option value="year-2025">Año 2025</option>
                                     <option value="year-2024">Año 2024</option>
@@ -1964,12 +1973,12 @@
                         </div>
                     </div>
 
-                    <!-- 2. Análisis -->
-                    <div class="accordion-item bg-transparent border-0 mb-1">
+                    <!-- 2. Análisis (Solo Modo Dueño) -->
+                    <div class="accordion-item bg-transparent border-0 mb-1 owner-only-element d-none" id="accordion-section-analysis">
                         <h2 class="accordion-header" id="headingAnalysis">
                             <button class="accordion-button bg-transparent text-white px-2 py-2 shadow-none border-bottom border-secondary border-opacity-10" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAnalysis" aria-expanded="true" aria-controls="collapseAnalysis" style="font-size: 0.76rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px;">
                                 <i class="fa-solid fa-chart-pie text-info me-2"></i>
-                                <span>Análisis</span>
+                                <span>Análisis Avanzado</span>
                             </button>
                         </h2>
                         <div id="collapseAnalysis" class="accordion-collapse collapse show" aria-labelledby="headingAnalysis">
@@ -2024,14 +2033,23 @@
                                     </div>
                                 </button>
                                 
-                                <button class="offcanvas-menu-item" id="menu-stream-manager" data-bs-dismiss="offcanvas" onclick="openStreamManagerModal()">
+                                <button class="offcanvas-menu-item" id="menu-open-wrapped" data-bs-dismiss="offcanvas" onclick="openWrappedHintModal()">
+                                    <i class="fa-solid fa-gift text-warning fs-5"></i>
+                                    <div>
+                                        <div class="fw-semibold">Wrapped & Pistas Musicales</div>
+                                        <small class="text-secondary d-block" style="font-size: 0.73rem;">Tu resumen quincenal y adivinanza de gustos</small>
+                                    </div>
+                                </button>
+
+                                <button class="offcanvas-menu-item owner-only-element d-none" id="menu-stream-manager" data-bs-dismiss="offcanvas" onclick="openStreamManagerModal()">
                                     <i class="fa-solid fa-sliders text-info fs-5"></i>
                                     <div>
                                         <div class="menu-title">Ajustes de Streams (Tidal / Personalizado)</div>
                                         <div class="menu-desc">Modificar reproducciones estimadas y añadir canciones</div>
                                     </div>
                                 </button>
-<button class="offcanvas-menu-item" id="menu-save-playlist" data-bs-dismiss="offcanvas">
+
+                                <button class="offcanvas-menu-item" id="menu-save-playlist" data-bs-dismiss="offcanvas">
                                     <i class="fa-solid fa-plus text-success fs-5"></i>
                                     <div>
                                         <div class="fw-semibold">Guardar Top como Playlist</div>
@@ -2073,10 +2091,17 @@
                                     <i class="fa-solid fa-cloud text-success fs-5"></i>
                                     <div>
                                         <div class="d-flex align-items-center gap-2">
-                                            <span class="fw-semibold">SpotiTracker Cloud</span>
+                                            <span class="fw-semibold">Tune Tracker Cloud</span>
                                             <span id="drawer-gdrive-status" class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.65rem;">Activo</span>
                                         </div>
                                         <small class="text-secondary d-block" style="font-size: 0.73rem;">Sincronizado con Central-de-estudio</small>
+                                    </div>
+                                </button>
+                                <button class="offcanvas-menu-item" id="menu-owner-toggle" data-bs-dismiss="offcanvas" onclick="promptOwnerUnlock()">
+                                    <i class="fa-solid fa-crown text-warning fs-5"></i>
+                                    <div>
+                                        <div class="fw-semibold">Modo Dueño (Admin)</div>
+                                        <small class="text-secondary d-block" style="font-size: 0.73rem;">Alternar permisos de Era Tidal y gestión avanzada</small>
                                     </div>
                                 </button>
                                 <button class="offcanvas-menu-item" id="menu-install-app" data-bs-dismiss="offcanvas">
@@ -2118,18 +2143,29 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
+                    <div class="p-3 mb-3 rounded-3 border" style="background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.25) !important;">
+                        <div class="fw-bold text-white mb-2" style="font-size: 0.82rem;">
+                            <i class="fa-solid fa-sparkles text-danger me-1.5"></i>¿Qué desbloqueas al conectar Last.fm?
+                        </div>
+                        <ul class="text-secondary small mb-0 ps-3" style="font-size: 0.74rem; line-height: 1.5;">
+                            <li><strong class="text-white">Dynamic Island en Vivo:</strong> Reproductor flotante con la pista exacta que suena en tu Spotify.</li>
+                            <li><strong class="text-white">Scrobbles y Conteo Real:</strong> Métricas precisas de reproducciones sin retrasos.</li>
+                            <li><strong class="text-white">Mini-Juegos Propios:</strong> Torneo Bracket 16 y Higher/Lower armados con tu propia música.</li>
+                            <li><strong class="text-white">Racha y Retos Diarios:</strong> Desafíos musicales adaptados a tus artistas favoritos.</li>
+                        </ul>
+                    </div>
                     <p class="text-secondary small mb-3">
-                        Last.fm registra tus reproducciones exactas de Spotify en tiempo real. Al conectar tu cuenta, verás los <strong>streams y scrobbles exactos</strong> al lado de cada canción y artista.
+                        Last.fm registra tus reproducciones exactas de Spotify en tiempo real. Solo introduce tu usuario:
                     </p>
                     <div class="mb-3">
                         <label class="form-label small fw-semibold">Tu usuario de Last.fm:</label>
-                        <input type="text" id="lastfm-username-input" class="form-control form-control-sm bg-black text-white border-secondary" placeholder="Ej: Vrak_23" value="Vrak_23">
+                        <input type="text" id="lastfm-username-input" class="form-control form-control-sm bg-black text-white border-secondary" placeholder="Ej: tu_usuario">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">API Key de Last.fm (gratuita e instantánea):</label>
-                        <input type="text" id="lastfm-apikey-input" class="form-control form-control-sm bg-black text-white border-secondary" placeholder="Pega tu API Key de Last.fm">
+                        <label class="form-label small fw-semibold">API Key de Last.fm (opcional):</label>
+                        <input type="text" id="lastfm-apikey-input" class="form-control form-control-sm bg-black text-white border-secondary" placeholder="Dejar en blanco para usar la compartida">
                         <small class="text-muted d-block mt-1" style="font-size: 0.72rem;">
-                            ¿No tienes una? Consíguela en 10 segundos en <a href="https://www.last.fm/api/account/create" target="_blank" class="text-danger">last.fm/api/account/create</a> (solo ingresa cualquier nombre de app y dale enviar).
+                            Si tienes tu propia API Key puedes pegarla aquí, o dejarlo en blanco para usar la clave por defecto de la aplicación.
                         </small>
                     </div>
                     <div id="lastfm-error" class="alert alert-danger d-none py-1.5 px-2.5 small mb-0"></div>
@@ -2650,7 +2686,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
         <!-- App Logic -->
-    <script src="/app.js?v=53"></script>
+    <script src="/app.js?v=54"></script>
 
     <!-- Barra de Navegación Inferior Móvil (Bottom Navigation Bar) -->
     <nav id="bottom-nav-bar" class="bottom-nav-bar d-none">
@@ -2962,7 +2998,7 @@
                             <button type="button" class="btn btn-sm btn-brand rounded-pill px-3 py-1 bracket-mode-btn active" style="font-size: 0.73rem;" onclick="initBracketTournament('tracks-overall', this)">
                                 <i class="fa-solid fa-music me-1"></i>Top 16 Canciones
                             </button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1 text-white bracket-mode-btn" style="font-size: 0.73rem;" onclick="initBracketTournament('tracks-tidal', this)">
+                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1 text-white bracket-mode-btn owner-only-element d-none" style="font-size: 0.73rem;" onclick="initBracketTournament('tracks-tidal', this)">
                                 <i class="fa-solid fa-water me-1 text-info"></i>Era Tidal / Recientes
                             </button>
                             <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1 text-white bracket-mode-btn" style="font-size: 0.73rem;" onclick="initBracketTournament('artists', this)">

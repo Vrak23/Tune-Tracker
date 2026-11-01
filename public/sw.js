@@ -1,9 +1,12 @@
-const CACHE_NAME = 'spotitracker-v53';
+const CACHE_NAME = 'tunetracker-v54';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/app.js',
   '/logo.png',
+  '/logo-192.png',
+  '/apple-touch-icon.png',
+  '/favicon.png',
   '/manifest.json'
 ];
 

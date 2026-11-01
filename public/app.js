@@ -38,6 +38,63 @@ initFirebase();
 
 // ----------------------------------------------------
 // ----------------------------------------------------
+// TUNE TRACKER: ROLES & OWNER MODE SYSTEM
+// ----------------------------------------------------
+const DEFAULT_LASTFM_USER = 'Vrak_23';
+const DEFAULT_LASTFM_KEY = '82a251af624ca33e3d59215313af74c2';
+
+function isAppOwner() {
+    if (localStorage.getItem('tunetracker_owner_mode') === 'true') return true;
+    const lastUser = (localStorage.getItem('lastfm_user') || '').trim().toLowerCase();
+    if (lastUser === 'vrak_23' || lastUser === 'vrak23') return true;
+    if (typeof userProfileData !== 'undefined' && userProfileData) {
+        const uid = (userProfileData.id || '').toLowerCase();
+        const dname = (userProfileData.display_name || '').toLowerCase();
+        if (uid.includes('vrak') || uid.includes('rodrigo') || dname.includes('vrak') || dname.includes('rodrigo')) {
+            return true;
+        }
+    }
+    return false;
+}
+window.isAppOwner = isAppOwner;
+
+function promptOwnerUnlock() {
+    if (isAppOwner()) {
+        const toggle = confirm('Actualmente tienes activo el Modo Dueño (Admin).\n¿Deseas cambiar a Modo Amigo/Invitado para probar la vista restringida?');
+        if (toggle) {
+            localStorage.removeItem('tunetracker_owner_mode');
+            localStorage.removeItem('lastfm_user');
+            localStorage.removeItem('lastfm_key');
+            location.reload();
+        }
+        return;
+    }
+    const pin = prompt('Introduce la clave de acceso de Dueño para desbloquear Era Tidal y herramientas avanzadas:');
+    if (pin && (pin.trim().toLowerCase() === 'vrak23' || pin.trim().toLowerCase() === 'vrak_23' || pin.trim() === '2323' || pin.trim().toLowerCase() === 'admin')) {
+        localStorage.setItem('tunetracker_owner_mode', 'true');
+        localStorage.setItem('lastfm_user', DEFAULT_LASTFM_USER);
+        localStorage.setItem('lastfm_key', DEFAULT_LASTFM_KEY);
+        alert('¡Modo Dueño activado con éxito! Se han habilitado la Era Tidal y los ajustes de streams.');
+        location.reload();
+    } else if (pin !== null) {
+        alert('Clave incorrecta. Permaneces en Modo Invitado.');
+    }
+}
+window.promptOwnerUnlock = promptOwnerUnlock;
+
+function applyRoleBasedUI() {
+    const isOwner = isAppOwner();
+    document.querySelectorAll('.owner-only-element').forEach(el => {
+        if (isOwner) {
+            el.classList.remove('d-none');
+        } else {
+            el.classList.add('d-none');
+        }
+    });
+}
+window.applyRoleBasedUI = applyRoleBasedUI;
+
+// ----------------------------------------------------
 // TIDAL ESTIMATES & CUSTOM STREAM OVERRIDES SYSTEM
 // ----------------------------------------------------
 let tidalEstimates = null;
@@ -49,17 +106,22 @@ function getCustomStreamOverrides() {
         const raw = localStorage.getItem('spoti_stream_overrides');
         if (raw) {
             const parsed = JSON.parse(raw);
-            // Limpieza de artistas removidos de la Era Tidal por solicitud del usuario
+            // Limpieza estricta de artistas removidos de la Era Tidal por solicitud del usuario
             let cleaned = false;
-            ['trivium', 'lifecycles', 'death', 'michaeljackson'].forEach(k => {
-                if (parsed.artists && parsed.artists[k]) {
-                    delete parsed.artists[k];
-                    cleaned = true;
-                }
-            });
+            const blacklist = ['trivium', 'lifecycles', 'death', 'michaeljackson'];
+            if (parsed.artists) {
+                Object.keys(parsed.artists).forEach(ak => {
+                    const normAk = normalizeKey(ak);
+                    if (blacklist.includes(normAk)) {
+                        delete parsed.artists[ak];
+                        cleaned = true;
+                    }
+                });
+            }
             if (parsed.tracks) {
                 Object.keys(parsed.tracks).forEach(tk => {
-                    if (tk.includes('trivium') || tk.includes('lifecycles')) {
+                    const normTk = normalizeKey(tk);
+                    if (blacklist.some(b => normTk.includes(b))) {
                         delete parsed.tracks[tk];
                         cleaned = true;
                     }
@@ -67,6 +129,11 @@ function getCustomStreamOverrides() {
             }
             if (cleaned) {
                 localStorage.setItem('spoti_stream_overrides', JSON.stringify(parsed));
+                if (typeof saveProfileState === 'function') {
+                    const st = getProfileState();
+                    st.streamOverrides = parsed;
+                    saveProfileState();
+                }
             }
             return parsed;
         }
@@ -109,6 +176,10 @@ function applyCustomOverridesToTidal() {
         } else {
             return;
         }
+    }
+    if (!isAppOwner()) {
+        tidalEstimates = { period: 'Sin Era Tidal', totalPlays: 0, tracks: {}, artists: {} };
+        return;
     }
     tidalEstimates = JSON.parse(JSON.stringify(rawDefaultTidalEstimates));
     const overrides = getCustomStreamOverrides();
@@ -158,6 +229,10 @@ function applyCustomOverridesToTidal() {
 }
 
 async function loadTidalEstimates() {
+    if (!isAppOwner()) {
+        tidalEstimates = { period: 'Sin Era Tidal', totalPlays: 0, tracks: {}, artists: {} };
+        return tidalEstimates;
+    }
     if (tidalEstimates) return tidalEstimates;
     if (isTidalLoading) {
         while (isTidalLoading) {
@@ -239,17 +314,21 @@ function hasCustomStreamOverride(type, name, artist) {
 const CLIENT_ID = '78c1217f07404df7b95cceb3e7cc6657';
 const REDIRECT_URI = window.location.origin + '/callback';
 
-// Credenciales por defecto de Last.fm (cuenta del usuario)
-const DEFAULT_LASTFM_USER = 'Vrak_23';
-const DEFAULT_LASTFM_KEY = '82a251af624ca33e3d59215313af74c2';
-
 function getLastFmCredentials() {
     if (localStorage.getItem('spoti_logged_out') === 'true') {
         return { user: null, key: null };
     }
-    const user = localStorage.getItem('lastfm_user') || DEFAULT_LASTFM_USER;
-    const key = localStorage.getItem('lastfm_key') || DEFAULT_LASTFM_KEY;
-    return { user, key };
+    const storedUser = localStorage.getItem('lastfm_user');
+    const storedKey = localStorage.getItem('lastfm_key');
+    if (storedUser && storedUser.trim()) {
+        return { user: storedUser.trim(), key: (storedKey && storedKey.trim()) ? storedKey.trim() : DEFAULT_LASTFM_KEY };
+    }
+    // Solo si el navegador tiene activado el Modo Dueño sin haber ingresado usuario manual:
+    if (localStorage.getItem('tunetracker_owner_mode') === 'true') {
+        return { user: DEFAULT_LASTFM_USER, key: DEFAULT_LASTFM_KEY };
+    }
+    // Para amigos/invitados que no han conectado Last.fm:
+    return { user: null, key: null };
 }
 
 let accessToken = localStorage.getItem('spotify_access_token') || null;
@@ -921,8 +1000,8 @@ async function switchDataSource(source) {
                 </optgroup>
                 <optgroup label="⚙️ Avanzado">
                     <option value="era-spotify">Era Spotify (2019 - Ago 2025)</option>
-                    <option value="era-tidal">Era Tidal (Ago 2025 - Jul 2026 ≈ Estimado)</option>
-                <option value="era-lastfm">Nueva Era Last.fm (Ago 2025 - Hoy)</option>
+                    ${isAppOwner() ? '<option value="era-tidal">Era Tidal (Ago 2025 - Jul 2026 ≈ Estimado)</option>' : ''}
+                    <option value="era-lastfm">Nueva Era Last.fm (Ago 2025 - Hoy)</option>
                     <option value="year-2025">Año 2025</option>
                     <option value="year-2024">Año 2024</option>
                     <option value="year-2023">Año 2023</option>
@@ -951,7 +1030,7 @@ async function switchDataSource(source) {
             selectTimePeriod.innerHTML = `
                 <option value="overall" selected>Histórico Total</option>
                 <option value="era-spotify">Era Spotify (2019 - Ago 2025)</option>
-                <option value="era-tidal">Era Tidal (Ago 2025 - Jul 2026 ≈ Estimado)</option>
+                ${isAppOwner() ? '<option value="era-tidal">Era Tidal (Ago 2025 - Jul 2026 ≈ Estimado)</option>' : ''}
                 <option value="era-lastfm">Nueva Era Last.fm (Ago 2025 - Hoy)</option>
                 <option value="custom">Rango de Fechas Personalizado...</option>
                 <option value="year-2026">Año 2026</option>
@@ -1416,6 +1495,7 @@ async function showDashboard() {
     }
 
     initLastFmState();
+    applyRoleBasedUI();
     startCurrentlyPlayingPolling();
 
     // Sincronizar perfil con auto-refresh de token y fallback a Last.fm
@@ -1740,8 +1820,17 @@ let lastPlayingTrackKey = null;
 async function fetchCurrentlyPlaying() {
     if (!navigator.onLine) return;
     const { user, key } = getLastFmCredentials();
-    if (user && key) {
-        try {
+    if (!user || !key) {
+        if (currentlyPlayingContainer) {
+            currentlyPlayingContainer.innerHTML = '';
+            currentlyPlayingContainer.classList.add('d-none');
+        }
+        return;
+    }
+    if (currentlyPlayingContainer) {
+        currentlyPlayingContainer.classList.remove('d-none');
+    }
+    try {
             const lfRes = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.getRecentTracks&user=${encodeURIComponent(user)}&api_key=${encodeURIComponent(key)}&limit=2&format=json`);
             const lfData = await lfRes.json();
             const tracksArr = Array.isArray(lfData?.recenttracks?.track) ? lfData.recenttracks.track : (lfData?.recenttracks?.track ? [lfData.recenttracks.track] : []);
@@ -1792,8 +1881,7 @@ async function fetchCurrentlyPlaying() {
                 }
                 return;
             }
-        } catch (e) {}
-    }
+    } catch (e) {}
 }
 
 // Detecta scrobbles nuevos y refresca home, listados y modales sin recargar la página
@@ -3004,7 +3092,7 @@ async function showItemStats(type, name, artist, isBack = false) {
     let isTidalEstimatedItem = false;
     let tidalContributionPlays = 0;
 
-    if (currentSource === 'unified') {
+    if (currentSource === 'unified' && isAppOwner()) {
         const tidal = tidalEstimates || await loadTidalEstimates();
         if (tidal) {
             const normN = normalizeKey(name);
@@ -3121,10 +3209,12 @@ async function showItemStats(type, name, artist, isBack = false) {
                     <h6 class="fw-bold mb-0 text-white text-truncate">${name}</h6>
                     <small class="text-secondary text-truncate d-block">${artist || 'Artista'}</small>
                 </div>
+                ${isAppOwner() ? `
                 <button type="button" class="btn btn-sm btn-outline-info rounded-pill px-2.5 py-1 text-nowrap d-inline-flex align-items-center gap-1.5 flex-shrink-0" style="font-size: 0.72rem;" onclick="openStreamAdjustmentModal('${type}', '${escapeJsStr(name)}', '${escapeJsStr(artist || '')}')">
                     <i class="fa-solid fa-sliders"></i>
                     <span>+ Ajustar</span>
                 </button>
+                ` : ''}
             </div>
             <div class="p-3 rounded border border-secondary border-opacity-20 text-center" style="background-color: rgba(255, 255, 255, 0.02);">
                 <i class="fa-solid fa-clock-rotate-left text-secondary mb-2" style="font-size: 1.8rem;"></i>
@@ -3158,11 +3248,15 @@ async function showItemStats(type, name, artist, isBack = false) {
     if (sumYearsPlays !== totalPlays) {
         const diff = totalPlays - sumYearsPlays;
         if (diff > 0) {
-            // Asignar diferencia pendiente proporcionalmente a la era de streaming / Tidal (2025 y 2026)
-            const add25 = Math.round(diff * 0.35);
-            const add26 = diff - add25;
-            yearsObj['2025'] = (yearsObj['2025'] || 0) + add25;
-            yearsObj['2026'] = (yearsObj['2026'] || 0) + add26;
+            // Asignar diferencia pendiente: si el artista solo tiene reproducciones en 2026, no inventar 2025
+            if (!yearsObj['2025'] && yearsObj['2026']) {
+                yearsObj['2026'] = (yearsObj['2026'] || 0) + diff;
+            } else {
+                const add25 = Math.round(diff * 0.35);
+                const add26 = diff - add25;
+                yearsObj['2025'] = (yearsObj['2025'] || 0) + add25;
+                yearsObj['2026'] = (yearsObj['2026'] || 0) + add26;
+            }
         } else if (diff < 0) {
             yearsObj['2026'] = Math.max(0, (yearsObj['2026'] || 0) + diff);
         }
@@ -3338,15 +3432,17 @@ async function showItemStats(type, name, artist, isBack = false) {
                 <div class="d-flex align-items-center gap-1.5 mb-0.5">
                     <h6 class="fw-bold mb-0 text-white text-truncate" style="font-size: 0.95rem;" title="${name}">${name}</h6>
                     ${currentSource === 'unified' ? `<span class="badge border border-success border-opacity-30 text-success flex-shrink-0" style="background-color: rgba(34, 197, 94, 0.12); font-size: 0.62rem; padding: 2px 6px;"><i class="fa-solid fa-sparkles me-1"></i>Unificado</span>` : ''}
-                    ${isTidalEstimatedItem ? `<span class="badge border border-info border-opacity-40 text-info flex-shrink-0" style="background-color: rgba(6, 182, 212, 0.15); font-size: 0.62rem; padding: 2px 6px;" title="Incluye +${formatNumber(tidalContributionPlays)} reproducciones recuperadas de la Era Tidal (Ago 2025 - Jul 2026)"><i class="fa-solid fa-water me-1"></i>≈ Tidal (+${formatNumber(tidalContributionPlays)})</span>` : ''}
+                    ${(isTidalEstimatedItem && isAppOwner()) ? `<span class="badge border border-info border-opacity-40 text-info flex-shrink-0" style="background-color: rgba(6, 182, 212, 0.15); font-size: 0.62rem; padding: 2px 6px;" title="Incluye +${formatNumber(tidalContributionPlays)} reproducciones recuperadas de la Era Tidal (Ago 2025 - Jul 2026)"><i class="fa-solid fa-water me-1"></i>≈ Tidal (+${formatNumber(tidalContributionPlays)})</span>` : ''}
                 </div>
                 <small class="text-secondary text-truncate d-block" style="font-size: 0.76rem;">${artist || (type === 'artist' ? 'Artista' : '')}</small>
                 ${data.album && data.album !== name ? `<small class="text-muted text-truncate d-block" style="font-size: 0.68rem;"><i class="fa-solid fa-compact-disc me-1"></i>${data.album}</small>` : ''}
             </div>
+            ${isAppOwner() ? `
             <button type="button" class="btn btn-sm btn-outline-info rounded-pill px-2.5 py-1 text-nowrap d-inline-flex align-items-center gap-1.5 flex-shrink-0 ms-auto" style="font-size: 0.72rem;" onclick="openStreamAdjustmentModal('${type}', '${escapeJsStr(name)}', '${escapeJsStr(artist || '')}')" title="Modificar o añadir streams a esta pista">
                 <i class="fa-solid fa-sliders"></i>
                 <span class="d-none d-sm-inline">${tidalContributionPlays > 0 ? 'Modificar' : '+ Ajustar'}</span>
             </button>
+            ` : ''}
         </div>
 
         ${(currentSource === 'unified' && data.gap > 0) ? `
@@ -3423,8 +3519,8 @@ async function showItemStats(type, name, artist, isBack = false) {
 // ----------------------------------------------------
 function openLastFmModal() {
     const { user, key } = getLastFmCredentials();
-    if (lastFmUsernameInput) lastFmUsernameInput.value = user;
-    if (lastFmApiKeyInput) lastFmApiKeyInput.value = key;
+    if (lastFmUsernameInput) lastFmUsernameInput.value = user || '';
+    if (lastFmApiKeyInput) lastFmApiKeyInput.value = (key === DEFAULT_LASTFM_KEY && !isAppOwner()) ? '' : (key || '');
     if (lastFmError) lastFmError.classList.add('d-none');
 
     const modal = bootstrap.Modal.getOrCreateInstance(lastFmModalEl);
@@ -3433,11 +3529,14 @@ function openLastFmModal() {
 
 async function handleSaveLastFm() {
     const user = lastFmUsernameInput.value.trim();
-    const key = lastFmApiKeyInput.value.trim();
+    let key = lastFmApiKeyInput.value.trim();
+    if (!key) {
+        key = DEFAULT_LASTFM_KEY;
+    }
 
-    if (!user || !key) {
+    if (!user) {
         if (lastFmError) {
-            lastFmError.textContent = 'Por favor ingresa tanto tu usuario como tu API Key de Last.fm.';
+            lastFmError.textContent = 'Por favor ingresa tu nombre de usuario de Last.fm.';
             lastFmError.classList.remove('d-none');
         }
         return;
@@ -3469,6 +3568,7 @@ async function handleSaveLastFm() {
         localStorage.removeItem('spoti_logged_out');
         localStorage.setItem('lastfm_user', user);
         localStorage.setItem('lastfm_key', key);
+        applyRoleBasedUI();
         showDashboard();
         initLastFmState();
         fetchLastFmGlobalStats();
@@ -3494,7 +3594,12 @@ function handleDisconnectLastFm() {
     if (statStrip) statStrip.classList.add('d-none');
     if (yearsFilterContainer) yearsFilterContainer.classList.add('d-none');
     if (monthsFilterContainer) monthsFilterContainer.classList.add('d-none');
+    if (currentlyPlayingContainer) {
+        currentlyPlayingContainer.innerHTML = '';
+        currentlyPlayingContainer.classList.add('d-none');
+    }
     initLastFmState();
+    applyRoleBasedUI();
 
     const modal = bootstrap.Modal.getInstance(lastFmModalEl);
     if (modal) modal.hide();
@@ -8491,10 +8596,10 @@ async function initBracketTournament(mode = 'tracks-overall', btn = null) {
     }
 
     const db = await getActiveDatabase();
-    const tidal = tidalEstimates || await loadTidalEstimates();
+    const tidal = (isAppOwner() && (tidalEstimates || await loadTidalEstimates())) || null;
     let pool = [];
 
-    if (mode === 'tracks-tidal' && tidal?.tracks) {
+    if (mode === 'tracks-tidal' && tidal?.tracks && isAppOwner()) {
         pool = Object.values(tidal.tracks).map(t => {
             const lowerKey = `${(t.name||'').trim().toLowerCase()}:::${(t.artist||'').trim().toLowerCase()}`;
             const base = db?.tracksLookup?.[lowerKey]?.plays || 0;
@@ -8509,11 +8614,21 @@ async function initBracketTournament(mode = 'tracks-overall', btn = null) {
         const rawA = db?.yearlyTops?.overall?.artists || [];
         const mapA = new Map();
         rawA.forEach(a => mapA.set(normalizeKey(a.name), { type: 'artist', name: a.name, subtitle: 'Artista', plays: a.plays || 0 }));
-        if (tidal?.artists) {
+        if (tidal?.artists && isAppOwner()) {
             Object.entries(tidal.artists).forEach(([name, obj]) => {
                 const k = normalizeKey(name);
                 if (mapA.has(k)) mapA.get(k).plays += (obj.plays || 0);
                 else mapA.set(k, { type: 'artist', name, subtitle: 'Artista', plays: obj.plays || 0 });
+            });
+        }
+        if (lastFmRecentDelta.length > 0) {
+            lastFmRecentDelta.forEach(t => {
+                const artName = t.artist ? (t.artist['#text'] || t.artist.name || '') : '';
+                if (artName) {
+                    const k = normalizeKey(artName);
+                    if (mapA.has(k)) mapA.get(k).plays += 1;
+                    else mapA.set(k, { type: 'artist', name: artName, subtitle: 'Artista', plays: 1 });
+                }
             });
         }
         pool = Array.from(mapA.values());
@@ -8525,11 +8640,19 @@ async function initBracketTournament(mode = 'tracks-overall', btn = null) {
             const k = `${normalizeKey(t.name)}:::${normalizeKey(art)}`;
             mapT.set(k, { type: 'track', name: t.name, subtitle: art, plays: t.plays || 0 });
         });
-        if (tidal?.tracks) {
+        if (tidal?.tracks && isAppOwner()) {
             Object.values(tidal.tracks).forEach(t => {
                 const k = `${normalizeKey(t.name)}:::${normalizeKey(t.artist || '')}`;
                 if (mapT.has(k)) mapT.get(k).plays += (t.plays || 0);
                 else mapT.set(k, { type: 'track', name: t.name, subtitle: t.artist || '', plays: t.plays || 0 });
+            });
+        }
+        if (lastFmRecentDelta.length > 0) {
+            lastFmRecentDelta.forEach(t => {
+                const artName = t.artist ? (t.artist['#text'] || t.artist.name || '') : '';
+                const k = `${normalizeKey(t.name)}:::${normalizeKey(artName)}`;
+                if (mapT.has(k)) mapT.get(k).plays += 1;
+                else mapT.set(k, { type: 'track', name: t.name, subtitle: artName, plays: 1 });
             });
         }
         pool = Array.from(mapT.values());
@@ -8667,7 +8790,7 @@ async function openHigherLowerModal() {
     bootstrap.Modal.getOrCreateInstance(modalEl).show();
 
     const db = await getActiveDatabase();
-    const tidal = tidalEstimates || await loadTidalEstimates();
+    const tidal = (isAppOwner() && (tidalEstimates || await loadTidalEstimates())) || null;
     const mapT = new Map();
 
     (db?.yearlyTops?.overall?.tracks || []).slice(0, 120).forEach(t => {
@@ -8675,11 +8798,19 @@ async function openHigherLowerModal() {
         const k = `${normalizeKey(t.name)}:::${normalizeKey(art)}`;
         mapT.set(k, { type: 'track', name: t.name, subtitle: art, plays: t.plays || 0 });
     });
-    if (tidal?.tracks) {
+    if (tidal?.tracks && isAppOwner()) {
         Object.values(tidal.tracks).forEach(t => {
             const k = `${normalizeKey(t.name)}:::${normalizeKey(t.artist || '')}`;
             if (mapT.has(k)) mapT.get(k).plays += (t.plays || 0);
             else mapT.set(k, { type: 'track', name: t.name, subtitle: t.artist || '', plays: t.plays || 0 });
+        });
+    }
+    if (lastFmRecentDelta.length > 0) {
+        lastFmRecentDelta.forEach(t => {
+            const artName = t.artist ? (t.artist['#text'] || t.artist.name || '') : '';
+            const k = `${normalizeKey(t.name)}:::${normalizeKey(artName)}`;
+            if (mapT.has(k)) mapT.get(k).plays += 1;
+            else mapT.set(k, { type: 'track', name: t.name, subtitle: artName, plays: 1 });
         });
     }
 
