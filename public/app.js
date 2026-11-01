@@ -38,12 +38,20 @@ initFirebase();
 
 // ----------------------------------------------------
 // ----------------------------------------------------
-// TUNE TRACKER: ROLES & OWNER MODE SYSTEM
+// TUNE TRACKER: ROLES, DEMO MODE & OWNER MODE SYSTEM
 // ----------------------------------------------------
 const DEFAULT_LASTFM_USER = 'Vrak_23';
 const DEFAULT_LASTFM_KEY = '82a251af624ca33e3d59215313af74c2';
 
+let isDemoSession = false;
+
+function isDemoMode() {
+    return isDemoSession || sessionStorage.getItem('tunetracker_demo_session') === 'true';
+}
+window.isDemoMode = isDemoMode;
+
 function isAppOwner() {
+    if (isDemoMode()) return false;
     if (localStorage.getItem('tunetracker_owner_mode') === 'true') return true;
     const lastUser = (localStorage.getItem('lastfm_user') || '').trim().toLowerCase();
     if (lastUser === 'vrak_23' || lastUser === 'vrak23') return true;
@@ -57,6 +65,148 @@ function isAppOwner() {
     return false;
 }
 window.isAppOwner = isAppOwner;
+
+function buildDemoDatabase() {
+    const demoTracks = [
+        { name: 'Starboy', artist: 'The Weeknd', album: 'Starboy', count: 312, ms: 312 * 230000, first: '2022-03-14', last: '2026-10-29', byYear: { '2022': 45, '2023': 78, '2024': 64, '2025': 70, '2026': 55 } },
+        { name: 'Instant Crush (feat. Julian Casablancas)', artist: 'Daft Punk', album: 'Random Access Memories', count: 284, ms: 284 * 337000, first: '2021-06-10', last: '2026-10-28', byYear: { '2021': 40, '2022': 52, '2023': 60, '2024': 48, '2025': 44, '2026': 40 } },
+        { name: 'Do I Wanna Know?', artist: 'Arctic Monkeys', album: 'AM', count: 265, ms: 265 * 272000, first: '2021-02-19', last: '2026-10-30', byYear: { '2021': 50, '2022': 45, '2023': 42, '2024': 48, '2025': 45, '2026': 35 } },
+        { name: 'Levitating', artist: 'Dua Lipa', album: 'Future Nostalgia', count: 248, ms: 248 * 203000, first: '2021-05-01', last: '2026-10-25', byYear: { '2021': 65, '2022': 55, '2023': 40, '2024': 35, '2025': 30, '2026': 23 } },
+        { name: 'The Less I Know The Better', artist: 'Tame Impala', album: 'Currents', count: 231, ms: 231 * 216000, first: '2021-08-12', last: '2026-10-27', byYear: { '2021': 35, '2022': 48, '2023': 44, '2024': 40, '2025': 36, '2026': 28 } },
+        { name: 'Feel Good Inc.', artist: 'Gorillaz', album: 'Demon Days', count: 219, ms: 219 * 222000, first: '2021-04-20', last: '2026-10-24', byYear: { '2021': 30, '2022': 42, '2023': 45, '2024': 38, '2025': 34, '2026': 30 } },
+        { name: 'Blinding Lights', artist: 'The Weeknd', album: 'After Hours', count: 210, ms: 210 * 200000, first: '2021-01-11', last: '2026-10-26', byYear: { '2021': 55, '2022': 40, '2023': 35, '2024': 30, '2025': 28, '2026': 22 } },
+        { name: 'Midnight City', artist: 'M83', album: "Hurry Up, We're Dreaming", count: 196, ms: 196 * 243000, first: '2022-01-08', last: '2026-10-22', byYear: { '2022': 44, '2023': 38, '2024': 42, '2025': 40, '2026': 32 } },
+        { name: 'Sweater Weather', artist: 'The Neighbourhood', album: 'I Love You.', count: 185, ms: 185 * 240000, first: '2021-11-05', last: '2026-10-20', byYear: { '2021': 22, '2022': 38, '2023': 40, '2024': 35, '2025': 28, '2026': 22 } },
+        { name: 'Get Lucky (feat. Pharrell Williams)', artist: 'Daft Punk', album: 'Random Access Memories', count: 174, ms: 174 * 248000, first: '2021-07-15', last: '2026-10-19', byYear: { '2021': 30, '2022': 34, '2023': 32, '2024': 28, '2025': 26, '2026': 24 } },
+        { name: '505', artist: 'Arctic Monkeys', album: 'Favourite Worst Nightmare', count: 168, ms: 168 * 253000, first: '2022-04-02', last: '2026-10-21', byYear: { '2022': 36, '2023': 38, '2024': 34, '2025': 32, '2026': 28 } },
+        { name: 'BIRDS OF A FEATHER', artist: 'Billie Eilish', album: 'HIT ME HARD AND SOFT', count: 159, ms: 159 * 210000, first: '2024-05-18', last: '2026-10-30', byYear: { '2024': 62, '2025': 54, '2026': 43 } },
+        { name: 'Vivir Mi Vida', artist: 'Marc Anthony', album: '3.0', count: 145, ms: 145 * 252000, first: '2021-09-12', last: '2026-10-15', byYear: { '2021': 25, '2022': 28, '2023': 26, '2024': 24, '2025': 22, '2026': 20 } },
+        { name: 'Clocks', artist: 'Coldplay', album: 'A Rush of Blood to the Head', count: 138, ms: 138 * 307000, first: '2021-03-22', last: '2026-10-18', byYear: { '2021': 24, '2022': 26, '2023': 25, '2024': 23, '2025': 22, '2026': 18 } },
+        { name: 'On Melancholy Hill', artist: 'Gorillaz', album: 'Plastic Beach', count: 132, ms: 132 * 233000, first: '2022-02-14', last: '2026-10-17', byYear: { '2022': 28, '2023': 28, '2024': 26, '2025': 26, '2026': 24 } }
+    ];
+
+    const demoArtists = [
+        { name: 'The Weeknd', count: 845, ms: 845 * 215000, first: '2021-01-11', last: '2026-10-29', byYear: { '2021': 120, '2022': 155, '2023': 160, '2024': 145, '2025': 140, '2026': 125 } },
+        { name: 'Daft Punk', count: 760, ms: 760 * 265000, first: '2021-06-10', last: '2026-10-28', byYear: { '2021': 110, '2022': 135, '2023': 140, '2024': 130, '2025': 125, '2026': 120 } },
+        { name: 'Arctic Monkeys', count: 710, ms: 710 * 245000, first: '2021-02-19', last: '2026-10-30', byYear: { '2021': 105, '2022': 125, '2023': 130, '2024': 120, '2025': 120, '2026': 110 } },
+        { name: 'Gorillaz', count: 620, ms: 620 * 228000, first: '2021-04-20', last: '2026-10-24', byYear: { '2021': 90, '2022': 110, '2023': 115, '2024': 105, '2025': 105, '2026': 95 } },
+        { name: 'Dua Lipa', count: 580, ms: 580 * 205000, first: '2021-05-01', last: '2026-10-25', byYear: { '2021': 115, '2022': 110, '2023': 95, '2024': 90, '2025': 90, '2026': 80 } },
+        { name: 'Tame Impala', count: 540, ms: 540 * 235000, first: '2021-08-12', last: '2026-10-27', byYear: { '2021': 80, '2022': 95, '2023': 100, '2024': 95, '2025': 90, '2026': 80 } },
+        { name: 'Coldplay', count: 490, ms: 490 * 260000, first: '2021-03-22', last: '2026-10-18', byYear: { '2021': 75, '2022': 85, '2023': 90, '2024': 85, '2025': 80, '2026': 75 } },
+        { name: 'Billie Eilish', count: 465, ms: 465 * 212000, first: '2021-07-30', last: '2026-10-30', byYear: { '2021': 55, '2022': 65, '2023': 70, '2024': 95, '2025': 95, '2026': 85 } },
+        { name: 'M83', count: 410, ms: 410 * 242000, first: '2022-01-08', last: '2026-10-22', byYear: { '2022': 85, '2023': 85, '2024': 82, '2025': 80, '2026': 78 } },
+        { name: 'The Neighbourhood', count: 385, ms: 385 * 238000, first: '2021-11-05', last: '2026-10-20', byYear: { '2021': 45, '2022': 70, '2023': 75, '2024': 70, '2025': 65, '2026': 60 } }
+    ];
+
+    const demoAlbums = [
+        { name: 'Random Access Memories', artist: 'Daft Punk', count: 520, ms: 520 * 265000, first: '2021-06-10', last: '2026-10-28', byYear: { '2021': 80, '2022': 95, '2023': 95, '2024': 85, '2025': 85, '2026': 80 } },
+        { name: 'Starboy', artist: 'The Weeknd', count: 480, ms: 480 * 225000, first: '2022-03-14', last: '2026-10-29', byYear: { '2022': 90, '2023': 105, '2024': 95, '2025': 100, '2026': 90 } },
+        { name: 'AM', artist: 'Arctic Monkeys', count: 450, ms: 450 * 240000, first: '2021-02-19', last: '2026-10-30', byYear: { '2021': 75, '2022': 80, '2023': 80, '2024': 75, '2025': 75, '2026': 65 } },
+        { name: 'Future Nostalgia', artist: 'Dua Lipa', count: 410, ms: 410 * 203000, first: '2021-05-01', last: '2026-10-25', byYear: { '2021': 90, '2022': 85, '2023': 65, '2024': 60, '2025': 58, '2026': 52 } },
+        { name: 'Currents', artist: 'Tame Impala', count: 390, ms: 390 * 230000, first: '2021-08-12', last: '2026-10-27', byYear: { '2021': 60, '2022': 70, '2023': 70, '2024': 65, '2025': 65, '2026': 60 } },
+        { name: 'After Hours', artist: 'The Weeknd', count: 365, ms: 365 * 210000, first: '2021-01-11', last: '2026-10-26', byYear: { '2021': 75, '2022': 65, '2023': 60, '2024': 58, '2025': 55, '2026': 52 } },
+        { name: 'Demon Days', artist: 'Gorillaz', count: 340, ms: 340 * 222000, first: '2021-04-20', last: '2026-10-24', byYear: { '2021': 55, '2022': 60, '2023': 60, '2024': 58, '2025': 55, '2026': 52 } }
+    ];
+
+    const tracksLookup = {};
+    demoTracks.forEach(t => {
+        const key = `${t.name.toLowerCase()}|||${t.artist.toLowerCase()}`;
+        tracksLookup[key] = { ...t };
+    });
+
+    const artistsLookup = {};
+    demoArtists.forEach(a => {
+        artistsLookup[a.name.toLowerCase()] = { ...a };
+    });
+
+    const albumsLookup = {};
+    demoAlbums.forEach(al => {
+        const key = `${al.name.toLowerCase()}|||${al.artist.toLowerCase()}`;
+        albumsLookup[key] = { ...al };
+    });
+
+    const years = ['2021', '2022', '2023', '2024', '2025', '2026'];
+    const yearlyTops = {
+        overall: {
+            tracks: demoTracks.map(t => ({ ...t })),
+            artists: demoArtists.map(a => ({ ...a })),
+            albums: demoAlbums.map(al => ({ ...al }))
+        }
+    };
+
+    years.forEach(yr => {
+        yearlyTops[yr] = {
+            tracks: demoTracks
+                .filter(t => t.byYear && t.byYear[yr])
+                .map(t => ({ ...t, count: t.byYear[yr], ms: t.byYear[yr] * 225000 }))
+                .sort((a, b) => b.count - a.count),
+            artists: demoArtists
+                .filter(a => a.byYear && a.byYear[yr])
+                .map(a => ({ ...a, count: a.byYear[yr], ms: a.byYear[yr] * 225000 }))
+                .sort((a, b) => b.count - a.count),
+            albums: demoAlbums
+                .filter(al => al.byYear && al.byYear[yr])
+                .map(al => ({ ...al, count: al.byYear[yr], ms: al.byYear[yr] * 225000 }))
+                .sort((a, b) => b.count - a.count)
+        };
+    });
+
+    const nowMs = Date.now();
+    const recent = demoTracks.slice(0, 12).map((t, idx) => ({
+        name: t.name,
+        artist: t.artist,
+        album: t.album,
+        ts: new Date(nowMs - idx * 18 * 60 * 1000).toISOString().replace('T', ' ').slice(0, 16),
+        source: 'demo'
+    }));
+
+    return {
+        summary: {
+            totalStreams: 12450,
+            spotifyStreams: 12450,
+            lastfmStreams: 12450,
+            totalMinutes: 44820,
+            totalHours: 747,
+            uniqueTracks: 840,
+            uniqueArtists: 215,
+            uniqueAlbums: 310,
+            years: years
+        },
+        yearlyTops,
+        monthlyTops: {},
+        tracksLookup,
+        artistsLookup,
+        albumsLookup,
+        recent,
+        insights: {
+            hourly: [120, 85, 45, 20, 10, 15, 45, 190, 340, 480, 560, 620, 690, 710, 740, 820, 910, 1050, 1180, 1120, 980, 840, 560, 315],
+            weekdays: [1650, 1780, 1820, 1890, 2110, 1720, 1480],
+            streaks: {
+                longestDays: 24,
+                longestStart: '2024-06-01',
+                longestEnd: '2024-06-24',
+                topDayDate: '2025-08-14',
+                topDayStreams: 92,
+                totalActiveDays: 680
+            },
+            loyalty: demoArtists.slice(0, 8).map(a => ({
+                name: a.name,
+                yearsCount: Object.keys(a.byYear || {}).length,
+                yearsList: Object.keys(a.byYear || {}),
+                totalStreams: a.count
+            })),
+            forgottenGems: demoTracks.slice(3, 9).map(t => ({
+                name: t.name,
+                artist: t.artist,
+                peakYear: '2022',
+                peakCount: 65,
+                totalCount: t.count,
+                lastPlayed: '2025-11-10'
+            }))
+        }
+    };
+}
+window.buildDemoDatabase = buildDemoDatabase;
 
 function promptOwnerUnlock() {
     if (isAppOwner()) {
@@ -618,6 +768,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupEventListeners();
     updateCloudUI('active');
 
+    const authLoadingView = document.getElementById('auth-loading-view');
     const isLoggedOut = localStorage.getItem('spoti_logged_out') === 'true';
 
     // Procesar posible retorno de Spotify OAuth PKCE
@@ -625,11 +776,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     const code = urlParams.get('code');
     if (code) {
         localStorage.removeItem('spoti_logged_out');
+        isDemoSession = false;
+        sessionStorage.removeItem('tunetracker_demo_session');
         await fetchAccessToken(code);
-    } else if (isLoggedOut) {
-        showLogin();
-    } else {
+        if (authLoadingView) authLoadingView.classList.add('d-none');
+        return;
+    }
+
+    // Breve pausa en la pantalla de verificación para identificar si hay sesión previa
+    await new Promise(r => setTimeout(r, 420));
+
+    const hasSpotify = !!localStorage.getItem('spotify_access_token');
+    const hasLastFm = !!(localStorage.getItem('lastfm_user') && localStorage.getItem('lastfm_user').trim());
+    const hasOwner = localStorage.getItem('tunetracker_owner_mode') === 'true';
+    const isAuthenticated = !isLoggedOut && (hasSpotify || hasLastFm || hasOwner);
+
+    if (authLoadingView) authLoadingView.classList.add('d-none');
+
+    if (isAuthenticated) {
+        isDemoSession = false;
+        sessionStorage.removeItem('tunetracker_demo_session');
         showDashboard();
+    } else {
+        showLogin();
     }
 });
 
@@ -645,6 +814,8 @@ function setupEventListeners() {
     if (btnLogin) {
         btnLogin.addEventListener('click', () => {
             localStorage.removeItem('spoti_logged_out');
+            isDemoSession = false;
+            sessionStorage.removeItem('tunetracker_demo_session');
             redirectToSpotifyLogin();
         });
     }
@@ -653,6 +824,9 @@ function setupEventListeners() {
     if (btnLoginDemo) {
         btnLoginDemo.addEventListener('click', () => {
             localStorage.removeItem('spoti_logged_out');
+            isDemoSession = true;
+            sessionStorage.setItem('tunetracker_demo_session', 'true');
+            unifiedDb = null;
             showDashboard();
         });
     }
@@ -661,6 +835,8 @@ function setupEventListeners() {
     if (btnLoginLastFm) {
         btnLoginLastFm.addEventListener('click', () => {
             localStorage.removeItem('spoti_logged_out');
+            isDemoSession = false;
+            sessionStorage.removeItem('tunetracker_demo_session');
         });
     }
 
@@ -877,6 +1053,14 @@ function setupEventListeners() {
     if (btnLastFmSave) {
         btnLastFmSave.addEventListener('click', handleSaveLastFm);
     }
+    if (lastFmUsernameInput) {
+        lastFmUsernameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleSaveLastFm();
+            }
+        });
+    }
     if (btnLastFmDisconnect) {
         btnLastFmDisconnect.addEventListener('click', handleDisconnectLastFm);
     }
@@ -919,7 +1103,16 @@ function setupEventListeners() {
 // GESTIÓN DE FUENTES DE DATOS: UNIFICADO / SPOTIFY / LAST.FM
 // ----------------------------------------------------
 async function loadUnifiedDatabase() {
-    if (unifiedDb) return unifiedDb;
+    // Si estamos en Modo Demo o el usuario no es el dueño, NUNCA cargar los datos personales del creador
+    if (isDemoMode() || !isAppOwner()) {
+        if (!unifiedDb || !unifiedDb._isDemoDb) {
+            unifiedDb = buildDemoDatabase();
+            unifiedDb._isDemoDb = true;
+        }
+        return unifiedDb;
+    }
+
+    if (unifiedDb && !unifiedDb._isDemoDb) return unifiedDb;
     if (isUnifiedDbLoading) {
         while (isUnifiedDbLoading) {
             await new Promise(r => setTimeout(r, 100));
@@ -1434,9 +1627,13 @@ function handleLogout() {
     localStorage.removeItem('code_verifier');
     localStorage.removeItem('lastfm_user');
     localStorage.removeItem('lastfm_key');
+    localStorage.removeItem('tunetracker_owner_mode');
     localStorage.setItem('spoti_logged_out', 'true');
+    isDemoSession = false;
+    sessionStorage.removeItem('tunetracker_demo_session');
     accessToken = null;
     userProfileData = null;
+    unifiedDb = null;
 
     if (currentlyPlayingTimer) {
         clearInterval(currentlyPlayingTimer);
@@ -1461,6 +1658,9 @@ function handleLogout() {
 // MOSTRAR VISTAS
 // ----------------------------------------------------
 function showLogin() {
+    const authLoadingView = document.getElementById('auth-loading-view');
+    if (authLoadingView) authLoadingView.classList.add('d-none');
+
     loginView.classList.remove('d-none');
     dashboardView.classList.add('d-none');
     navActions.classList.add('d-none');
@@ -1478,6 +1678,9 @@ function showLogin() {
 }
 
 async function showDashboard() {
+    const authLoadingView = document.getElementById('auth-loading-view');
+    if (authLoadingView) authLoadingView.classList.add('d-none');
+
     loginView.classList.add('d-none');
     dashboardView.classList.remove('d-none');
     navActions.classList.remove('d-none');
@@ -1798,6 +2001,14 @@ async function fetchUserProfile() {
 }
 
 async function syncUserProfile() {
+    if (isDemoMode()) {
+        if (drawerUserName) drawerUserName.textContent = 'Modo Demo';
+        if (drawerUserFollowers) drawerUserFollowers.textContent = 'Datos de ejemplo • Sin cuenta vinculada';
+        if (userImg) userImg.src = DEFAULT_AVATAR_SVG;
+        if (drawerUserImg) drawerUserImg.src = DEFAULT_AVATAR_SVG;
+        return;
+    }
+
     let spotifySuccess = false;
     const token = await getValidAccessToken();
     if (token) {
@@ -1819,6 +2030,38 @@ let lastPlayingTrackKey = null;
 
 async function fetchCurrentlyPlaying() {
     if (!navigator.onLine) return;
+
+    if (isDemoMode()) {
+        if (currentlyPlayingContainer) {
+            currentlyPlayingContainer.classList.remove('d-none');
+            const demoTrack = 'Starboy';
+            const demoArtist = 'The Weeknd';
+            const artKey = `track::${normalizeKey(demoTrack)}::${normalizeKey(demoArtist)}`;
+            const cover = artCache[artKey] || FALLBACK_ART_SVG;
+            currentlyPlayingContainer.innerHTML = `
+                <div class="dynamic-island" onclick="showItemStats('track', '${escapeJsStr(demoTrack)}', '${escapeJsStr(demoArtist)}')" title="Reproductor de demostración">
+                    <img id="dynamic-island-cover" src="${cover}" class="dynamic-island-art" alt="Cover" onerror="safeImgError(this)">
+                    <div class="overflow-hidden text-start" style="max-width: 300px;">
+                        <div class="d-flex align-items-center gap-1.5">
+                            <span style="font-size: 0.66rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #30d158;">
+                                ● EN REPRODUCCIÓN (DEMO)
+                            </span>
+                        </div>
+                        <div class="fw-bold text-truncate text-white" style="font-size: 0.94rem; line-height: 1.25;">${escapeHtml(demoTrack)}</div>
+                        <small class="text-secondary text-truncate d-block" style="font-size: 0.78rem;">${escapeHtml(demoArtist)}</small>
+                    </div>
+                    <div class="island-eq ms-2" title="Vista previa en vivo">
+                        <span></span><span></span><span></span><span></span>
+                    </div>
+                </div>
+            `;
+            if (!artCache[artKey]) {
+                resolveSpotifyArtwork(demoTrack, demoArtist, 'track', 'dynamic-island-cover');
+            }
+        }
+        return;
+    }
+
     const { user, key } = getLastFmCredentials();
     if (!user || !key) {
         if (currentlyPlayingContainer) {
@@ -1854,22 +2097,22 @@ async function fetchCurrentlyPlaying() {
                 if (currentlyPlayingContainer) {
                     currentlyPlayingContainer.innerHTML = `
                         <div class="dynamic-island" onclick="showItemStats('track', '${escapeJsStr(trackName)}', '${escapeJsStr(artistName)}')" title="Toca para ver las estadísticas e historial de esta canción">
-                            <img id="dynamic-island-cover" src="${cover}" class="dynamic-island-art" style="${isPlaying ? '' : 'animation-play-state: paused;'}" alt="Cover" onerror="safeImgError(this)">
-                            <div class="overflow-hidden text-start" style="max-width: 240px;">
+                            <img id="dynamic-island-cover" src="${cover}" class="dynamic-island-art" alt="Cover" onerror="safeImgError(this)">
+                            <div class="overflow-hidden text-start" style="max-width: 300px;">
                                 <div class="d-flex align-items-center gap-1.5">
-                                    <span style="font-size: 0.60rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: ${isPlaying ? '#30d158' : '#a1a1aa'};">
+                                    <span style="font-size: 0.66rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: ${isPlaying ? '#30d158' : '#a1a1aa'};">
                                         ${isPlaying ? '● EN REPRODUCCIÓN' : 'ÚLTIMA ESCUCHA'}
                                     </span>
                                 </div>
-                                <div class="fw-bold text-truncate text-white" style="font-size: 0.80rem; line-height: 1.2;">${escapeHtml(trackName)}</div>
-                                <small class="text-secondary text-truncate d-block" style="font-size: 0.68rem;">${escapeHtml(artistName)}</small>
+                                <div class="fw-bold text-truncate text-white" style="font-size: 0.94rem; line-height: 1.25;">${escapeHtml(trackName)}</div>
+                                <small class="text-secondary text-truncate d-block" style="font-size: 0.78rem;">${escapeHtml(artistName)}</small>
                             </div>
                             ${isPlaying ? `
-                                <div class="island-eq ms-1" title="Sonando en vivo">
+                                <div class="island-eq ms-2" title="Sonando en vivo">
                                     <span></span><span></span><span></span><span></span>
                                 </div>
                             ` : `
-                                <span class="badge rounded-pill" style="background: rgba(255,255,255,0.08); color: #a1a1aa; font-size: 0.64rem;">
+                                <span class="badge rounded-pill ms-1" style="background: rgba(255,255,255,0.08); color: #a1a1aa; font-size: 0.68rem;">
                                     <i class="fa-solid fa-chart-simple me-1 text-info"></i>Stats
                                 </span>
                             `}
@@ -3515,12 +3758,11 @@ async function showItemStats(type, name, artist, isBack = false) {
 }
 
 // ----------------------------------------------------
-// MODAL LAST.FM CONFIGURACIÓN
+// MODAL LAST.FM CONFIGURACIÓN (SIN PEDIR API KEY AL USUARIO)
 // ----------------------------------------------------
 function openLastFmModal() {
-    const { user, key } = getLastFmCredentials();
+    const { user } = getLastFmCredentials();
     if (lastFmUsernameInput) lastFmUsernameInput.value = user || '';
-    if (lastFmApiKeyInput) lastFmApiKeyInput.value = (key === DEFAULT_LASTFM_KEY && !isAppOwner()) ? '' : (key || '');
     if (lastFmError) lastFmError.classList.add('d-none');
 
     const modal = bootstrap.Modal.getOrCreateInstance(lastFmModalEl);
@@ -3528,11 +3770,8 @@ function openLastFmModal() {
 }
 
 async function handleSaveLastFm() {
-    const user = lastFmUsernameInput.value.trim();
-    let key = lastFmApiKeyInput.value.trim();
-    if (!key) {
-        key = DEFAULT_LASTFM_KEY;
-    }
+    const user = lastFmUsernameInput ? lastFmUsernameInput.value.trim() : '';
+    const key = DEFAULT_LASTFM_KEY;
 
     if (!user) {
         if (lastFmError) {
@@ -3543,7 +3782,7 @@ async function handleSaveLastFm() {
     }
 
     btnLastFmSave.disabled = true;
-    btnLastFmSave.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Verificando...';
+    btnLastFmSave.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Conectando...';
 
     try {
         let testRes = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.getinfo&user=${encodeURIComponent(user)}&api_key=${encodeURIComponent(key)}&format=json`);
@@ -3557,15 +3796,18 @@ async function handleSaveLastFm() {
 
         if (testData.error) {
             if (lastFmError) {
-                lastFmError.textContent = `Error de Last.fm: ${testData.message || 'API Key o usuario inválido'}`;
+                lastFmError.textContent = `No se encontró el usuario "${user}" en Last.fm. Verifica que esté bien escrito.`;
                 lastFmError.classList.remove('d-none');
             }
             btnLastFmSave.disabled = false;
-            btnLastFmSave.textContent = 'Guardar y Sincronizar';
+            btnLastFmSave.innerHTML = '<i class="fa-solid fa-plug me-1.5"></i> Conectar y Sincronizar';
             return;
         }
 
         localStorage.removeItem('spoti_logged_out');
+        isDemoSession = false;
+        sessionStorage.removeItem('tunetracker_demo_session');
+        unifiedDb = null;
         localStorage.setItem('lastfm_user', user);
         localStorage.setItem('lastfm_key', key);
         applyRoleBasedUI();
@@ -3584,7 +3826,7 @@ async function handleSaveLastFm() {
         }
     } finally {
         btnLastFmSave.disabled = false;
-        btnLastFmSave.textContent = 'Guardar y Sincronizar';
+        btnLastFmSave.innerHTML = '<i class="fa-solid fa-plug me-1.5"></i> Conectar y Sincronizar';
     }
 }
 

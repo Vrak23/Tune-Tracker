@@ -1003,56 +1003,52 @@
         .dynamic-island-wrapper {
             display: flex;
             justify-content: center;
-            margin-bottom: 14px;
+            margin-bottom: 16px;
         }
         .dynamic-island {
             background: #000000;
-            border: 1px solid rgba(255, 255, 255, 0.16);
+            border: 1px solid rgba(255, 255, 255, 0.18);
             border-radius: 980px;
-            padding: 7px 14px 7px 9px;
+            padding: 10px 22px 10px 12px;
             display: inline-flex;
             align-items: center;
-            gap: 12px;
+            gap: 15px;
+            min-width: 280px;
             max-width: 100%;
-            box-shadow: 0 14px 40px rgba(0, 0, 0, 0.9), 0 0 28px rgba(191, 90, 242, 0.24);
+            box-shadow: 0 16px 44px rgba(0, 0, 0, 0.92), 0 0 32px rgba(191, 90, 242, 0.26);
             cursor: pointer;
             transition: all 0.32s cubic-bezier(0.22, 1, 0.36, 1);
         }
         .dynamic-island:hover {
             transform: scale(1.02);
-            border-color: rgba(191, 90, 242, 0.45);
-            box-shadow: 0 18px 46px rgba(0, 0, 0, 0.95), 0 0 36px rgba(191, 90, 242, 0.35);
+            border-color: rgba(191, 90, 242, 0.48);
+            box-shadow: 0 18px 48px rgba(0, 0, 0, 0.96), 0 0 38px rgba(191, 90, 242, 0.38);
         }
         .dynamic-island-art {
-            width: 34px;
-            height: 34px;
-            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
             object-fit: cover;
-            animation: spinSlow 14s linear infinite;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.22);
             flex-shrink: 0;
-        }
-        @keyframes spinSlow {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
         }
         .island-eq {
             display: inline-flex;
             align-items: flex-end;
-            gap: 2.5px;
-            height: 14px;
+            gap: 3px;
+            height: 18px;
             flex-shrink: 0;
         }
         .island-eq span {
-            width: 3px;
+            width: 3.5px;
             background: linear-gradient(180deg, #bf5af2, #38bdf8);
             border-radius: 2px;
             animation: eqPulse 0.9s ease-in-out infinite alternate;
         }
-        .island-eq span:nth-child(1) { height: 6px; animation-delay: 0s; }
-        .island-eq span:nth-child(2) { height: 13px; animation-delay: 0.2s; }
-        .island-eq span:nth-child(3) { height: 8px; animation-delay: 0.4s; }
-        .island-eq span:nth-child(4) { height: 11px; animation-delay: 0.15s; }
+        .island-eq span:nth-child(1) { height: 8px; animation-delay: 0s; }
+        .island-eq span:nth-child(2) { height: 17px; animation-delay: 0.2s; }
+        .island-eq span:nth-child(3) { height: 11px; animation-delay: 0.4s; }
+        .island-eq span:nth-child(4) { height: 15px; animation-delay: 0.15s; }
         @keyframes eqPulse {
             0% { transform: scaleY(0.45); }
             100% { transform: scaleY(1.05); }
@@ -1155,14 +1151,6 @@
 
             <!-- Right Navbar Controls (Avatar + Burger Menu Button) -->
             <div id="nav-actions" class="d-none d-flex align-items-center gap-2">
-                <button id="btn-open-curator-nav" class="btn btn-sm btn-outline-brand rounded-pill px-2.5 py-1 fw-semibold d-none d-lg-inline-flex align-items-center gap-1.5" style="font-size: 0.76rem;" title="Curador de Playlists Semestrales">
-                    <i class="fa-solid fa-wand-magic-sparkles text-primary"></i>
-                    <span>Playlists Semestrales</span>
-                </button>
-                <button id="btn-open-trophies-nav" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1 fw-semibold d-none d-lg-inline-flex align-items-center gap-1.5 text-white" style="font-size: 0.76rem; background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.12);" title="Sala de Trofeos e Hitos">
-                    <i class="fa-solid fa-trophy text-warning"></i>
-                    <span>Trofeos & Hitos</span>
-                </button>
                 <button id="btn-open-progress-nav" class="btn btn-sm rounded-pill px-2.5 py-1 fw-semibold d-none align-items-center gap-1 text-white border-0" style="font-size: 0.76rem; background: rgba(168,85,247,0.14); border: 1px solid rgba(168,85,247,0.4) !important;" title="Mi progreso y racha diaria"></button>
                 <img id="user-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 44' width='44' height='44'%3E%3Crect width='44' height='44' fill='%2318181c' rx='22'/%3E%3Ccircle cx='22' cy='16' r='6' fill='%23a855f7'/%3E%3Cpath d='M10 34c0-5 5.5-8 12-8s12 3 12 8z' fill='%23a855f7'/%3E%3C/svg%3e" alt="Avatar" class="img-avatar rounded-circle border" style="width: 32px; height: 32px; object-fit: cover; border-color: var(--brand-primary) !important;" onerror="safeAvatarError(this)">
                 <button id="nav-burger-btn" class="btn btn-outline-brand rounded-pill px-2.5 py-1 d-inline-flex align-items-center justify-content-center" type="button" data-bs-toggle="offcanvas" data-bs-target="#burgerMenu" aria-controls="burgerMenu" title="Abrir Menú de Opciones" aria-label="Abrir Menú">
@@ -1175,8 +1163,19 @@
     <!-- Main Container -->
     <div class="app-container py-3 flex-grow-1">
 
+        <!-- Initial Auth Check Loading Screen -->
+        <div id="auth-loading-view" class="text-center py-5 my-auto">
+            <div class="mb-4">
+                <img src="/logo.png" alt="Tune Tracker Logo" style="width: 88px; height: 88px; filter: drop-shadow(0 0 22px var(--brand-glow));" class="rounded-4">
+            </div>
+            <div class="d-flex flex-column align-items-center gap-2">
+                <div class="spinner-border text-primary" style="width: 2rem; height: 2rem;" role="status"></div>
+                <span class="text-secondary small fw-semibold mt-1" style="letter-spacing: 0.04em;">Verificando sesión...</span>
+            </div>
+        </div>
+
         <!-- Login View -->
-        <div id="login-view" class="text-center py-5 my-auto">
+        <div id="login-view" class="text-center py-5 my-auto d-none">
             <div class="mb-4">
                 <img src="/logo.png" alt="Tune Tracker Logo" style="width: 104px; height: 104px; filter: drop-shadow(0 0 25px var(--brand-glow));" class="rounded-4">
             </div>
@@ -1285,7 +1284,7 @@
                         <div>
                             <div class="d-flex align-items-center justify-content-between mb-2">
                                 <span class="apple-eyebrow"><i class="fa-solid fa-wave-square text-info"></i> ADN & PROGRESO</span>
-                                <button class="btn btn-sm btn-link text-secondary p-0 text-decoration-none" style="font-size: 0.72rem;" onclick="openStreamManagerModal()">
+                                <button class="btn btn-sm btn-link text-secondary p-0 text-decoration-none owner-only-element d-none" style="font-size: 0.72rem;" onclick="openStreamManagerModal()">
                                     <i class="fa-solid fa-sliders me-1 text-info"></i>Era Tidal
                                 </button>
                             </div>
@@ -1908,271 +1907,114 @@
                     </div>
                 </div>
 
-                <!-- Menú de 4 Secciones Colapsables (Experiencias, Análisis, Herramientas, Sistema) -->
-                <div class="accordion accordion-flush" id="burgerAccordion">
-                    <!-- 1. Experiencias -->
-                    <div class="accordion-item bg-transparent border-0 mb-1">
-                        <h2 class="accordion-header" id="headingExp">
-                            <button class="accordion-button bg-transparent text-white px-2 py-2 shadow-none border-bottom border-secondary border-opacity-10" type="button" data-bs-toggle="collapse" data-bs-target="#collapseExp" aria-expanded="true" aria-controls="collapseExp" style="font-size: 0.76rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px;">
-                                <i class="fa-solid fa-gamepad text-primary me-2"></i>
-                                <span>Experiencias</span>
-                            </button>
-                        </h2>
-                        <div id="collapseExp" class="accordion-collapse collapse show" aria-labelledby="headingExp">
-                            <div class="accordion-body px-0 py-1 d-flex flex-column gap-1">
-                                <button class="offcanvas-menu-item" id="menu-open-hub-view" data-bs-dismiss="offcanvas" onclick="switchAppView('hub')">
-                                    <i class="fa-solid fa-shapes text-primary fs-5"></i>
-                                    <div>
-                                        <div class="fw-semibold text-primary">Centro de Experiencias</div>
-                                        <small class="text-secondary d-block" style="font-size: 0.73rem;">Explora todos los juegos y módulos interactivos</small>
-                                    </div>
-                                </button>
-                                <button class="offcanvas-menu-item" id="menu-open-progress" data-bs-dismiss="offcanvas">
-                                    <i class="fa-solid fa-fire text-danger fs-5"></i>
-                                    <div>
-                                        <div class="fw-semibold">Mi Progreso & Reto del Día</div>
-                                        <small class="text-secondary d-block" style="font-size: 0.73rem;">Nivel XP, racha diaria y reto de hoy</small>
-                                    </div>
-                                </button>
-                                <button class="offcanvas-menu-item" id="menu-open-trophies" data-bs-dismiss="offcanvas">
-                                    <i class="fa-solid fa-award text-warning fs-5"></i>
-                                    <div>
-                                        <div class="fw-semibold">Sala de Trofeos & Hitos</div>
-                                        <small class="text-secondary d-block" style="font-size: 0.73rem;">Logros desbloqueados y metas</small>
-                                    </div>
-                                </button>
-                                <button class="offcanvas-menu-item" id="menu-open-capsule" data-bs-dismiss="offcanvas">
-                                    <i class="fa-solid fa-clock-rotate-left text-info fs-5"></i>
-                                    <div>
-                                        <div class="fw-semibold">Cápsula del Tiempo</div>
-                                        <small class="text-secondary d-block" style="font-size: 0.73rem;">Qué escuchabas en este mes en años anteriores</small>
-                                    </div>
-                                </button>
-                                <button class="offcanvas-menu-item" id="menu-open-trivia" data-bs-dismiss="offcanvas">
-                                    <i class="fa-solid fa-brain text-primary fs-5"></i>
-                                    <div>
-                                        <div class="fw-semibold">Trivia Musical Personal</div>
-                                        <small class="text-secondary d-block" style="font-size: 0.73rem;">¿Cuánto conoces tus propias estadísticas?</small>
-                                    </div>
-                                </button>
-                                <button class="offcanvas-menu-item" id="menu-open-iceberg" data-bs-dismiss="offcanvas">
-                                    <i class="fa-solid fa-mountain text-info fs-5"></i>
-                                    <div>
-                                        <div class="fw-semibold">Iceberg Musical</div>
-                                        <small class="text-secondary d-block" style="font-size: 0.73rem;">Superficie comercial vs rarezas abisales</small>
-                                    </div>
-                                </button>
-                                <button class="offcanvas-menu-item" id="menu-open-eras" data-bs-dismiss="offcanvas">
-                                    <i class="fa-solid fa-chart-line text-success fs-5"></i>
-                                    <div>
-                                        <div class="fw-semibold">Carrera de Eras</div>
-                                        <small class="text-secondary d-block" style="font-size: 0.73rem;">Evolución animada de tus artistas mes a mes</small>
-                                    </div>
-                                </button>
+                <!-- Menú Simplificado y Directo -->
+                <div class="d-flex flex-column gap-1.5 mt-1">
+                    <button class="offcanvas-menu-item" id="menu-lastfm-connect" data-bs-dismiss="offcanvas">
+                        <i class="fa-brands fa-lastfm text-danger fs-5"></i>
+                        <div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="fw-semibold">Cuenta Last.fm</span>
+                                <span id="drawer-lastfm-status" class="badge bg-secondary bg-opacity-25" style="font-size: 0.65rem;">Conectar</span>
                             </div>
+                            <small class="text-secondary d-block" style="font-size: 0.73rem;">Scrobbles y Dynamic Island en vivo</small>
                         </div>
-                    </div>
+                    </button>
 
-                    <!-- 2. Análisis (Solo Modo Dueño) -->
-                    <div class="accordion-item bg-transparent border-0 mb-1 owner-only-element d-none" id="accordion-section-analysis">
-                        <h2 class="accordion-header" id="headingAnalysis">
-                            <button class="accordion-button bg-transparent text-white px-2 py-2 shadow-none border-bottom border-secondary border-opacity-10" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAnalysis" aria-expanded="true" aria-controls="collapseAnalysis" style="font-size: 0.76rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px;">
-                                <i class="fa-solid fa-chart-pie text-info me-2"></i>
-                                <span>Análisis Avanzado</span>
-                            </button>
-                        </h2>
-                        <div id="collapseAnalysis" class="accordion-collapse collapse show" aria-labelledby="headingAnalysis">
-                            <div class="accordion-body px-0 py-1 d-flex flex-column gap-1">
-                                <button class="offcanvas-menu-item" id="menu-open-habits" data-bs-dismiss="offcanvas">
-                                    <i class="fa-solid fa-chart-column text-info fs-5"></i>
-                                    <div>
-                                        <div class="fw-semibold">Hábitos de Escucha</div>
-                                        <small class="text-secondary d-block" style="font-size: 0.73rem;">Horas pico del día y días más activos</small>
-                                    </div>
-                                </button>
-                                <button class="offcanvas-menu-item" id="menu-open-forgotten" data-bs-dismiss="offcanvas">
-                                    <i class="fa-solid fa-ghost text-warning fs-5"></i>
-                                    <div>
-                                        <div class="fw-semibold">Artistas Olvidados</div>
-                                        <small class="text-secondary d-block" style="font-size: 0.73rem;">Música que amabas y hace tiempo no escuchas</small>
-                                    </div>
-                                </button>
-                                <button class="offcanvas-menu-item" id="menu-open-versus" data-bs-dismiss="offcanvas">
-                                    <i class="fa-solid fa-scale-balanced text-primary fs-5"></i>
-                                    <div>
-                                        <div class="fw-semibold">Comparador Versus</div>
-                                        <small class="text-secondary d-block" style="font-size: 0.73rem;">Compara dos artistas cara a cara</small>
-                                    </div>
-                                </button>
-                                <button class="offcanvas-menu-item" id="menu-open-records" data-bs-dismiss="offcanvas">
-                                    <i class="fa-solid fa-medal text-warning fs-5"></i>
-                                    <div>
-                                        <div class="fw-semibold">Récords y Logros</div>
-                                        <small class="text-secondary d-block" style="font-size: 0.73rem;">Día récord de escuchas y marcas históricas</small>
-                                    </div>
-                                </button>
+                    <button class="offcanvas-menu-item" id="menu-open-curator" data-bs-dismiss="offcanvas">
+                        <i class="fa-solid fa-wand-magic-sparkles text-primary fs-5"></i>
+                        <div>
+                            <div class="fw-semibold">Curador de Playlists</div>
+                            <small class="text-secondary d-block" style="font-size: 0.73rem;">Selección guiada de temas favoritos</small>
+                        </div>
+                    </button>
+
+                    <button class="offcanvas-menu-item" id="menu-open-wrapped" data-bs-dismiss="offcanvas" onclick="openWrappedHintModal()">
+                        <i class="fa-solid fa-gift text-warning fs-5"></i>
+                        <div>
+                            <div class="fw-semibold">Wrapped & Pistas Musicales</div>
+                            <small class="text-secondary d-block" style="font-size: 0.73rem;">Tu resumen quincenal y adivinanza</small>
+                        </div>
+                    </button>
+
+                    <button class="offcanvas-menu-item" id="menu-open-share" data-bs-dismiss="offcanvas">
+                        <i class="fa-solid fa-share-nodes text-info fs-5"></i>
+                        <div>
+                            <div class="fw-semibold">Compartir Tarjeta</div>
+                            <small class="text-secondary d-block" style="font-size: 0.73rem;">Descargar imagen de tu Top actual</small>
+                        </div>
+                    </button>
+
+                    <button class="offcanvas-menu-item owner-only-element d-none" id="menu-stream-manager" data-bs-dismiss="offcanvas" onclick="openStreamManagerModal()">
+                        <i class="fa-solid fa-sliders text-info fs-5"></i>
+                        <div>
+                            <div class="fw-semibold">Ajustes de Streams (Era Tidal)</div>
+                            <small class="text-secondary d-block" style="font-size: 0.73rem;">Modificar reproducciones personalizadas</small>
+                        </div>
+                    </button>
+
+                    <button class="offcanvas-menu-item owner-only-element d-none" id="menu-gdrive-connect" data-bs-dismiss="offcanvas">
+                        <i class="fa-solid fa-cloud text-success fs-5"></i>
+                        <div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="fw-semibold">Tune Tracker Cloud</span>
+                                <span id="drawer-gdrive-status" class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.65rem;">Activo</span>
                             </div>
+                            <small class="text-secondary d-block" style="font-size: 0.73rem;">Sincronizado en la nube</small>
                         </div>
-                    </div>
+                    </button>
 
-                    <!-- 3. Herramientas -->
-                    <div class="accordion-item bg-transparent border-0 mb-1">
-                        <h2 class="accordion-header" id="headingTools">
-                            <button class="accordion-button bg-transparent text-white px-2 py-2 shadow-none border-bottom border-secondary border-opacity-10" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTools" aria-expanded="true" aria-controls="collapseTools" style="font-size: 0.76rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px;">
-                                <i class="fa-solid fa-screwdriver-wrench text-warning me-2"></i>
-                                <span>Herramientas</span>
-                            </button>
-                        </h2>
-                        <div id="collapseTools" class="accordion-collapse collapse show" aria-labelledby="headingTools">
-                            <div class="accordion-body px-0 py-1 d-flex flex-column gap-1">
-                                <button class="offcanvas-menu-item" id="menu-open-curator" data-bs-dismiss="offcanvas">
-                                    <i class="fa-solid fa-wand-magic-sparkles text-primary fs-5"></i>
-                                    <div>
-                                        <div class="fw-semibold">Curador de Playlists Semestrales</div>
-                                        <small class="text-secondary d-block" style="font-size: 0.73rem;">Selección guiada ~18 temas</small>
-                                    </div>
-                                </button>
-                                
-                                <button class="offcanvas-menu-item" id="menu-open-wrapped" data-bs-dismiss="offcanvas" onclick="openWrappedHintModal()">
-                                    <i class="fa-solid fa-gift text-warning fs-5"></i>
-                                    <div>
-                                        <div class="fw-semibold">Wrapped & Pistas Musicales</div>
-                                        <small class="text-secondary d-block" style="font-size: 0.73rem;">Tu resumen quincenal y adivinanza de gustos</small>
-                                    </div>
-                                </button>
-
-                                <button class="offcanvas-menu-item owner-only-element d-none" id="menu-stream-manager" data-bs-dismiss="offcanvas" onclick="openStreamManagerModal()">
-                                    <i class="fa-solid fa-sliders text-info fs-5"></i>
-                                    <div>
-                                        <div class="menu-title">Ajustes de Streams (Tidal / Personalizado)</div>
-                                        <div class="menu-desc">Modificar reproducciones estimadas y añadir canciones</div>
-                                    </div>
-                                </button>
-
-                                <button class="offcanvas-menu-item" id="menu-save-playlist" data-bs-dismiss="offcanvas">
-                                    <i class="fa-solid fa-plus text-success fs-5"></i>
-                                    <div>
-                                        <div class="fw-semibold">Guardar Top como Playlist</div>
-                                        <small class="text-secondary d-block" style="font-size: 0.73rem;">Crear playlist directa en tu Spotify</small>
-                                    </div>
-                                </button>
-                                <button class="offcanvas-menu-item" id="menu-open-share" data-bs-dismiss="offcanvas">
-                                    <i class="fa-solid fa-share-nodes text-warning fs-5"></i>
-                                    <div>
-                                        <div class="fw-semibold">Compartir Tarjeta</div>
-                                        <small class="text-secondary d-block" style="font-size: 0.73rem;">Generar imagen descargable de tu Top actual</small>
-                                    </div>
-                                </button>
-                            </div>
+                    <button class="offcanvas-menu-item" id="menu-force-update">
+                        <i class="fa-solid fa-arrows-rotate text-secondary fs-5"></i>
+                        <div>
+                            <div class="fw-semibold">Actualizar App</div>
+                            <small class="text-secondary d-block" style="font-size: 0.73rem;">Limpiar caché y cargar última versión</small>
                         </div>
-                    </div>
-
-                    <!-- 4. Sistema -->
-                    <div class="accordion-item bg-transparent border-0 mb-1">
-                        <h2 class="accordion-header" id="headingSystem">
-                            <button class="accordion-button bg-transparent text-white px-2 py-2 shadow-none border-bottom border-secondary border-opacity-10" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSystem" aria-expanded="true" aria-controls="collapseSystem" style="font-size: 0.76rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px;">
-                                <i class="fa-solid fa-sliders text-muted me-2"></i>
-                                <span>Sistema</span>
-                            </button>
-                        </h2>
-                        <div id="collapseSystem" class="accordion-collapse collapse show" aria-labelledby="headingSystem">
-                            <div class="accordion-body px-0 py-1 d-flex flex-column gap-1">
-                                <button class="offcanvas-menu-item" id="menu-lastfm-connect" data-bs-dismiss="offcanvas">
-                                    <i class="fa-brands fa-lastfm text-danger fs-5"></i>
-                                    <div>
-                                        <div class="d-flex align-items-center gap-2">
-                                            <span class="fw-semibold">Conectar con Last.fm</span>
-                                            <span id="drawer-lastfm-status" class="badge bg-secondary bg-opacity-25" style="font-size: 0.65rem;">Opcional</span>
-                                        </div>
-                                        <small class="text-secondary d-block" style="font-size: 0.73rem;">Ver conteo real de streams (scrobbles)</small>
-                                    </div>
-                                </button>
-                                <button class="offcanvas-menu-item" id="menu-gdrive-connect" data-bs-dismiss="offcanvas">
-                                    <i class="fa-solid fa-cloud text-success fs-5"></i>
-                                    <div>
-                                        <div class="d-flex align-items-center gap-2">
-                                            <span class="fw-semibold">Tune Tracker Cloud</span>
-                                            <span id="drawer-gdrive-status" class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.65rem;">Activo</span>
-                                        </div>
-                                        <small class="text-secondary d-block" style="font-size: 0.73rem;">Sincronizado con Central-de-estudio</small>
-                                    </div>
-                                </button>
-                                <button class="offcanvas-menu-item" id="menu-owner-toggle" data-bs-dismiss="offcanvas" onclick="promptOwnerUnlock()">
-                                    <i class="fa-solid fa-crown text-warning fs-5"></i>
-                                    <div>
-                                        <div class="fw-semibold">Modo Dueño (Admin)</div>
-                                        <small class="text-secondary d-block" style="font-size: 0.73rem;">Alternar permisos de Era Tidal y gestión avanzada</small>
-                                    </div>
-                                </button>
-                                <button class="offcanvas-menu-item" id="menu-install-app" data-bs-dismiss="offcanvas">
-                                    <i class="fa-solid fa-download fs-5" style="color: var(--brand-primary);"></i>
-                                    <div>
-                                        <div class="fw-semibold">Descargar App Web (PWA)</div>
-                                        <small class="text-secondary d-block" style="font-size: 0.73rem;">Instalar acceso directo en pantalla de inicio</small>
-                                    </div>
-                                </button>
-                                <button class="offcanvas-menu-item" id="menu-force-update">
-                                    <i class="fa-solid fa-arrows-rotate text-info fs-5"></i>
-                                    <div>
-                                        <div class="text-info fw-semibold">Actualizar App / Limpiar Caché</div>
-                                        <small class="text-secondary d-block" style="font-size: 0.73rem;">Fuerza la descarga de la última versión</small>
-                                    </div>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                    </button>
                 </div>
             </div>
 
-            <!-- Bottom Section: Cerrar Sesión -->
-            <div class="border-top border-secondary border-opacity-10 pt-3 mt-3">
+            <!-- Bottom Section: Cerrar Sesión + Acceso Dueño Discreto -->
+            <div class="border-top border-secondary border-opacity-10 pt-3 mt-3 d-flex flex-column gap-1">
                 <button class="offcanvas-menu-item text-danger w-100" id="menu-logout" data-bs-dismiss="offcanvas">
                     <i class="fa-solid fa-arrow-right-from-bracket fs-5"></i>
                     <span class="fw-semibold">Cerrar Sesión</span>
+                </button>
+                <button class="btn btn-link text-muted text-decoration-none py-1" id="menu-owner-toggle" data-bs-dismiss="offcanvas" onclick="promptOwnerUnlock()" style="font-size: 0.70rem;">
+                    <i class="fa-solid fa-crown text-warning opacity-50 me-1"></i>Modo Dueño
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Modal: Conectar Last.fm -->
+    <!-- Modal: Iniciar Sesión con Last.fm -->
     <div class="modal fade" id="lastFmModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-secondary border-opacity-25" style="background-color: var(--bg-surface);">
-                <div class="modal-header border-bottom border-secondary border-opacity-10 py-2">
-                    <h6 class="modal-title fw-bold text-danger"><i class="fa-brands fa-lastfm me-2"></i>Conectar con Last.fm</h6>
+                <div class="modal-header border-bottom border-secondary border-opacity-10 py-2.5 px-3">
+                    <h6 class="modal-title fw-bold text-danger mb-0"><i class="fa-brands fa-lastfm me-2"></i>Iniciar sesión con Last.fm</h6>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
                     <div class="p-3 mb-3 rounded-3 border" style="background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.25) !important;">
                         <div class="fw-bold text-white mb-2" style="font-size: 0.82rem;">
-                            <i class="fa-solid fa-sparkles text-danger me-1.5"></i>¿Qué desbloqueas al conectar Last.fm?
+                            <i class="fa-solid fa-sparkles text-danger me-1.5"></i>Funciones que se activan con tu cuenta:
                         </div>
-                        <ul class="text-secondary small mb-0 ps-3" style="font-size: 0.74rem; line-height: 1.5;">
-                            <li><strong class="text-white">Dynamic Island en Vivo:</strong> Reproductor flotante con la pista exacta que suena en tu Spotify.</li>
-                            <li><strong class="text-white">Scrobbles y Conteo Real:</strong> Métricas precisas de reproducciones sin retrasos.</li>
-                            <li><strong class="text-white">Mini-Juegos Propios:</strong> Torneo Bracket 16 y Higher/Lower armados con tu propia música.</li>
-                            <li><strong class="text-white">Racha y Retos Diarios:</strong> Desafíos musicales adaptados a tus artistas favoritos.</li>
+                        <ul class="text-secondary small mb-0 ps-3" style="font-size: 0.74rem; line-height: 1.55;">
+                            <li><strong class="text-white">Dynamic Island en Vivo:</strong> Muestra en tiempo real la canción que estás reproduciendo.</li>
+                            <li><strong class="text-white">Conteo Exacto de Scrobbles:</strong> Tus reproducciones reales sincronizadas al instante.</li>
+                            <li><strong class="text-white">Mini-Juegos con tu Música:</strong> Torneo Bracket 16 y Higher/Lower con tus canciones.</li>
+                            <li><strong class="text-white">Racha y Retos Diarios:</strong> Desafíos personalizados con los artistas que escuchas.</li>
                         </ul>
                     </div>
-                    <p class="text-secondary small mb-3">
-                        Last.fm registra tus reproducciones exactas de Spotify en tiempo real. Solo introduce tu usuario:
-                    </p>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Tu usuario de Last.fm:</label>
-                        <input type="text" id="lastfm-username-input" class="form-control form-control-sm bg-black text-white border-secondary" placeholder="Ej: tu_usuario">
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold text-white">Ingresa tu nombre de usuario de Last.fm:</label>
+                        <input type="text" id="lastfm-username-input" class="form-control bg-black text-white border-secondary" placeholder="Ej: tu_usuario" autocomplete="username">
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">API Key de Last.fm (opcional):</label>
-                        <input type="text" id="lastfm-apikey-input" class="form-control form-control-sm bg-black text-white border-secondary" placeholder="Dejar en blanco para usar la compartida">
-                        <small class="text-muted d-block mt-1" style="font-size: 0.72rem;">
-                            Si tienes tu propia API Key puedes pegarla aquí, o dejarlo en blanco para usar la clave por defecto de la aplicación.
-                        </small>
-                    </div>
-                    <div id="lastfm-error" class="alert alert-danger d-none py-1.5 px-2.5 small mb-0"></div>
+                    <div id="lastfm-error" class="alert alert-danger d-none py-1.5 px-2.5 small mt-2 mb-0"></div>
                 </div>
-                <div class="modal-footer border-top border-secondary border-opacity-10 py-2 justify-content-between">
-                    <button type="button" id="btn-lastfm-disconnect" class="btn btn-sm btn-outline-danger d-none">Desconectar</button>
-                    <button type="button" id="btn-lastfm-save" class="btn btn-sm btn-danger ms-auto px-3">Guardar y Sincronizar</button>
+                <div class="modal-footer border-top border-secondary border-opacity-10 py-2.5 px-3 justify-content-between">
+                    <button type="button" id="btn-lastfm-disconnect" class="btn btn-sm btn-outline-danger d-none rounded-pill px-3">Cerrar sesión Last.fm</button>
+                    <button type="button" id="btn-lastfm-save" class="btn btn-sm btn-danger ms-auto rounded-pill px-4 fw-semibold">Conectar Cuenta</button>
                 </div>
             </div>
         </div>
@@ -2686,7 +2528,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
         <!-- App Logic -->
-    <script src="/app.js?v=54"></script>
+    <script src="/app.js?v=55"></script>
 
     <!-- Barra de Navegación Inferior Móvil (Bottom Navigation Bar) -->
     <nav id="bottom-nav-bar" class="bottom-nav-bar d-none">
