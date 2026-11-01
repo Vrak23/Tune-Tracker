@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tunetracker-v56';
+const CACHE_NAME = 'tunetracker-v57';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

@@ -68,66 +68,73 @@ window.isAppOwner = isAppOwner;
 
 function buildDemoDatabase() {
     const demoTracks = [
-        { name: 'Starboy', artist: 'The Weeknd', album: 'Starboy', count: 312, ms: 312 * 230000, first: '2022-03-14', last: '2026-10-29', byYear: { '2022': 45, '2023': 78, '2024': 64, '2025': 70, '2026': 55 } },
-        { name: 'Instant Crush (feat. Julian Casablancas)', artist: 'Daft Punk', album: 'Random Access Memories', count: 284, ms: 284 * 337000, first: '2021-06-10', last: '2026-10-28', byYear: { '2021': 40, '2022': 52, '2023': 60, '2024': 48, '2025': 44, '2026': 40 } },
-        { name: 'Do I Wanna Know?', artist: 'Arctic Monkeys', album: 'AM', count: 265, ms: 265 * 272000, first: '2021-02-19', last: '2026-10-30', byYear: { '2021': 50, '2022': 45, '2023': 42, '2024': 48, '2025': 45, '2026': 35 } },
-        { name: 'Levitating', artist: 'Dua Lipa', album: 'Future Nostalgia', count: 248, ms: 248 * 203000, first: '2021-05-01', last: '2026-10-25', byYear: { '2021': 65, '2022': 55, '2023': 40, '2024': 35, '2025': 30, '2026': 23 } },
-        { name: 'The Less I Know The Better', artist: 'Tame Impala', album: 'Currents', count: 231, ms: 231 * 216000, first: '2021-08-12', last: '2026-10-27', byYear: { '2021': 35, '2022': 48, '2023': 44, '2024': 40, '2025': 36, '2026': 28 } },
-        { name: 'Feel Good Inc.', artist: 'Gorillaz', album: 'Demon Days', count: 219, ms: 219 * 222000, first: '2021-04-20', last: '2026-10-24', byYear: { '2021': 30, '2022': 42, '2023': 45, '2024': 38, '2025': 34, '2026': 30 } },
-        { name: 'Blinding Lights', artist: 'The Weeknd', album: 'After Hours', count: 210, ms: 210 * 200000, first: '2021-01-11', last: '2026-10-26', byYear: { '2021': 55, '2022': 40, '2023': 35, '2024': 30, '2025': 28, '2026': 22 } },
-        { name: 'Midnight City', artist: 'M83', album: "Hurry Up, We're Dreaming", count: 196, ms: 196 * 243000, first: '2022-01-08', last: '2026-10-22', byYear: { '2022': 44, '2023': 38, '2024': 42, '2025': 40, '2026': 32 } },
-        { name: 'Sweater Weather', artist: 'The Neighbourhood', album: 'I Love You.', count: 185, ms: 185 * 240000, first: '2021-11-05', last: '2026-10-20', byYear: { '2021': 22, '2022': 38, '2023': 40, '2024': 35, '2025': 28, '2026': 22 } },
-        { name: 'Get Lucky (feat. Pharrell Williams)', artist: 'Daft Punk', album: 'Random Access Memories', count: 174, ms: 174 * 248000, first: '2021-07-15', last: '2026-10-19', byYear: { '2021': 30, '2022': 34, '2023': 32, '2024': 28, '2025': 26, '2026': 24 } },
-        { name: '505', artist: 'Arctic Monkeys', album: 'Favourite Worst Nightmare', count: 168, ms: 168 * 253000, first: '2022-04-02', last: '2026-10-21', byYear: { '2022': 36, '2023': 38, '2024': 34, '2025': 32, '2026': 28 } },
-        { name: 'BIRDS OF A FEATHER', artist: 'Billie Eilish', album: 'HIT ME HARD AND SOFT', count: 159, ms: 159 * 210000, first: '2024-05-18', last: '2026-10-30', byYear: { '2024': 62, '2025': 54, '2026': 43 } },
-        { name: 'Vivir Mi Vida', artist: 'Marc Anthony', album: '3.0', count: 145, ms: 145 * 252000, first: '2021-09-12', last: '2026-10-15', byYear: { '2021': 25, '2022': 28, '2023': 26, '2024': 24, '2025': 22, '2026': 20 } },
-        { name: 'Clocks', artist: 'Coldplay', album: 'A Rush of Blood to the Head', count: 138, ms: 138 * 307000, first: '2021-03-22', last: '2026-10-18', byYear: { '2021': 24, '2022': 26, '2023': 25, '2024': 23, '2025': 22, '2026': 18 } },
-        { name: 'On Melancholy Hill', artist: 'Gorillaz', album: 'Plastic Beach', count: 132, ms: 132 * 233000, first: '2022-02-14', last: '2026-10-17', byYear: { '2022': 28, '2023': 28, '2024': 26, '2025': 26, '2026': 24 } }
+        { name: 'Starboy', artist: 'The Weeknd', album: 'Starboy', plays: 312, count: 312, hours: 19.9, ms: 312 * 230000, first: '2022-03-14', last: '2026-10-29', byYear: { '2022': 45, '2023': 78, '2024': 64, '2025': 70, '2026': 55 } },
+        { name: 'Instant Crush (feat. Julian Casablancas)', artist: 'Daft Punk', album: 'Random Access Memories', plays: 284, count: 284, hours: 26.5, ms: 284 * 337000, first: '2021-06-10', last: '2026-10-28', byYear: { '2021': 40, '2022': 52, '2023': 60, '2024': 48, '2025': 44, '2026': 40 } },
+        { name: 'Do I Wanna Know?', artist: 'Arctic Monkeys', album: 'AM', plays: 265, count: 265, hours: 20.0, ms: 265 * 272000, first: '2021-02-19', last: '2026-10-30', byYear: { '2021': 50, '2022': 45, '2023': 42, '2024': 48, '2025': 45, '2026': 35 } },
+        { name: 'Levitating', artist: 'Dua Lipa', album: 'Future Nostalgia', plays: 248, count: 248, hours: 14.0, ms: 248 * 203000, first: '2021-05-01', last: '2026-10-25', byYear: { '2021': 65, '2022': 55, '2023': 40, '2024': 35, '2025': 30, '2026': 23 } },
+        { name: 'The Less I Know The Better', artist: 'Tame Impala', album: 'Currents', plays: 231, count: 231, hours: 13.8, ms: 231 * 216000, first: '2021-08-12', last: '2026-10-27', byYear: { '2021': 35, '2022': 48, '2023': 44, '2024': 40, '2025': 36, '2026': 28 } },
+        { name: 'Feel Good Inc.', artist: 'Gorillaz', album: 'Demon Days', plays: 219, count: 219, hours: 13.5, ms: 219 * 222000, first: '2021-04-20', last: '2026-10-24', byYear: { '2021': 30, '2022': 42, '2023': 45, '2024': 38, '2025': 34, '2026': 30 } },
+        { name: 'Blinding Lights', artist: 'The Weeknd', album: 'After Hours', plays: 210, count: 210, hours: 11.6, ms: 210 * 200000, first: '2021-01-11', last: '2026-10-26', byYear: { '2021': 55, '2022': 40, '2023': 35, '2024': 30, '2025': 28, '2026': 22 } },
+        { name: 'Midnight City', artist: 'M83', album: "Hurry Up, We're Dreaming", plays: 196, count: 196, hours: 13.2, ms: 196 * 243000, first: '2022-01-08', last: '2026-10-22', byYear: { '2022': 44, '2023': 38, '2024': 42, '2025': 40, '2026': 32 } },
+        { name: 'Sweater Weather', artist: 'The Neighbourhood', album: 'I Love You.', plays: 185, count: 185, hours: 12.3, ms: 185 * 240000, first: '2021-11-05', last: '2026-10-20', byYear: { '2021': 22, '2022': 38, '2023': 40, '2024': 35, '2025': 28, '2026': 22 } },
+        { name: 'Get Lucky (feat. Pharrell Williams)', artist: 'Daft Punk', album: 'Random Access Memories', plays: 174, count: 174, hours: 12.0, ms: 174 * 248000, first: '2021-07-15', last: '2026-10-19', byYear: { '2021': 30, '2022': 34, '2023': 32, '2024': 28, '2025': 26, '2026': 24 } },
+        { name: '505', artist: 'Arctic Monkeys', album: 'Favourite Worst Nightmare', plays: 168, count: 168, hours: 11.8, ms: 168 * 253000, first: '2022-04-02', last: '2026-10-21', byYear: { '2022': 36, '2023': 38, '2024': 34, '2025': 32, '2026': 28 } },
+        { name: 'BIRDS OF A FEATHER', artist: 'Billie Eilish', album: 'HIT ME HARD AND SOFT', plays: 159, count: 159, hours: 9.3, ms: 159 * 210000, first: '2024-05-18', last: '2026-10-30', byYear: { '2024': 62, '2025': 54, '2026': 43 } },
+        { name: 'Vivir Mi Vida', artist: 'Marc Anthony', album: '3.0', plays: 145, count: 145, hours: 10.1, ms: 145 * 252000, first: '2021-09-12', last: '2026-10-15', byYear: { '2021': 25, '2022': 28, '2023': 26, '2024': 24, '2025': 22, '2026': 20 } },
+        { name: 'Clocks', artist: 'Coldplay', album: 'A Rush of Blood to the Head', plays: 138, count: 138, hours: 11.7, ms: 138 * 307000, first: '2021-03-22', last: '2026-10-18', byYear: { '2021': 24, '2022': 26, '2023': 25, '2024': 23, '2025': 22, '2026': 18 } },
+        { name: 'On Melancholy Hill', artist: 'Gorillaz', album: 'Plastic Beach', plays: 132, count: 132, hours: 8.5, ms: 132 * 233000, first: '2022-02-14', last: '2026-10-17', byYear: { '2022': 28, '2023': 28, '2024': 26, '2025': 26, '2026': 24 } }
     ];
 
     const demoArtists = [
-        { name: 'The Weeknd', count: 845, ms: 845 * 215000, first: '2021-01-11', last: '2026-10-29', byYear: { '2021': 120, '2022': 155, '2023': 160, '2024': 145, '2025': 140, '2026': 125 } },
-        { name: 'Daft Punk', count: 760, ms: 760 * 265000, first: '2021-06-10', last: '2026-10-28', byYear: { '2021': 110, '2022': 135, '2023': 140, '2024': 130, '2025': 125, '2026': 120 } },
-        { name: 'Arctic Monkeys', count: 710, ms: 710 * 245000, first: '2021-02-19', last: '2026-10-30', byYear: { '2021': 105, '2022': 125, '2023': 130, '2024': 120, '2025': 120, '2026': 110 } },
-        { name: 'Gorillaz', count: 620, ms: 620 * 228000, first: '2021-04-20', last: '2026-10-24', byYear: { '2021': 90, '2022': 110, '2023': 115, '2024': 105, '2025': 105, '2026': 95 } },
-        { name: 'Dua Lipa', count: 580, ms: 580 * 205000, first: '2021-05-01', last: '2026-10-25', byYear: { '2021': 115, '2022': 110, '2023': 95, '2024': 90, '2025': 90, '2026': 80 } },
-        { name: 'Tame Impala', count: 540, ms: 540 * 235000, first: '2021-08-12', last: '2026-10-27', byYear: { '2021': 80, '2022': 95, '2023': 100, '2024': 95, '2025': 90, '2026': 80 } },
-        { name: 'Coldplay', count: 490, ms: 490 * 260000, first: '2021-03-22', last: '2026-10-18', byYear: { '2021': 75, '2022': 85, '2023': 90, '2024': 85, '2025': 80, '2026': 75 } },
-        { name: 'Billie Eilish', count: 465, ms: 465 * 212000, first: '2021-07-30', last: '2026-10-30', byYear: { '2021': 55, '2022': 65, '2023': 70, '2024': 95, '2025': 95, '2026': 85 } },
-        { name: 'M83', count: 410, ms: 410 * 242000, first: '2022-01-08', last: '2026-10-22', byYear: { '2022': 85, '2023': 85, '2024': 82, '2025': 80, '2026': 78 } },
-        { name: 'The Neighbourhood', count: 385, ms: 385 * 238000, first: '2021-11-05', last: '2026-10-20', byYear: { '2021': 45, '2022': 70, '2023': 75, '2024': 70, '2025': 65, '2026': 60 } }
+        { name: 'The Weeknd', plays: 845, count: 845, hours: 50.5, ms: 845 * 215000, first: '2021-01-11', last: '2026-10-29', byYear: { '2021': 120, '2022': 155, '2023': 160, '2024': 145, '2025': 140, '2026': 125 } },
+        { name: 'Daft Punk', plays: 760, count: 760, hours: 55.9, ms: 760 * 265000, first: '2021-06-10', last: '2026-10-28', byYear: { '2021': 110, '2022': 135, '2023': 140, '2024': 130, '2025': 125, '2026': 120 } },
+        { name: 'Arctic Monkeys', plays: 710, count: 710, hours: 48.3, ms: 710 * 245000, first: '2021-02-19', last: '2026-10-30', byYear: { '2021': 105, '2022': 125, '2023': 130, '2024': 120, '2025': 120, '2026': 110 } },
+        { name: 'Gorillaz', plays: 620, count: 620, hours: 39.2, ms: 620 * 228000, first: '2021-04-20', last: '2026-10-24', byYear: { '2021': 90, '2022': 110, '2023': 115, '2024': 105, '2025': 105, '2026': 95 } },
+        { name: 'Dua Lipa', plays: 580, count: 580, hours: 33.0, ms: 580 * 205000, first: '2021-05-01', last: '2026-10-25', byYear: { '2021': 115, '2022': 110, '2023': 95, '2024': 90, '2025': 90, '2026': 80 } },
+        { name: 'Tame Impala', plays: 540, count: 540, hours: 35.2, ms: 540 * 235000, first: '2021-08-12', last: '2026-10-27', byYear: { '2021': 80, '2022': 95, '2023': 100, '2024': 95, '2025': 90, '2026': 80 } },
+        { name: 'Coldplay', plays: 490, count: 490, hours: 35.4, ms: 490 * 260000, first: '2021-03-22', last: '2026-10-18', byYear: { '2021': 75, '2022': 85, '2023': 90, '2024': 85, '2025': 80, '2026': 75 } },
+        { name: 'Billie Eilish', plays: 465, count: 465, hours: 27.4, ms: 465 * 212000, first: '2021-07-30', last: '2026-10-30', byYear: { '2021': 55, '2022': 65, '2023': 70, '2024': 95, '2025': 95, '2026': 85 } },
+        { name: 'M83', plays: 410, count: 410, hours: 27.5, ms: 410 * 242000, first: '2022-01-08', last: '2026-10-22', byYear: { '2022': 85, '2023': 85, '2024': 82, '2025': 80, '2026': 78 } },
+        { name: 'The Neighbourhood', plays: 385, count: 385, hours: 25.4, ms: 385 * 238000, first: '2021-11-05', last: '2026-10-20', byYear: { '2021': 45, '2022': 70, '2023': 75, '2024': 70, '2025': 65, '2026': 60 } }
     ];
 
     const demoAlbums = [
-        { name: 'Random Access Memories', artist: 'Daft Punk', count: 520, ms: 520 * 265000, first: '2021-06-10', last: '2026-10-28', byYear: { '2021': 80, '2022': 95, '2023': 95, '2024': 85, '2025': 85, '2026': 80 } },
-        { name: 'Starboy', artist: 'The Weeknd', count: 480, ms: 480 * 225000, first: '2022-03-14', last: '2026-10-29', byYear: { '2022': 90, '2023': 105, '2024': 95, '2025': 100, '2026': 90 } },
-        { name: 'AM', artist: 'Arctic Monkeys', count: 450, ms: 450 * 240000, first: '2021-02-19', last: '2026-10-30', byYear: { '2021': 75, '2022': 80, '2023': 80, '2024': 75, '2025': 75, '2026': 65 } },
-        { name: 'Future Nostalgia', artist: 'Dua Lipa', count: 410, ms: 410 * 203000, first: '2021-05-01', last: '2026-10-25', byYear: { '2021': 90, '2022': 85, '2023': 65, '2024': 60, '2025': 58, '2026': 52 } },
-        { name: 'Currents', artist: 'Tame Impala', count: 390, ms: 390 * 230000, first: '2021-08-12', last: '2026-10-27', byYear: { '2021': 60, '2022': 70, '2023': 70, '2024': 65, '2025': 65, '2026': 60 } },
-        { name: 'After Hours', artist: 'The Weeknd', count: 365, ms: 365 * 210000, first: '2021-01-11', last: '2026-10-26', byYear: { '2021': 75, '2022': 65, '2023': 60, '2024': 58, '2025': 55, '2026': 52 } },
-        { name: 'Demon Days', artist: 'Gorillaz', count: 340, ms: 340 * 222000, first: '2021-04-20', last: '2026-10-24', byYear: { '2021': 55, '2022': 60, '2023': 60, '2024': 58, '2025': 55, '2026': 52 } }
+        { name: 'Random Access Memories', artist: 'Daft Punk', plays: 520, count: 520, hours: 38.2, ms: 520 * 265000, first: '2021-06-10', last: '2026-10-28', byYear: { '2021': 80, '2022': 95, '2023': 95, '2024': 85, '2025': 85, '2026': 80 } },
+        { name: 'Starboy', artist: 'The Weeknd', plays: 480, count: 480, hours: 30.0, ms: 480 * 225000, first: '2022-03-14', last: '2026-10-29', byYear: { '2022': 90, '2023': 105, '2024': 95, '2025': 100, '2026': 90 } },
+        { name: 'AM', artist: 'Arctic Monkeys', plays: 450, count: 450, hours: 30.0, ms: 450 * 240000, first: '2021-02-19', last: '2026-10-30', byYear: { '2021': 75, '2022': 80, '2023': 80, '2024': 75, '2025': 75, '2026': 65 } },
+        { name: 'Future Nostalgia', artist: 'Dua Lipa', plays: 410, count: 410, hours: 23.1, ms: 410 * 203000, first: '2021-05-01', last: '2026-10-25', byYear: { '2021': 90, '2022': 85, '2023': 65, '2024': 60, '2025': 58, '2026': 52 } },
+        { name: 'Currents', artist: 'Tame Impala', plays: 390, count: 390, hours: 24.9, ms: 390 * 230000, first: '2021-08-12', last: '2026-10-27', byYear: { '2021': 60, '2022': 70, '2023': 70, '2024': 65, '2025': 65, '2026': 60 } },
+        { name: 'After Hours', artist: 'The Weeknd', plays: 365, count: 365, hours: 21.3, ms: 365 * 210000, first: '2021-01-11', last: '2026-10-26', byYear: { '2021': 75, '2022': 65, '2023': 60, '2024': 58, '2025': 55, '2026': 52 } },
+        { name: 'Demon Days', artist: 'Gorillaz', plays: 340, count: 340, hours: 21.0, ms: 340 * 222000, first: '2021-04-20', last: '2026-10-24', byYear: { '2021': 55, '2022': 60, '2023': 60, '2024': 58, '2025': 55, '2026': 52 } }
     ];
 
     const tracksLookup = {};
     demoTracks.forEach(t => {
-        const key = `${t.name.toLowerCase()}|||${t.artist.toLowerCase()}`;
-        tracksLookup[key] = { ...t };
+        const key1 = `${t.name.toLowerCase()}|||${t.artist.toLowerCase()}`;
+        const key2 = `${t.name.toLowerCase()}:::${t.artist.toLowerCase()}`;
+        tracksLookup[key1] = { ...t };
+        tracksLookup[key2] = { ...t };
     });
 
     const artistsLookup = {};
     demoArtists.forEach(a => {
         artistsLookup[a.name.toLowerCase()] = { ...a };
+        artistsLookup[normalizeKey(a.name)] = { ...a };
     });
 
     const albumsLookup = {};
     demoAlbums.forEach(al => {
-        const key = `${al.name.toLowerCase()}|||${al.artist.toLowerCase()}`;
-        albumsLookup[key] = { ...al };
+        const key1 = `${al.name.toLowerCase()}|||${al.artist.toLowerCase()}`;
+        const key2 = `${al.name.toLowerCase()}:::${al.artist.toLowerCase()}`;
+        albumsLookup[key1] = { ...al };
+        albumsLookup[key2] = { ...al };
     });
 
     const years = ['2021', '2022', '2023', '2024', '2025', '2026'];
     const yearlyTops = {
         overall: {
+            plays: 12450,
+            hours: 747,
             tracks: demoTracks.map(t => ({ ...t })),
             artists: demoArtists.map(a => ({ ...a })),
             albums: demoAlbums.map(al => ({ ...al }))
@@ -135,19 +142,23 @@ function buildDemoDatabase() {
     };
 
     years.forEach(yr => {
+        const yTracks = demoTracks
+            .filter(t => t.byYear && t.byYear[yr])
+            .map(t => ({ ...t, plays: t.byYear[yr], count: t.byYear[yr], ms: t.byYear[yr] * 225000 }))
+            .sort((a, b) => b.plays - a.plays);
+        const yPlays = yTracks.reduce((acc, x) => acc + x.plays, 0) * 3;
         yearlyTops[yr] = {
-            tracks: demoTracks
-                .filter(t => t.byYear && t.byYear[yr])
-                .map(t => ({ ...t, count: t.byYear[yr], ms: t.byYear[yr] * 225000 }))
-                .sort((a, b) => b.count - a.count),
+            plays: yPlays,
+            hours: Math.round(yPlays * 3.6 / 60),
+            tracks: yTracks,
             artists: demoArtists
                 .filter(a => a.byYear && a.byYear[yr])
-                .map(a => ({ ...a, count: a.byYear[yr], ms: a.byYear[yr] * 225000 }))
-                .sort((a, b) => b.count - a.count),
+                .map(a => ({ ...a, plays: a.byYear[yr], count: a.byYear[yr], ms: a.byYear[yr] * 225000 }))
+                .sort((a, b) => b.plays - a.plays),
             albums: demoAlbums
                 .filter(al => al.byYear && al.byYear[yr])
-                .map(al => ({ ...al, count: al.byYear[yr], ms: al.byYear[yr] * 225000 }))
-                .sort((a, b) => b.count - a.count)
+                .map(al => ({ ...al, plays: al.byYear[yr], count: al.byYear[yr], ms: al.byYear[yr] * 225000 }))
+                .sort((a, b) => b.plays - a.plays)
         };
     });
 
@@ -163,13 +174,16 @@ function buildDemoDatabase() {
     return {
         summary: {
             totalStreams: 12450,
+            validStreams: 12450,
             spotifyStreams: 12450,
             lastfmStreams: 12450,
             totalMinutes: 44820,
             totalHours: 747,
             uniqueTracks: 840,
             uniqueArtists: 215,
+            totalArtists: 215,
             uniqueAlbums: 310,
+            totalAlbums: 310,
             years: years
         },
         yearlyTops,
@@ -193,20 +207,38 @@ function buildDemoDatabase() {
                 name: a.name,
                 yearsCount: Object.keys(a.byYear || {}).length,
                 yearsList: Object.keys(a.byYear || {}),
-                totalStreams: a.count
+                totalStreams: a.plays
             })),
             forgottenGems: demoTracks.slice(3, 9).map(t => ({
                 name: t.name,
                 artist: t.artist,
                 peakYear: '2022',
                 peakCount: 65,
-                totalCount: t.count,
+                totalCount: t.plays,
                 lastPlayed: '2025-11-10'
             }))
         }
     };
 }
 window.buildDemoDatabase = buildDemoDatabase;
+
+// Acceso secreto al Modo Dueño tocando 5 veces el logo de Tune Tracker
+let secretLogoTapCount = 0;
+let secretLogoTapTimer = null;
+function handleSecretLogoTap(e) {
+    if (e) e.preventDefault();
+    secretLogoTapCount++;
+    clearTimeout(secretLogoTapTimer);
+    if (secretLogoTapCount >= 5) {
+        secretLogoTapCount = 0;
+        promptOwnerUnlock();
+    } else {
+        secretLogoTapTimer = setTimeout(() => {
+            secretLogoTapCount = 0;
+        }, 2200);
+    }
+}
+window.handleSecretLogoTap = handleSecretLogoTap;
 
 function promptOwnerUnlock() {
     if (isAppOwner()) {
@@ -219,12 +251,14 @@ function promptOwnerUnlock() {
         }
         return;
     }
-    const pin = prompt('Introduce la clave de acceso de Dueño para desbloquear Era Tidal y herramientas avanzadas:');
+    const pin = prompt('Introduce la clave de acceso de Dueño para desbloquear Era Tidal y el Panel Admin:');
     if (pin && (pin.trim().toLowerCase() === 'vrak23' || pin.trim().toLowerCase() === 'vrak_23' || pin.trim() === '2323' || pin.trim().toLowerCase() === 'admin')) {
+        isDemoSession = false;
+        sessionStorage.removeItem('tunetracker_demo_session');
         localStorage.setItem('tunetracker_owner_mode', 'true');
         localStorage.setItem('lastfm_user', DEFAULT_LASTFM_USER);
         localStorage.setItem('lastfm_key', DEFAULT_LASTFM_KEY);
-        alert('¡Modo Dueño activado con éxito! Se han habilitado la Era Tidal y los ajustes de streams.');
+        alert('¡Modo Dueño activado con éxito! Se han habilitado la Era Tidal, el Panel de Solicitudes y los ajustes de streams.');
         location.reload();
     } else if (pin !== null) {
         alert('Clave incorrecta. Permaneces en Modo Invitado.');
@@ -232,15 +266,426 @@ function promptOwnerUnlock() {
 }
 window.promptOwnerUnlock = promptOwnerUnlock;
 
+// ----------------------------------------------------
+// SISTEMA DE SOLICITUD Y APROBACIÓN ADMIN (CURADOR & WRAPPED)
+// ----------------------------------------------------
+const ACCESS_REQUESTS_KEY = 'tunetracker_access_requests_v1';
+let accessRequestsState = null;
+
+function getAccessRequestsState() {
+    if (accessRequestsState) return accessRequestsState;
+    try {
+        const raw = localStorage.getItem(ACCESS_REQUESTS_KEY);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && typeof parsed.users === 'object') {
+                accessRequestsState = parsed;
+                return accessRequestsState;
+            }
+        }
+    } catch (e) {}
+    accessRequestsState = { users: {} };
+    return accessRequestsState;
+}
+
+function saveAccessRequestsLocal() {
+    try {
+        localStorage.setItem(ACCESS_REQUESTS_KEY, JSON.stringify(getAccessRequestsState()));
+    } catch (e) {}
+}
+
+async function syncAccessRequestsFromCloud(forceRender = false) {
+    const local = getAccessRequestsState();
+    let remoteUsers = null;
+
+    // 1. Pull from Firebase Firestore
+    try {
+        if (firestoreDb) {
+            const docSnap = await firestoreDb.collection('spotitracker_profile').doc('access_requests').get();
+            if (docSnap.exists && docSnap.data()?.users) {
+                remoteUsers = docSnap.data().users;
+            }
+        }
+    } catch (e) {}
+
+    // 2. Pull from Supabase if available
+    if (!remoteUsers && typeof SUPABASE_PROJECT_URL !== 'undefined' && typeof SUPABASE_ANON_KEY !== 'undefined') {
+        try {
+            const res = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/spotitracker_profile?id=eq.access_requests&select=state`, {
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                }
+            });
+            if (res.ok) {
+                const rows = await res.json();
+                if (rows?.[0]?.state?.users) {
+                    remoteUsers = rows[0].state.users;
+                }
+            }
+        } catch (e) {}
+    }
+
+    if (remoteUsers && typeof remoteUsers === 'object') {
+        Object.entries(remoteUsers).forEach(([uKey, rEntry]) => {
+            const lEntry = local.users[uKey];
+            if (!lEntry || !lEntry.updatedAt || (rEntry.updatedAt && rEntry.updatedAt >= lEntry.updatedAt)) {
+                local.users[uKey] = rEntry;
+            }
+        });
+        saveAccessRequestsLocal();
+    }
+
+    updateFeatureAccessBadges();
+    if (forceRender) {
+        renderAdminRequestsList();
+    }
+}
+window.syncAccessRequestsFromCloud = syncAccessRequestsFromCloud;
+
+async function pushAccessRequestsToCloud() {
+    saveAccessRequestsLocal();
+    updateFeatureAccessBadges();
+    const stateObj = getAccessRequestsState();
+    const payload = {
+        id: 'access_requests',
+        user_id: 'admin_requests',
+        state: stateObj,
+        updated_at: new Date().toISOString()
+    };
+
+    try {
+        if (firestoreDb) {
+            await firestoreDb.collection('spotitracker_profile').doc('access_requests').set({
+                users: stateObj.users,
+                updated_at: payload.updated_at
+            }, { merge: true });
+        }
+    } catch (e) {}
+
+    if (typeof SUPABASE_PROJECT_URL !== 'undefined' && typeof SUPABASE_ANON_KEY !== 'undefined') {
+        try {
+            await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/spotitracker_profile`, {
+                method: 'POST',
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'resolution=merge-duplicates'
+                },
+                body: JSON.stringify(payload)
+            });
+        } catch (e) {}
+    }
+}
+
+function getCurrentNormalizedUser() {
+    const u = (localStorage.getItem('lastfm_user') || '').trim();
+    return { raw: u, key: u.toLowerCase() };
+}
+
+function getUserFeatureStatus(feature) {
+    if (isAppOwner()) return 'approved';
+    if (isDemoMode()) return 'demo_blocked';
+    const { key } = getCurrentNormalizedUser();
+    if (!key) return 'none';
+    const st = getAccessRequestsState();
+    return st.users?.[key]?.[feature] || 'none';
+}
+
+function updateFeatureAccessBadges() {
+    const isOwner = isAppOwner();
+    const isDemo = isDemoMode();
+
+    const curatorBadge = document.getElementById('badge-access-curator');
+    const wrappedBadge = document.getElementById('badge-access-wrapped');
+    const bentoCuratorBadge = document.getElementById('bento-curator-badge');
+    const adminPendingBadge = document.getElementById('badge-admin-pending-count');
+
+    const formatBadge = (el, status) => {
+        if (!el) return;
+        if (isOwner || status === 'approved') {
+            el.className = 'badge rounded-pill bg-success bg-opacity-25 text-success border border-success border-opacity-25';
+            el.textContent = '✓ Activo';
+        } else if (status === 'pending') {
+            el.className = 'badge rounded-pill bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25';
+            el.textContent = '⏳ Pendiente';
+        } else {
+            el.className = 'badge rounded-pill bg-secondary bg-opacity-25 text-secondary';
+            el.textContent = '🔒 Solicitar';
+        }
+    };
+
+    if (!isDemo) {
+        const curStatus = getUserFeatureStatus('curator');
+        const wrpStatus = getUserFeatureStatus('wrapped');
+        formatBadge(curatorBadge, curStatus);
+        formatBadge(wrappedBadge, wrpStatus);
+        if (bentoCuratorBadge) {
+            if (isOwner || curStatus === 'approved') {
+                bentoCuratorBadge.textContent = 'CURADOR';
+                bentoCuratorBadge.style.background = 'rgba(255, 255, 255, 0.08)';
+                bentoCuratorBadge.style.color = '#a1a1aa';
+            } else if (curStatus === 'pending') {
+                bentoCuratorBadge.textContent = '⏳ PENDIENTE';
+                bentoCuratorBadge.style.background = 'rgba(251, 191, 36, 0.18)';
+                bentoCuratorBadge.style.color = '#fbbf24';
+            } else {
+                bentoCuratorBadge.textContent = '🔒 SOLICITAR';
+                bentoCuratorBadge.style.background = 'rgba(168, 85, 247, 0.2)';
+                bentoCuratorBadge.style.color = '#e9d5ff';
+            }
+        }
+    }
+
+    if (isOwner && adminPendingBadge) {
+        const st = getAccessRequestsState();
+        let pendingCount = 0;
+        Object.values(st.users || {}).forEach(u => {
+            if (u.curator === 'pending') pendingCount++;
+            if (u.wrapped === 'pending') pendingCount++;
+        });
+        if (pendingCount > 0) {
+            adminPendingBadge.textContent = `${pendingCount} nueva${pendingCount === 1 ? '' : 's'}`;
+            adminPendingBadge.className = 'badge rounded-pill bg-danger text-white fw-bold';
+        } else {
+            adminPendingBadge.textContent = 'Al día';
+            adminPendingBadge.className = 'badge rounded-pill bg-secondary bg-opacity-25 text-secondary';
+        }
+    }
+}
+
+function openFeatureRequestModal(feature) {
+    const modalEl = document.getElementById('featureRequestModal');
+    const body = document.getElementById('feature-request-modal-body');
+    if (!modalEl || !body) return;
+
+    const { raw } = getCurrentNormalizedUser();
+    const status = getUserFeatureStatus(feature);
+    const isCurator = feature === 'curator';
+    const title = isCurator ? 'Curador de Playlists Semestrales' : 'Wrapped & Pistas Musicales';
+    const icon = isCurator ? 'fa-wand-magic-sparkles text-primary' : 'fa-gift text-warning';
+    const desc = isCurator
+        ? 'Selecciona y organiza tus mejores ~18 canciones de cada semestre con filtros inteligentes.'
+        : 'Descubre pistas quincenales sobre tus artistas y canciones rumbo a tu Wrapped anual.';
+
+    body.innerHTML = `
+        <div class="mb-3 d-inline-flex align-items-center justify-content-center rounded-circle" style="width: 68px; height: 68px; background: rgba(168, 85, 247, 0.14); border: 1px solid rgba(168, 85, 247, 0.35);">
+            <i class="fa-solid ${icon} fs-2"></i>
+        </div>
+        <h5 class="fw-bold text-white mb-1">${title}</h5>
+        <p class="text-secondary small mb-3">${desc}</p>
+
+        <div class="p-3 rounded-3 border border-secondary border-opacity-20 mb-3 text-start" style="background: rgba(255,255,255,0.02); font-size: 0.78rem;">
+            <div class="d-flex align-items-center justify-content-between mb-1">
+                <span class="text-secondary">Usuario solicitante:</span>
+                <strong class="text-white">@${escapeHtml(raw || 'Invitado')}</strong>
+            </div>
+            <div class="d-flex align-items-center justify-content-between">
+                <span class="text-secondary">Estado del acceso:</span>
+                ${status === 'pending'
+                    ? '<span class="badge bg-warning bg-opacity-20 text-warning border border-warning border-opacity-30">⏳ Pendiente de aprobación</span>'
+                    : '<span class="badge bg-secondary bg-opacity-25 text-secondary">🔒 Requiere autorización del Admin</span>'}
+            </div>
+        </div>
+
+        ${status === 'pending' ? `
+            <div class="alert alert-warning py-2 px-3 small mb-3" style="font-size: 0.76rem; background: rgba(251, 191, 36, 0.1); border-color: rgba(251, 191, 36, 0.3); color: #fde68a;">
+                <i class="fa-regular fa-clock me-1"></i>Tu solicitud ya fue enviada al administrador. En cuanto la apruebe, tendrás acceso inmediato.
+            </div>
+            <button type="button" class="btn btn-brand w-100 rounded-pill py-2 fw-semibold" onclick="checkMyApprovalNow('${feature}')">
+                <i class="fa-solid fa-arrows-rotate me-1.5"></i>Verificar si ya fui aprobado
+            </button>
+        ` : `
+            <button type="button" class="btn btn-brand w-100 rounded-pill py-2.5 fw-bold shadow" onclick="submitFeatureAccessRequest('${feature}')">
+                <i class="fa-solid fa-paper-plane me-1.5"></i>Solicitar Acceso al Administrador
+            </button>
+        `}
+    `;
+
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+}
+window.openFeatureRequestModal = openFeatureRequestModal;
+
+async function submitFeatureAccessRequest(feature) {
+    const { raw, key } = getCurrentNormalizedUser();
+    if (!key) {
+        alert('Primero conecta tu usuario de Last.fm para solicitar acceso.');
+        return;
+    }
+    const st = getAccessRequestsState();
+    if (!st.users[key]) {
+        st.users[key] = { username: raw, curator: 'none', wrapped: 'none', updatedAt: new Date().toISOString() };
+    }
+    st.users[key].username = raw;
+    st.users[key][feature] = 'pending';
+    st.users[key].updatedAt = new Date().toISOString();
+
+    await pushAccessRequestsToCloud();
+    openFeatureRequestModal(feature);
+    if (typeof showEngagementToast === 'function') {
+        showEngagementToast('<i class="fa-solid fa-paper-plane text-info"></i>', 'Solicitud Enviada', 'El administrador recibirá tu solicitud para activar esta función.');
+    }
+}
+window.submitFeatureAccessRequest = submitFeatureAccessRequest;
+
+async function checkMyApprovalNow(feature) {
+    await syncAccessRequestsFromCloud(false);
+    const status = getUserFeatureStatus(feature);
+    if (status === 'approved') {
+        const modalEl = document.getElementById('featureRequestModal');
+        bootstrap.Modal.getInstance(modalEl)?.hide();
+        if (feature === 'curator') {
+            switchAppView('curator');
+        } else {
+            openWrappedHintModal(true);
+        }
+    } else {
+        openFeatureRequestModal(feature);
+        if (typeof showEngagementToast === 'function') {
+            showEngagementToast('<i class="fa-regular fa-clock text-warning"></i>', 'Aún pendiente', 'El administrador todavía no ha aprobado la solicitud.');
+        }
+    }
+}
+window.checkMyApprovalNow = checkMyApprovalNow;
+
+async function openAdminRequestsModal() {
+    if (!isAppOwner()) return;
+    const modalEl = document.getElementById('adminRequestsModal');
+    if (!modalEl) return;
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    renderAdminRequestsList();
+    await syncAccessRequestsFromCloud(true);
+}
+window.openAdminRequestsModal = openAdminRequestsModal;
+
+function renderAdminRequestsList() {
+    const container = document.getElementById('admin-requests-list');
+    if (!container) return;
+    const st = getAccessRequestsState();
+    const entries = Object.entries(st.users || {});
+
+    if (entries.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-4 text-secondary border border-secondary border-opacity-15 rounded-3" style="background: rgba(255,255,255,0.01);">
+                <i class="fa-solid fa-inbox fs-3 mb-2 opacity-50 d-block"></i>
+                <span class="small">Aún no hay solicitudes de amigos registradas.</span>
+            </div>
+        `;
+        return;
+    }
+
+    entries.sort((a, b) => {
+        const aPend = (a[1].curator === 'pending' || a[1].wrapped === 'pending') ? 1 : 0;
+        const bPend = (b[1].curator === 'pending' || b[1].wrapped === 'pending') ? 1 : 0;
+        if (aPend !== bPend) return bPend - aPend;
+        return (b[1].updatedAt || '').localeCompare(a[1].updatedAt || '');
+    });
+
+    container.innerHTML = entries.map(([uKey, u]) => {
+        const cur = u.curator || 'none';
+        const wrp = u.wrapped || 'none';
+        const badgeFor = (val) => {
+            if (val === 'approved') return '<span class="badge bg-success bg-opacity-25 text-success">✓ Aprobado</span>';
+            if (val === 'pending') return '<span class="badge bg-warning text-dark fw-bold">⏳ Solicita Acceso</span>';
+            return '<span class="badge bg-secondary bg-opacity-25 text-secondary">Sin acceso</span>';
+        };
+        return `
+            <div class="p-3 rounded-3 border border-secondary border-opacity-20" style="background: rgba(255,255,255,0.03);">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa-brands fa-lastfm text-danger"></i>
+                        <strong class="text-white" style="font-size: 0.9rem;">@${escapeHtml(u.username || uKey)}</strong>
+                    </div>
+                    <div class="d-flex gap-1.5">
+                        <button type="button" class="btn btn-sm btn-success rounded-pill px-2.5 py-0.5 fw-semibold" style="font-size: 0.70rem;" onclick="adminSetUserFeatureStatus('${escapeJsStr(uKey)}', 'both', 'approved')">
+                            ✓ Aprobar Todo
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-2 py-0.5" style="font-size: 0.70rem;" onclick="adminSetUserFeatureStatus('${escapeJsStr(uKey)}', 'both', 'none')" title="Revocar permisos">
+                            <i class="fa-solid fa-ban"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="row g-2 pt-2 border-top border-secondary border-opacity-10" style="font-size: 0.75rem;">
+                    <div class="col-12 col-sm-6 d-flex align-items-center justify-content-between">
+                        <span class="text-secondary"><i class="fa-solid fa-wand-magic-sparkles text-primary me-1"></i>Curador: ${badgeFor(cur)}</span>
+                        <button type="button" class="btn btn-sm ${cur === 'approved' ? 'btn-outline-secondary' : 'btn-outline-success'} py-0 px-2 rounded-pill" style="font-size: 0.68rem;" onclick="adminSetUserFeatureStatus('${escapeJsStr(uKey)}', 'curator', '${cur === 'approved' ? 'none' : 'approved'}')">
+                            ${cur === 'approved' ? 'Quitar' : 'Aprobar'}
+                        </button>
+                    </div>
+                    <div class="col-12 col-sm-6 d-flex align-items-center justify-content-between">
+                        <span class="text-secondary"><i class="fa-solid fa-gift text-warning me-1"></i>Wrapped: ${badgeFor(wrp)}</span>
+                        <button type="button" class="btn btn-sm ${wrp === 'approved' ? 'btn-outline-secondary' : 'btn-outline-success'} py-0 px-2 rounded-pill" style="font-size: 0.68rem;" onclick="adminSetUserFeatureStatus('${escapeJsStr(uKey)}', 'wrapped', '${wrp === 'approved' ? 'none' : 'approved'}')">
+                            ${wrp === 'approved' ? 'Quitar' : 'Aprobar'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+async function adminSetUserFeatureStatus(uKey, feature, newStatus) {
+    const st = getAccessRequestsState();
+    if (!st.users[uKey]) {
+        st.users[uKey] = { username: uKey, curator: 'none', wrapped: 'none', updatedAt: new Date().toISOString() };
+    }
+    if (feature === 'both') {
+        st.users[uKey].curator = newStatus;
+        st.users[uKey].wrapped = newStatus;
+    } else {
+        st.users[uKey][feature] = newStatus;
+    }
+    st.users[uKey].updatedAt = new Date().toISOString();
+    await pushAccessRequestsToCloud();
+    renderAdminRequestsList();
+}
+window.adminSetUserFeatureStatus = adminSetUserFeatureStatus;
+
+async function adminManualGrantAll() {
+    const inp = document.getElementById('admin-manual-user-input');
+    const raw = inp ? inp.value.trim() : '';
+    if (!raw) return;
+    const uKey = raw.toLowerCase();
+    const st = getAccessRequestsState();
+    st.users[uKey] = {
+        username: raw,
+        curator: 'approved',
+        wrapped: 'approved',
+        updatedAt: new Date().toISOString()
+    };
+    if (inp) inp.value = '';
+    await pushAccessRequestsToCloud();
+    renderAdminRequestsList();
+}
+window.adminManualGrantAll = adminManualGrantAll;
+
 function applyRoleBasedUI() {
     const isOwner = isAppOwner();
+    const isDemo = isDemoMode();
+
     document.querySelectorAll('.owner-only-element').forEach(el => {
-        if (isOwner) {
-            el.classList.remove('d-none');
-        } else {
-            el.classList.add('d-none');
-        }
+        if (isOwner) el.classList.remove('d-none');
+        else el.classList.add('d-none');
     });
+
+    document.querySelectorAll('.non-owner-element').forEach(el => {
+        if (!isOwner) el.classList.remove('d-none');
+        else el.classList.add('d-none');
+    });
+
+    document.querySelectorAll('.demo-hide-element').forEach(el => {
+        if (isDemo) el.classList.add('d-none');
+        else el.classList.remove('d-none');
+    });
+
+    document.querySelectorAll('.demo-only-element').forEach(el => {
+        if (isDemo) el.classList.remove('d-none');
+        else el.classList.add('d-none');
+    });
+
+    updateFeatureAccessBadges();
+    syncAccessRequestsFromCloud(false);
 }
 window.applyRoleBasedUI = applyRoleBasedUI;
 
@@ -7339,6 +7784,17 @@ let currentActiveView = 'home';
 
 function switchAppView(viewName) {
     if (!viewName) viewName = 'home';
+
+    // Control de acceso para Playlists Semestrales (Curador)
+    if (viewName === 'curator') {
+        if (isDemoMode()) {
+            viewName = 'home';
+        } else if (getUserFeatureStatus('curator') !== 'approved') {
+            openFeatureRequestModal('curator');
+            return;
+        }
+    }
+
     currentActiveView = viewName;
 
     // 1. Alternar secciones visibles
@@ -7410,7 +7866,17 @@ async function refreshHomeView() {
             else if (hour >= 12 && hour < 19) greeting = 'Buenas tardes';
             else greeting = 'Buenas noches';
 
-            const name = (userProfileData && userProfileData.display_name) ? userProfileData.display_name.split(' ')[0] : 'Rodrigo';
+            const lfmUser = (localStorage.getItem('lastfm_user') || '').trim();
+            let name = 'Explorador';
+            if (isDemoMode()) {
+                name = 'Explorador';
+            } else if (isAppOwner()) {
+                name = 'Rodrigo';
+            } else if (lfmUser) {
+                name = `@${lfmUser}`;
+            } else if (userProfileData && userProfileData.display_name) {
+                name = userProfileData.display_name.split(' ')[0];
+            }
             greetingEl.innerHTML = `${greeting}, <span style="color: var(--brand-primary);">${escapeHtml(name)}</span>`;
         }
 
@@ -7510,9 +7976,10 @@ async function renderHomeHighlights(db) {
                         <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-2.5 py-0.5" style="font-size: 0.70rem; border-color: rgba(255,255,255,0.18);" onclick="showItemStats('track', '${escapeJsStr(top1.name)}', '${escapeJsStr(top1.artist)}')">
                             <i class="fa-solid fa-chart-simple me-1 text-info"></i>Detalles
                         </button>
+                        ${isAppOwner() ? `
                         <button type="button" class="btn btn-sm btn-outline-info rounded-pill px-2.5 py-0.5" style="font-size: 0.70rem;" onclick="openStreamAdjustmentModal('track', '${escapeJsStr(top1.name)}', '${escapeJsStr(top1.artist)}')">
                             <i class="fa-solid fa-sliders me-1"></i>Ajustar
-                        </button>
+                        </button>` : ''}
                     </div>
                 </div>
             `;
@@ -8233,6 +8700,35 @@ function buildWrappedHints(db) {
 function renderWrappedTeaser() {
     const box = document.getElementById('wrapped-teaser');
     if (!box) return;
+
+    if (isDemoMode()) {
+        box.innerHTML = '';
+        return;
+    }
+
+    const wrappedStatus = getUserFeatureStatus('wrapped');
+    if (wrappedStatus !== 'approved') {
+        const isPending = wrappedStatus === 'pending';
+        box.innerHTML = `
+            <div class="p-3 rounded-3" style="background: linear-gradient(135deg, rgba(168,85,247,0.14), rgba(236,72,153,0.08)); border: 1px solid rgba(168,85,247,0.35);">
+                <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
+                    <div style="min-width: 0;">
+                        <div class="fw-bold text-white" style="font-size: 0.95rem;"><i class="fa-solid fa-gift text-warning me-2"></i>Wrapped 2026 & Pistas Musicales</div>
+                        <div class="text-secondary mt-1" style="font-size: 0.76rem;">
+                            ${isPending
+                                ? '⏳ Solicitud enviada. Esperando aprobación del administrador para desbloquear tus pistas.'
+                                : '🔒 Función exclusiva bajo aprobación del administrador.'}
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-sm ${isPending ? 'btn-outline-warning' : 'btn-brand'} rounded-pill px-3 py-1.5 fw-semibold text-nowrap" style="font-size: 0.78rem;" onclick="openFeatureRequestModal('wrapped')">
+                        <i class="fa-solid ${isPending ? 'fa-clock' : 'fa-paper-plane'} me-1"></i>${isPending ? 'Ver Estado' : 'Solicitar Acceso'}
+                    </button>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
     const q = getQuincenaInfo();
     const st = getWrappedState();
     const used = !!st.used[q.key];
@@ -8252,8 +8748,8 @@ function renderWrappedTeaser() {
                     <div class="text-secondary mt-1" style="font-size: 0.76rem;">${status}</div>
                     <div class="text-secondary" style="font-size: 0.70rem;">Pistas descubiertas: ${hintCount} · 2 por mes (1 por quincena)</div>
                 </div>
-                <button type="button" class="btn btn-sm ${used ? 'btn-outline-secondary' : 'btn-brand'} rounded-pill px-3 py-1.5 fw-semibold text-nowrap" style="font-size: 0.78rem;" ${used ? 'disabled' : ''} onclick="openWrappedHint()">
-                    <i class="fa-solid ${used ? 'fa-lock' : 'fa-magnifying-glass'} me-1"></i>Ver pistas
+                <button type="button" class="btn btn-sm ${used ? 'btn-outline-light' : 'btn-brand'} rounded-pill px-3 py-1.5 fw-semibold text-nowrap" style="font-size: 0.78rem;" onclick="openWrappedHint()">
+                    <i class="fa-solid ${used ? 'fa-eye' : 'fa-magnifying-glass'} me-1"></i>${used ? 'Ver mis pistas' : 'Descubrir pista'}
                 </button>
             </div>
         </div>
@@ -8261,17 +8757,25 @@ function renderWrappedTeaser() {
 }
 
 async function openWrappedHint() {
+    if (isDemoMode()) return;
+    if (getUserFeatureStatus('wrapped') !== 'approved') {
+        openFeatureRequestModal('wrapped');
+        return;
+    }
+
     const q = getQuincenaInfo();
     const st = getWrappedState();
-    if (st.used[q.key]) return;
+    const alreadyUsed = !!st.used[q.key];
 
-    let db = null;
-    try { db = await getActiveDatabase(); } catch (e) {}
-    const hints = buildWrappedHints(db);
-    const hint = hints[q.ordinal % hints.length];
-
-    st.used[q.key] = { text: hint, at: new Date().toISOString() };
-    saveWrappedState(st);
+    let hint = st.used[q.key]?.text || '';
+    if (!alreadyUsed) {
+        let db = null;
+        try { db = await getActiveDatabase(); } catch (e) {}
+        const hints = buildWrappedHints(db);
+        hint = hints[q.ordinal % hints.length];
+        st.used[q.key] = { text: hint, at: new Date().toISOString() };
+        saveWrappedState(st);
+    }
 
     const prev = Object.entries(st.used).filter(([k]) => k !== q.key).sort((a, b) => b[0].localeCompare(a[0]));
     const body = document.getElementById('wrapped-hint-body');
@@ -8279,12 +8783,13 @@ async function openWrappedHint() {
         body.innerHTML = `
             <div class="p-3 rounded-3 text-center mb-3" style="background: rgba(168,85,247,0.12); border: 1px solid rgba(168,85,247,0.35);">
                 <div style="font-size: 2rem;">🔮</div>
+                <div class="text-secondary text-uppercase fw-bold mt-1" style="font-size: 0.65rem; letter-spacing: 0.08em;">Pista de esta quincena</div>
                 <div class="text-white fw-semibold mt-1" style="font-size: 0.92rem;">${escapeHtml(hint)}</div>
             </div>
-            <div class="text-secondary text-center" style="font-size: 0.72rem;">Próxima pista: ${q.next.getDate()} de ${MESES_ES[q.next.getMonth()]}</div>
+            <div class="text-secondary text-center" style="font-size: 0.72rem;">Próxima pista: <strong class="text-white">${q.next.getDate()} de ${MESES_ES[q.next.getMonth()]}</strong></div>
             ${prev.length ? `
                 <div class="mt-3 pt-2 border-top border-secondary border-opacity-15">
-                    <div class="text-secondary fw-semibold mb-1" style="font-size: 0.72rem;">Pistas anteriores</div>
+                    <div class="text-secondary fw-semibold mb-1" style="font-size: 0.72rem;">Pistas anteriores desbloqueadas</div>
                     ${prev.map(([k, v]) => `<div class="text-secondary mb-1" style="font-size: 0.74rem;">• ${escapeHtml(v.text || '')}</div>`).join('')}
                 </div>` : ''}
         `;
@@ -8292,9 +8797,12 @@ async function openWrappedHint() {
     const modalEl = document.getElementById('wrappedHintModal');
     if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).show();
     renderWrappedTeaser();
-    if (typeof confetti === 'function') confetti({ particleCount: 50, spread: 70, origin: { y: 0.5 } });
+    if (!alreadyUsed && typeof confetti === 'function') {
+        confetti({ particleCount: 50, spread: 70, origin: { y: 0.5 } });
+    }
 }
 window.openWrappedHint = openWrappedHint;
+window.openWrappedHintModal = openWrappedHint;
 window.renderWrappedTeaser = renderWrappedTeaser;
 
 

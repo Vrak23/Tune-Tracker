@@ -1137,6 +1137,167 @@
             font-weight: 700 !important;
         }
 
+        /* =========================================================
+           PREMIUM LOGIN PORTAL (HERO + GLASSMORPHIC AUTH CARD)
+           ========================================================= */
+        .login-portal-wrapper {
+            position: relative;
+            padding: 1.5rem 0 2.5rem;
+            overflow: hidden;
+        }
+        .login-ambient-glow-1 {
+            position: fixed;
+            top: 12%;
+            left: 8%;
+            width: 380px;
+            height: 380px;
+            background: radial-gradient(circle, rgba(168, 85, 247, 0.16) 0%, rgba(56, 189, 248, 0.06) 45%, transparent 70%);
+            filter: blur(50px);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .login-ambient-glow-2 {
+            position: fixed;
+            bottom: 8%;
+            right: 8%;
+            width: 420px;
+            height: 420px;
+            background: radial-gradient(circle, rgba(225, 29, 72, 0.16) 0%, rgba(168, 85, 247, 0.08) 50%, transparent 72%);
+            filter: blur(55px);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .login-eyebrow-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: 999px;
+            background: rgba(168, 85, 247, 0.12);
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            color: #e9d5ff;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .login-pulse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #30d158;
+            box-shadow: 0 0 10px #30d158;
+            animation: loginDotPulse 1.8s infinite ease-in-out;
+        }
+        @keyframes loginDotPulse {
+            0%, 100% { transform: scale(0.9); opacity: 0.75; }
+            50% { transform: scale(1.25); opacity: 1; }
+        }
+        .login-hero-title {
+            font-size: clamp(2rem, 3.8vw, 3rem);
+            font-weight: 800;
+            letter-spacing: -0.035em;
+            line-height: 1.12;
+            color: #ffffff;
+        }
+        .login-gradient-text {
+            background: linear-gradient(135deg, #c084fc 0%, #f43f5e 55%, #38bdf8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .login-feature-card {
+            background: linear-gradient(155deg, rgba(28, 28, 36, 0.75) 0%, rgba(16, 16, 22, 0.85) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 18px;
+            padding: 14px 16px;
+            backdrop-filter: blur(16px);
+            transition: all 0.25s ease;
+        }
+        .login-feature-card:hover {
+            border-color: rgba(192, 132, 252, 0.32);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+        }
+        .login-auth-card {
+            position: relative;
+            background: linear-gradient(165deg, rgba(24, 24, 32, 0.92) 0%, rgba(12, 12, 18, 0.96) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 26px;
+            padding: 28px 26px;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85), 0 0 40px rgba(168, 85, 247, 0.12);
+            backdrop-filter: blur(24px);
+        }
+        .login-input-wrapper {
+            display: flex;
+            align-items: center;
+            background: rgba(8, 8, 12, 0.9);
+            border: 1.5px solid rgba(255, 255, 255, 0.14);
+            border-radius: 14px;
+            padding: 4px 14px;
+            transition: all 0.22s ease;
+        }
+        .login-input-wrapper:focus-within {
+            border-color: #f43f5e;
+            box-shadow: 0 0 0 4px rgba(244, 63, 94, 0.16);
+            background: #050508;
+        }
+        .login-input-wrapper input {
+            background: transparent !important;
+            border: none !important;
+            color: #ffffff !important;
+            font-size: 0.95rem;
+            font-weight: 500;
+            padding: 10px 8px;
+            width: 100%;
+            outline: none !important;
+            box-shadow: none !important;
+        }
+        .login-input-wrapper input::placeholder {
+            color: #6b7280;
+            font-weight: 400;
+        }
+        .btn-lastfm-cta {
+            background: linear-gradient(135deg, #f43f5e 0%, #e11d48 50%, #be123c 100%);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 0.96rem;
+            border-radius: 14px;
+            padding: 12px 20px;
+            box-shadow: 0 10px 26px rgba(225, 29, 72, 0.36);
+            transition: all 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .btn-lastfm-cta:hover, .btn-lastfm-cta:focus {
+            color: #ffffff;
+            transform: translateY(-2px);
+            box-shadow: 0 14px 32px rgba(225, 29, 72, 0.5);
+            filter: brightness(1.06);
+        }
+        .btn-demo-cta {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #f4f4f5;
+            font-weight: 600;
+            font-size: 0.88rem;
+            border-radius: 14px;
+            padding: 11px 18px;
+            transition: all 0.22s ease;
+        }
+        .btn-demo-cta:hover {
+            background: rgba(255, 255, 255, 0.09);
+            border-color: rgba(56, 189, 248, 0.4);
+            color: #ffffff;
+            transform: translateY(-1px);
+        }
+        .login-perks-drawer {
+            background: rgba(244, 63, 94, 0.07);
+            border: 1px solid rgba(244, 63, 94, 0.22);
+            border-radius: 12px;
+            padding: 10px 12px;
+            margin-bottom: 12px;
+            transition: all 0.25s ease;
+        }
+
     </style>
 </head>
 <body>
@@ -1144,7 +1305,7 @@
     <!-- Header / Navbar -->
     <nav class="navbar border-bottom border-secondary border-opacity-10 py-2 sticky-top" style="background-color: rgba(0, 0, 0, 0.80) !important; backdrop-filter: saturate(180%) blur(20px) !important; -webkit-backdrop-filter: saturate(180%) blur(20px) !important; border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;">
         <div class="app-container d-flex align-items-center justify-content-between">
-            <a class="navbar-brand d-flex align-items-center gap-2 fw-bold text-white text-decoration-none" href="#">
+            <a class="navbar-brand d-flex align-items-center gap-2 fw-bold text-white text-decoration-none" href="javascript:void(0)" onclick="handleSecretLogoTap(event)">
                 <img src="/logo.png" alt="Tune Tracker Logo">
                 <span class="fs-6 tracking-wide">Tune<span style="color: var(--brand-primary);">Tracker</span></span>
             </a>
@@ -1174,52 +1335,169 @@
             </div>
         </div>
 
-        <!-- Login View -->
-        <div id="login-view" class="text-center py-5 my-auto d-none">
-            <div class="mb-3">
-                <img src="/logo.png" alt="Tune Tracker Logo" style="width: 96px; height: 96px; filter: drop-shadow(0 0 25px var(--brand-glow));" class="rounded-4">
-            </div>
-            <h1 class="fw-bold mb-2 display-6 text-white">Tune Tracker</h1>
-            <p class="text-secondary fs-6 mb-4 mx-auto" style="max-width: 440px;">
-                Tus estadísticas musicales reales, escucha en vivo con Dynamic Island y tops sin esperar a fin de año.
-            </p>
+        <!-- Login View (Premium 2-Column Hero & Glassmorphic Auth Portal) -->
+        <div id="login-view" class="login-portal-wrapper my-auto d-none">
+            <div class="login-ambient-glow-1"></div>
+            <div class="login-ambient-glow-2"></div>
 
-            <div class="card border-0 shadow-lg mx-auto p-4 text-start" style="max-width: 380px; background: rgba(18, 18, 24, 0.85); border: 1px solid rgba(255, 255, 255, 0.08) !important; border-radius: 20px; backdrop-filter: blur(16px);">
-                <label for="login-lastfm-input" class="form-label text-secondary small fw-semibold mb-1.5" style="letter-spacing: 0.03em;">
-                    <i class="fa-brands fa-lastfm me-1.5 text-danger"></i>USUARIO DE LAST.FM
-                </label>
-                <div class="input-group mb-2">
-                    <span class="input-group-text bg-dark border-secondary border-opacity-25 text-secondary" style="border-radius: 12px 0 0 12px;">
-                        <i class="fa-regular fa-user"></i>
-                    </span>
-                    <input type="text" id="login-lastfm-input" class="form-control bg-dark text-white border-secondary border-opacity-25" placeholder="ej. tu_usuario" autocomplete="username" style="border-radius: 0 12px 12px 0; font-size: 0.92rem;">
+            <div class="row align-items-center justify-content-between g-4 g-lg-5 position-relative" style="z-index: 1; max-width: 1040px; margin: 0 auto;">
+                
+                <!-- Left Column: Hero Showcase & Live Preview -->
+                <div class="col-12 col-lg-7 text-center text-lg-start">
+                    <div class="mb-3">
+                        <span class="login-eyebrow-badge">
+                            <span class="login-pulse-dot"></span>
+                            Analítica Musical en Tiempo Real
+                        </span>
+                    </div>
+
+                    <h1 class="login-hero-title mb-3">
+                        Tu historia musical, <br class="d-none d-sm-inline">
+                        <span class="login-gradient-text">sin esperar a fin de año.</span>
+                    </h1>
+
+                    <p class="text-secondary mb-4 mx-auto mx-lg-0" style="font-size: 0.98rem; max-width: 520px; line-height: 1.6;">
+                        Conecta tu cuenta de <strong class="text-white">Last.fm</strong> y convierte cada reproducción en estadísticas en vivo, rankings por época, retos diarios y duelos interactivos.
+                    </p>
+
+                    <!-- Mini Dynamic Island Live Mockup -->
+                    <div class="d-flex justify-content-center justify-content-lg-start mb-4">
+                        <div class="dynamic-island" style="cursor: default; pointer-events: none; transform: none;">
+                            <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 46px; height: 46px; background: linear-gradient(135deg, #a855f7, #ec4899); border: 1px solid rgba(255,255,255,0.25);">
+                                <i class="fa-solid fa-compact-disc text-white fs-4"></i>
+                            </div>
+                            <div class="overflow-hidden text-start" style="max-width: 240px;">
+                                <div class="d-flex align-items-center gap-1.5">
+                                    <span style="font-size: 0.64rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #30d158;">
+                                        ● DYNAMIC ISLAND EN VIVO
+                                    </span>
+                                </div>
+                                <div class="fw-bold text-truncate text-white" style="font-size: 0.90rem; line-height: 1.2;">Detección instantánea</div>
+                                <small class="text-secondary text-truncate d-block" style="font-size: 0.75rem;">Sincronizado con tus scrobbles</small>
+                            </div>
+                            <div class="island-eq ms-2">
+                                <span></span><span></span><span></span><span></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3 Feature Highlights Grid -->
+                    <div class="row g-2.5 text-start">
+                        <div class="col-12 col-sm-4">
+                            <div class="login-feature-card h-100">
+                                <div class="d-flex align-items-center gap-2 mb-1.5">
+                                    <div class="rounded-3 d-flex align-items-center justify-content-center" style="width: 30px; height: 30px; background: rgba(56, 189, 248, 0.15); color: #38bdf8;">
+                                        <i class="fa-solid fa-chart-simple" style="font-size: 0.82rem;"></i>
+                                    </div>
+                                    <span class="fw-bold text-white" style="font-size: 0.82rem;">Tops Precisos</span>
+                                </div>
+                                <small class="text-secondary d-block" style="font-size: 0.73rem; line-height: 1.4;">Filtra tus canciones, artistas y álbumes por mes, año o fechas exactas.</small>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-4">
+                            <div class="login-feature-card h-100">
+                                <div class="d-flex align-items-center gap-2 mb-1.5">
+                                    <div class="rounded-3 d-flex align-items-center justify-content-center" style="width: 30px; height: 30px; background: rgba(245, 158, 11, 0.15); color: #fbbf24;">
+                                        <i class="fa-solid fa-trophy" style="font-size: 0.82rem;"></i>
+                                    </div>
+                                    <span class="fw-bold text-white" style="font-size: 0.82rem;">Arena & Juegos</span>
+                                </div>
+                                <small class="text-secondary d-block" style="font-size: 0.73rem; line-height: 1.4;">Torneo Mundial 16, Higher or Lower y Trivia sobre tus propios hábitos.</small>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-4">
+                            <div class="login-feature-card h-100">
+                                <div class="d-flex align-items-center gap-2 mb-1.5">
+                                    <div class="rounded-3 d-flex align-items-center justify-content-center" style="width: 30px; height: 30px; background: rgba(192, 132, 252, 0.15); color: #c084fc;">
+                                        <i class="fa-solid fa-share-nodes" style="font-size: 0.82rem;"></i>
+                                    </div>
+                                    <span class="fw-bold text-white" style="font-size: 0.82rem;">Tarjetas & Racha</span>
+                                </div>
+                                <small class="text-secondary d-block" style="font-size: 0.73rem; line-height: 1.4;">Genera imágenes estilo Replay/Receiptify y sube tu nivel de oyente.</small>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div id="login-lastfm-error" class="alert alert-danger py-1.5 px-2.5 small d-none mb-2.5" style="font-size: 0.78rem; border-radius: 10px;"></div>
+                <!-- Right Column: Interactive Glassmorphic Auth Card -->
+                <div class="col-12 col-lg-5">
+                    <div class="login-auth-card mx-auto" style="max-width: 420px;">
+                        <div class="d-flex align-items-center gap-3 mb-3 pb-2 border-bottom border-secondary border-opacity-15">
+                            <img src="/logo.png" alt="Tune Tracker Logo" style="width: 54px; height: 54px; filter: drop-shadow(0 0 18px var(--brand-glow)); cursor: pointer;" class="rounded-3 flex-shrink-0" onclick="handleSecretLogoTap(event)">
+                            <div class="text-start">
+                                <h4 class="fw-bold text-white mb-0.5" style="font-size: 1.2rem; letter-spacing: -0.02em;">Bienvenido a Tune Tracker</h4>
+                                <small class="text-secondary d-block" style="font-size: 0.76rem;">Ingresa con tu perfil público de Last.fm</small>
+                            </div>
+                        </div>
 
-                <button id="btn-login-lastfm-submit" class="btn btn-danger w-100 py-2.5 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2" style="border-radius: 12px; background: #e11d48; border-color: #e11d48;">
-                    <i class="fa-brands fa-lastfm"></i>
-                    <span>Conectar y Entrar</span>
-                </button>
+                        <div class="text-start mb-3">
+                            <label for="login-lastfm-input" class="form-label text-white small fw-semibold mb-1.5 d-flex align-items-center justify-content-between">
+                                <span><i class="fa-brands fa-lastfm me-1.5 text-danger"></i>Usuario de Last.fm</span>
+                                <span class="badge rounded-pill" style="background: rgba(48, 209, 88, 0.14); color: #30d158; font-size: 0.64rem;">Sin contraseña ni API Key</span>
+                            </label>
+                            <div class="login-input-wrapper">
+                                <i class="fa-solid fa-at text-secondary me-1" style="font-size: 0.9rem;"></i>
+                                <input type="text" id="login-lastfm-input" placeholder="Escribe tu usuario (ej. vrak_23)" autocomplete="username" onfocus="document.getElementById('login-perks-preview')?.classList.remove('d-none')">
+                            </div>
+                        </div>
 
-                <div class="position-relative text-center my-3">
-                    <hr class="border-secondary border-opacity-15 m-0">
-                    <span class="position-absolute top-50 start-50 translate-middle px-2 text-muted" style="background: #15151c; font-size: 0.72rem;">o prueba sin cuenta</span>
+                        <!-- Interactive Perks Drawer (se despliega al tocar el input) -->
+                        <div id="login-perks-preview" class="login-perks-drawer text-start d-none">
+                            <div class="fw-bold text-white mb-1.5" style="font-size: 0.74rem;">
+                                <i class="fa-solid fa-bolt text-warning me-1"></i>Al conectar tu cuenta desbloqueas:
+                            </div>
+                            <div class="d-flex flex-wrap gap-1.5">
+                                <span class="badge rounded-pill bg-dark text-white border border-secondary border-opacity-25" style="font-size: 0.66rem;">✓ Dynamic Island en vivo</span>
+                                <span class="badge rounded-pill bg-dark text-white border border-secondary border-opacity-25" style="font-size: 0.66rem;">✓ Tus Tops y Scrobbles</span>
+                                <span class="badge rounded-pill bg-dark text-white border border-secondary border-opacity-25" style="font-size: 0.66rem;">✓ Juegos con tu música</span>
+                                <span class="badge rounded-pill bg-dark text-info border border-info border-opacity-25" style="font-size: 0.66rem;">🔒 Solicitud a Curador y Wrapped</span>
+                            </div>
+                        </div>
+
+                        <div id="login-lastfm-error" class="alert alert-danger py-2 px-2.5 small d-none mb-3 text-start" style="font-size: 0.78rem; border-radius: 12px;"></div>
+
+                        <button id="btn-login-lastfm-submit" class="btn btn-lastfm-cta w-100 d-flex align-items-center justify-content-center gap-2 mb-2.5">
+                            <i class="fa-brands fa-lastfm fs-5"></i>
+                            <span>Conectar y Entrar</span>
+                            <i class="fa-solid fa-arrow-right ms-1" style="font-size: 0.82rem;"></i>
+                        </button>
+
+                        <!-- Collapsible Quick Guide for Friends -->
+                        <div class="text-center mb-2">
+                            <button type="button" class="btn btn-link text-secondary text-decoration-none p-0" style="font-size: 0.75rem;" onclick="document.getElementById('login-guide-box')?.classList.toggle('d-none')">
+                                <i class="fa-regular fa-circle-question me-1 text-info"></i>¿Cómo conecto mi Spotify a Last.fm gratis?
+                            </button>
+                            <div id="login-guide-box" class="d-none text-start mt-2 p-2.5 rounded-3 border border-secondary border-opacity-20" style="background: rgba(255,255,255,0.02); font-size: 0.73rem; line-height: 1.5;">
+                                <div class="text-white fw-semibold mb-1">Configúralo en 1 minuto:</div>
+                                <ol class="text-secondary mb-0 ps-3">
+                                    <li>Crea tu cuenta gratis en <a href="https://www.last.fm/join" target="_blank" rel="noopener" class="text-info">last.fm/join</a>.</li>
+                                    <li>Ve a <a href="https://www.last.fm/settings/applications" target="_blank" rel="noopener" class="text-info">Configuración → Aplicaciones</a> y dale a <strong>Conectar</strong> en <em>Spotify Scrobbling</em>.</li>
+                                    <li>Escribe tu usuario de Last.fm aquí arriba y entra.</li>
+                                </ol>
+                            </div>
+                        </div>
+
+                        <div class="position-relative text-center my-3">
+                            <hr class="border-secondary border-opacity-15 m-0">
+                            <span class="position-absolute top-50 start-50 translate-middle px-2.5 text-muted" style="background: #121218; font-size: 0.71rem;">¿Solo quieres conocer la app?</span>
+                        </div>
+
+                        <button id="btn-login-demo" class="btn btn-demo-cta w-100 d-flex align-items-center justify-content-between">
+                            <span class="d-flex align-items-center gap-2">
+                                <i class="fa-solid fa-compass text-info"></i>
+                                <span>Explorar Versión Demo</span>
+                            </span>
+                            <span class="badge rounded-pill" style="background: rgba(56, 189, 248, 0.14); color: #38bdf8; font-size: 0.65rem;">Vista previa</span>
+                        </button>
+
+                        <div class="mt-3 pt-2 border-top border-secondary border-opacity-10 text-center">
+                            <button id="btn-install-login" class="btn btn-link text-secondary text-decoration-none p-0" style="font-size: 0.78rem;">
+                                <i class="fa-solid fa-mobile-screen-button me-1.5 text-primary"></i>Instalar App en tu dispositivo (PWA)
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
-                <button id="btn-login-demo" class="btn btn-outline-light w-100 py-2 fw-semibold d-flex align-items-center justify-content-center gap-2" style="border-radius: 12px; background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.12); font-size: 0.86rem;">
-                    <i class="fa-solid fa-compass text-info"></i>
-                    <span>Explorar Modo Demo</span>
-                </button>
-            </div>
-
-            <div class="d-flex flex-column align-items-center gap-2 mt-4">
-                <button id="btn-owner-unlock" class="btn btn-link text-muted text-decoration-none p-0" style="font-size: 0.78rem;" onclick="promptOwnerUnlock()">
-                    <i class="fa-solid fa-crown me-1 text-warning opacity-75"></i> Acceso Modo Dueño
-                </button>
-                <button id="btn-install-login" class="btn btn-link text-secondary text-decoration-none p-0 mt-1" style="font-size: 0.80rem;">
-                    <i class="fa-solid fa-download me-1.5"></i> Descargar App Web (PWA)
-                </button>
             </div>
         </div>
 
@@ -1248,7 +1526,7 @@
                     <i class="fa-solid fa-gamepad text-primary"></i>
                     <span>Experiencias & Juegos</span>
                 </button>
-                <button class="desktop-nav-btn" data-tab="curator">
+                <button class="desktop-nav-btn demo-hide-element" data-tab="curator" id="desktop-tab-curator">
                     <i class="fa-solid fa-wand-magic-sparkles text-info"></i>
                     <span>Playlists Semestrales</span>
                 </button>
@@ -1377,18 +1655,29 @@
                         <small class="text-secondary d-block" style="font-size: 0.70rem;">¿Cuál tiene más streams en tu cuenta?</small>
                     </div>
 
-                    <div class="apple-bento-card interactive bento-span-3 p-3" style="cursor: pointer;" onclick="switchAppView('curator')">
+                    <div id="bento-card-curator" class="apple-bento-card interactive bento-span-3 p-3 demo-hide-element" style="cursor: pointer;" onclick="switchAppView('curator')">
                         <div class="d-flex align-items-center justify-content-between mb-2">
                             <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 34px; height: 34px; background: rgba(191, 90, 242, 0.18); color: #c084fc;">
                                 <i class="fa-solid fa-wand-magic-sparkles"></i>
                             </div>
-                            <span class="badge rounded-pill" style="background: rgba(255, 255, 255, 0.08); color: #a1a1aa; font-size: 0.60rem;">CURADOR</span>
+                            <span id="bento-curator-badge" class="badge rounded-pill" style="background: rgba(255, 255, 255, 0.08); color: #a1a1aa; font-size: 0.60rem;">CURADOR</span>
                         </div>
                         <div class="fw-bold text-white" style="font-size: 0.86rem;">Playlists Semestrales</div>
                         <small class="text-secondary d-block" style="font-size: 0.70rem;">Selección inteligente de ~18 temas por ciclo</small>
                     </div>
 
-                    <div class="apple-bento-card interactive bento-span-3 p-3" style="cursor: pointer;" onclick="openStreamManagerModal()">
+                    <div class="apple-bento-card interactive bento-span-3 p-3 demo-only-element d-none" style="cursor: pointer;" onclick="openTrophiesModal()">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 34px; height: 34px; background: rgba(234, 179, 8, 0.18); color: #fbbf24;">
+                                <i class="fa-solid fa-medal"></i>
+                            </div>
+                            <span class="badge rounded-pill" style="background: rgba(234, 179, 8, 0.18); color: #fbbf24; font-size: 0.60rem;">HITOS</span>
+                        </div>
+                        <div class="fw-bold text-white" style="font-size: 0.86rem;">Trofeos & Medallas</div>
+                        <small class="text-secondary d-block" style="font-size: 0.70rem;">Artistas con +100 streams y logros desbloqueados</small>
+                    </div>
+
+                    <div class="apple-bento-card interactive bento-span-3 p-3 owner-only-element d-none" style="cursor: pointer;" onclick="openStreamManagerModal()">
                         <div class="d-flex align-items-center justify-content-between mb-2">
                             <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 34px; height: 34px; background: rgba(48, 209, 88, 0.18); color: #30d158;">
                                 <i class="fa-solid fa-sliders"></i>
@@ -1397,6 +1686,17 @@
                         </div>
                         <div class="fw-bold text-white" style="font-size: 0.86rem;">Gestor de Streams</div>
                         <small class="text-secondary d-block" style="font-size: 0.70rem;">Edita o añade streams personalizados en nube</small>
+                    </div>
+
+                    <div class="apple-bento-card interactive bento-span-3 p-3 non-owner-element" style="cursor: pointer;" onclick="openRecordsModal()">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 34px; height: 34px; background: rgba(236, 72, 153, 0.18); color: #f472b6;">
+                                <i class="fa-solid fa-ranking-star"></i>
+                            </div>
+                            <span class="badge rounded-pill" style="background: rgba(236, 72, 153, 0.18); color: #f472b6; font-size: 0.60rem;">RÉCORDS</span>
+                        </div>
+                        <div class="fw-bold text-white" style="font-size: 0.86rem;">Récords & Fidelidad</div>
+                        <small class="text-secondary d-block" style="font-size: 0.70rem;">Tus días récord, rachas y artistas más leales</small>
                     </div>
                 </div>
             </div>
@@ -1886,9 +2186,9 @@
     <!-- Offcanvas Burger Menu Drawer -->
     <div class="offcanvas offcanvas-end offcanvas-dark" tabindex="-1" id="burgerMenu" aria-labelledby="burgerMenuLabel" style="width: 360px; max-width: 88vw; background-color: #0c0c10; border-left: 1px solid rgba(255, 255, 255, 0.08);">
         <div class="offcanvas-header border-bottom border-secondary border-opacity-10 py-3 px-3">
-            <div class="d-flex align-items-center gap-2">
+            <div class="d-flex align-items-center gap-2" style="cursor: pointer;" onclick="handleSecretLogoTap(event)">
                 <img src="/logo.png" style="width: 28px; height: 28px; object-fit: contain;">
-                <span class="fw-bold fs-6 tracking-wide">Spotify<span style="color: var(--brand-primary);">Tracker</span></span>
+                <span class="fw-bold fs-6 tracking-wide">Tune<span style="color: var(--brand-primary);">Tracker</span></span>
             </div>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>
@@ -1934,18 +2234,24 @@
                         </div>
                     </button>
 
-                    <button class="offcanvas-menu-item" id="menu-open-curator" data-bs-dismiss="offcanvas">
+                    <button class="offcanvas-menu-item demo-hide-element" id="menu-open-curator" data-bs-dismiss="offcanvas">
                         <i class="fa-solid fa-wand-magic-sparkles text-primary fs-5"></i>
-                        <div>
-                            <div class="fw-semibold">Curador de Playlists</div>
-                            <small class="text-secondary d-block" style="font-size: 0.73rem;">Selección guiada de temas favoritos</small>
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center justify-content-between gap-2">
+                                <span class="fw-semibold">Curador de Playlists</span>
+                                <span id="badge-access-curator" class="badge rounded-pill bg-secondary bg-opacity-25 text-secondary" style="font-size: 0.62rem;">🔒 Solicitar</span>
+                            </div>
+                            <small class="text-secondary d-block" style="font-size: 0.73rem;">Selección guiada de temas semestrales</small>
                         </div>
                     </button>
 
-                    <button class="offcanvas-menu-item" id="menu-open-wrapped" data-bs-dismiss="offcanvas" onclick="openWrappedHintModal()">
+                    <button class="offcanvas-menu-item demo-hide-element" id="menu-open-wrapped" data-bs-dismiss="offcanvas" onclick="openWrappedHintModal()">
                         <i class="fa-solid fa-gift text-warning fs-5"></i>
-                        <div>
-                            <div class="fw-semibold">Wrapped & Pistas Musicales</div>
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center justify-content-between gap-2">
+                                <span class="fw-semibold">Wrapped & Pistas Musicales</span>
+                                <span id="badge-access-wrapped" class="badge rounded-pill bg-secondary bg-opacity-25 text-secondary" style="font-size: 0.62rem;">🔒 Solicitar</span>
+                            </div>
                             <small class="text-secondary d-block" style="font-size: 0.73rem;">Tu resumen quincenal y adivinanza</small>
                         </div>
                     </button>
@@ -1955,6 +2261,17 @@
                         <div>
                             <div class="fw-semibold">Compartir Tarjeta</div>
                             <small class="text-secondary d-block" style="font-size: 0.73rem;">Descargar imagen de tu Top actual</small>
+                        </div>
+                    </button>
+
+                    <button class="offcanvas-menu-item owner-only-element d-none" id="menu-admin-requests" data-bs-dismiss="offcanvas" onclick="openAdminRequestsModal()">
+                        <i class="fa-solid fa-user-check text-warning fs-5"></i>
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center justify-content-between gap-2">
+                                <span class="fw-semibold">Solicitudes de Amigos</span>
+                                <span id="badge-admin-pending-count" class="badge rounded-pill bg-warning text-dark fw-bold" style="font-size: 0.65rem;">Admin</span>
+                            </div>
+                            <small class="text-secondary d-block" style="font-size: 0.73rem;">Aprobar acceso a Curador y Wrapped</small>
                         </div>
                     </button>
 
@@ -1987,14 +2304,14 @@
                 </div>
             </div>
 
-            <!-- Bottom Section: Cerrar Sesión + Acceso Dueño Discreto -->
+            <!-- Bottom Section: Cerrar Sesión (Modo Dueño solo visible para el dueño activo) -->
             <div class="border-top border-secondary border-opacity-10 pt-3 mt-3 d-flex flex-column gap-1">
                 <button class="offcanvas-menu-item text-danger w-100" id="menu-logout" data-bs-dismiss="offcanvas">
                     <i class="fa-solid fa-arrow-right-from-bracket fs-5"></i>
                     <span class="fw-semibold">Cerrar Sesión</span>
                 </button>
-                <button class="btn btn-link text-muted text-decoration-none py-1" id="menu-owner-toggle" data-bs-dismiss="offcanvas" onclick="promptOwnerUnlock()" style="font-size: 0.70rem;">
-                    <i class="fa-solid fa-crown text-warning opacity-50 me-1"></i>Modo Dueño
+                <button class="btn btn-link text-muted text-decoration-none py-1 owner-only-element d-none" id="menu-owner-toggle" data-bs-dismiss="offcanvas" onclick="promptOwnerUnlock()" style="font-size: 0.70rem;">
+                    <i class="fa-solid fa-crown text-warning opacity-75 me-1"></i>Modo Dueño Activo (Cambiar vista)
                 </button>
             </div>
         </div>
@@ -2534,6 +2851,70 @@
 
         <!-- Modal progressModal migrado a apartado de navegación #section-profile -->
 
+    <!-- Modal: Solicitud de Acceso a Funciones Avanzadas (Curador / Wrapped) -->
+    <div class="modal fade" id="featureRequestModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
+            <div class="modal-content bg-dark text-white border-0 shadow-lg" style="background: #101017 !important; border: 1px solid rgba(168, 85, 247, 0.35) !important; border-radius: 22px;">
+                <div class="modal-header border-bottom border-secondary border-opacity-15 py-2.5 px-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-lock text-primary"></i>
+                        <h6 class="modal-title fw-bold text-white mb-0" style="font-size: 0.92rem;">Acceso bajo Aprobación</h6>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 text-center" id="feature-request-modal-body">
+                    <!-- Inyectado dinámicamente -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Admin: Panel de Aprobación de Solicitudes de Amigos -->
+    <div class="modal fade" id="adminRequestsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 580px;">
+            <div class="modal-content bg-dark text-white border-0 shadow-lg" style="background: #0e0e14 !important; border: 1px solid rgba(251, 191, 36, 0.35) !important; border-radius: 20px;">
+                <div class="modal-header border-bottom border-secondary border-opacity-15 py-2.5 px-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-user-shield text-warning fs-5"></i>
+                        <div>
+                            <h6 class="modal-title fw-bold text-white mb-0" style="font-size: 0.95rem;">Panel Admin · Solicitudes de Acceso</h6>
+                            <small class="text-secondary d-block" style="font-size: 0.70rem;">Aprueba o gestiona el acceso de tus amigos al Curador y Wrapped</small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-3">
+                    <!-- Autorizar manualmente a un amigo -->
+                    <div class="p-2.5 mb-3 rounded-3 border border-secondary border-opacity-20" style="background: rgba(255,255,255,0.02);">
+                        <label class="form-label small fw-semibold text-white mb-1.5" style="font-size: 0.76rem;">
+                            <i class="fa-solid fa-plus-circle text-success me-1"></i>Aprobar usuario directamente:
+                        </label>
+                        <div class="d-flex gap-2">
+                            <input type="text" id="admin-manual-user-input" class="form-control form-control-sm bg-black text-white border-secondary border-opacity-30" placeholder="Usuario de Last.fm del amigo...">
+                            <button type="button" class="btn btn-sm btn-success rounded-pill px-3 fw-semibold text-nowrap" onclick="adminManualGrantAll()">
+                                <i class="fa-solid fa-check me-1"></i>Aprobar Todo
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="fw-bold text-white small" style="font-size: 0.78rem;">Solicitudes registradas</span>
+                        <button type="button" class="btn btn-sm btn-link text-info p-0 text-decoration-none" style="font-size: 0.72rem;" onclick="syncAccessRequestsFromCloud(true)">
+                            <i class="fa-solid fa-arrows-rotate me-1"></i>Sincronizar
+                        </button>
+                    </div>
+
+                    <div id="admin-requests-list" class="d-flex flex-column gap-2">
+                        <div class="text-center py-4 text-secondary small">Cargando solicitudes...</div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top border-secondary border-opacity-10 py-2 px-3">
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Canvas Confetti -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
     <!-- Bootstrap 5 JS -->
@@ -2542,7 +2923,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
         <!-- App Logic -->
-    <script src="/app.js?v=56"></script>
+    <script src="/app.js?v=57"></script>
 
     <!-- Barra de Navegación Inferior Móvil (Bottom Navigation Bar) -->
     <nav id="bottom-nav-bar" class="bottom-nav-bar d-none">
@@ -2558,7 +2939,7 @@
             <i class="fa-solid fa-gamepad"></i>
             <span>Juegos</span>
         </button>
-        <button class="bottom-nav-item" data-tab="curator" onclick="switchAppView('curator')">
+        <button class="bottom-nav-item demo-hide-element" data-tab="curator" id="bottom-tab-curator" onclick="switchAppView('curator')">
             <i class="fa-solid fa-wand-magic-sparkles"></i>
             <span>Curador</span>
         </button>
