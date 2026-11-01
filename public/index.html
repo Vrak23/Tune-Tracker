@@ -1176,31 +1176,48 @@
 
         <!-- Login View -->
         <div id="login-view" class="text-center py-5 my-auto d-none">
-            <div class="mb-4">
-                <img src="/logo.png" alt="Tune Tracker Logo" style="width: 104px; height: 104px; filter: drop-shadow(0 0 25px var(--brand-glow));" class="rounded-4">
+            <div class="mb-3">
+                <img src="/logo.png" alt="Tune Tracker Logo" style="width: 96px; height: 96px; filter: drop-shadow(0 0 25px var(--brand-glow));" class="rounded-4">
             </div>
-            <h1 class="fw-bold mb-2 display-6">Tune Tracker</h1>
+            <h1 class="fw-bold mb-2 display-6 text-white">Tune Tracker</h1>
             <p class="text-secondary fs-6 mb-4 mx-auto" style="max-width: 440px;">
                 Tus estadísticas musicales reales, escucha en vivo con Dynamic Island y tops sin esperar a fin de año.
             </p>
-            <div class="d-flex flex-column align-items-center gap-2">
-                <button id="btn-login" class="btn btn-brand btn-lg shadow px-4 py-2.5">
-                    <i class="fa-brands fa-spotify me-2"></i> Iniciar sesión con Spotify
+
+            <div class="card border-0 shadow-lg mx-auto p-4 text-start" style="max-width: 380px; background: rgba(18, 18, 24, 0.85); border: 1px solid rgba(255, 255, 255, 0.08) !important; border-radius: 20px; backdrop-filter: blur(16px);">
+                <label for="login-lastfm-input" class="form-label text-secondary small fw-semibold mb-1.5" style="letter-spacing: 0.03em;">
+                    <i class="fa-brands fa-lastfm me-1.5 text-danger"></i>USUARIO DE LAST.FM
+                </label>
+                <div class="input-group mb-2">
+                    <span class="input-group-text bg-dark border-secondary border-opacity-25 text-secondary" style="border-radius: 12px 0 0 12px;">
+                        <i class="fa-regular fa-user"></i>
+                    </span>
+                    <input type="text" id="login-lastfm-input" class="form-control bg-dark text-white border-secondary border-opacity-25" placeholder="ej. tu_usuario" autocomplete="username" style="border-radius: 0 12px 12px 0; font-size: 0.92rem;">
+                </div>
+
+                <div id="login-lastfm-error" class="alert alert-danger py-1.5 px-2.5 small d-none mb-2.5" style="font-size: 0.78rem; border-radius: 10px;"></div>
+
+                <button id="btn-login-lastfm-submit" class="btn btn-danger w-100 py-2.5 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2" style="border-radius: 12px; background: #e11d48; border-color: #e11d48;">
+                    <i class="fa-brands fa-lastfm"></i>
+                    <span>Conectar y Entrar</span>
                 </button>
-                <div class="d-flex align-items-center gap-2 mt-1">
-                    <button id="btn-login-lastfm" class="btn btn-outline-secondary rounded-pill py-1.5 px-3" style="font-size: 0.84rem;" data-bs-toggle="modal" data-bs-target="#lastFmModal">
-                        <i class="fa-brands fa-lastfm me-1.5 text-danger"></i> Conectar Last.fm
-                    </button>
-                    <button id="btn-login-demo" class="btn btn-outline-light rounded-pill py-1.5 px-3" style="font-size: 0.84rem; background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.15);">
-                        <i class="fa-solid fa-compass me-1.5 text-info"></i> Explorar Demo
-                    </button>
+
+                <div class="position-relative text-center my-3">
+                    <hr class="border-secondary border-opacity-15 m-0">
+                    <span class="position-absolute top-50 start-50 translate-middle px-2 text-muted" style="background: #15151c; font-size: 0.72rem;">o prueba sin cuenta</span>
                 </div>
-                <div class="mt-3">
-                    <button id="btn-owner-unlock" class="btn btn-link text-muted text-decoration-none p-0" style="font-size: 0.76rem;" onclick="promptOwnerUnlock()">
-                        <i class="fa-solid fa-crown me-1 text-warning opacity-75"></i> Acceso Modo Dueño
-                    </button>
-                </div>
-                <button id="btn-install-login" class="btn btn-link text-secondary text-decoration-none mt-1" style="font-size: 0.82rem;">
+
+                <button id="btn-login-demo" class="btn btn-outline-light w-100 py-2 fw-semibold d-flex align-items-center justify-content-center gap-2" style="border-radius: 12px; background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.12); font-size: 0.86rem;">
+                    <i class="fa-solid fa-compass text-info"></i>
+                    <span>Explorar Modo Demo</span>
+                </button>
+            </div>
+
+            <div class="d-flex flex-column align-items-center gap-2 mt-4">
+                <button id="btn-owner-unlock" class="btn btn-link text-muted text-decoration-none p-0" style="font-size: 0.78rem;" onclick="promptOwnerUnlock()">
+                    <i class="fa-solid fa-crown me-1 text-warning opacity-75"></i> Acceso Modo Dueño
+                </button>
+                <button id="btn-install-login" class="btn btn-link text-secondary text-decoration-none p-0 mt-1" style="font-size: 0.80rem;">
                     <i class="fa-solid fa-download me-1.5"></i> Descargar App Web (PWA)
                 </button>
             </div>
@@ -1824,10 +1841,7 @@
                         </div>
                         <div class="d-flex align-items-center gap-2 flex-wrap">
                             <button type="button" id="curator-btn-ytmusic" class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-semibold" style="font-size: 0.76rem;" title="Exportar o abrir en YouTube Music">
-                                <i class="fa-brands fa-youtube me-1"></i> YouTube Music
-                            </button>
-                            <button type="button" id="curator-btn-spotify" class="btn btn-sm btn-brand rounded-pill px-3 fw-semibold" style="font-size: 0.76rem;">
-                                <i class="fa-brands fa-spotify me-1"></i> Crear en Spotify
+                                <i class="fa-brands fa-youtube me-1"></i> Abrir en YouTube
                             </button>
                         </div>
                     </div>
@@ -2127,7 +2141,7 @@
                             <div class="d-flex align-items-center gap-2">
                                 <img src="/logo.png" style="width: 30px; height: 30px; object-fit: contain;">
                                 <div class="text-start leading-tight">
-                                    <div class="fw-bold small" style="color: var(--brand-primary);">SpotifyTracker</div>
+                                    <div class="fw-bold small" style="color: var(--brand-primary);">Tune Tracker</div>
                                     <small id="card-period-label" class="text-secondary" style="font-size: 0.68rem;">Últimas 4 Semanas</small>
                                 </div>
                             </div>
@@ -2138,7 +2152,7 @@
                         </div>
                         <div id="card-items-list" class="text-start d-flex flex-column gap-2 mb-3"></div>
                         <div class="border-top border-secondary border-opacity-25 pt-2 d-flex justify-content-between align-items-center text-secondary" style="font-size: 0.7rem;">
-                            <span>spotify-tracker-delta.vercel.app</span>
+                            <span>tune-tracker-pro.vercel.app</span>
                             <span class="badge" style="background: var(--brand-primary);">Top 5</span>
                         </div>
                     </div>
@@ -2528,7 +2542,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
         <!-- App Logic -->
-    <script src="/app.js?v=55"></script>
+    <script src="/app.js?v=56"></script>
 
     <!-- Barra de Navegación Inferior Móvil (Bottom Navigation Bar) -->
     <nav id="bottom-nav-bar" class="bottom-nav-bar d-none">

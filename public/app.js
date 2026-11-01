@@ -771,25 +771,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const authLoadingView = document.getElementById('auth-loading-view');
     const isLoggedOut = localStorage.getItem('spoti_logged_out') === 'true';
 
-    // Procesar posible retorno de Spotify OAuth PKCE
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('code');
-    if (code) {
-        localStorage.removeItem('spoti_logged_out');
-        isDemoSession = false;
-        sessionStorage.removeItem('tunetracker_demo_session');
-        await fetchAccessToken(code);
-        if (authLoadingView) authLoadingView.classList.add('d-none');
-        return;
-    }
-
     // Breve pausa en la pantalla de verificación para identificar si hay sesión previa
     await new Promise(r => setTimeout(r, 420));
 
-    const hasSpotify = !!localStorage.getItem('spotify_access_token');
     const hasLastFm = !!(localStorage.getItem('lastfm_user') && localStorage.getItem('lastfm_user').trim());
     const hasOwner = localStorage.getItem('tunetracker_owner_mode') === 'true';
-    const isAuthenticated = !isLoggedOut && (hasSpotify || hasLastFm || hasOwner);
+    const isAuthenticated = !isLoggedOut && (hasLastFm || hasOwner);
 
     if (authLoadingView) authLoadingView.classList.add('d-none');
 
@@ -811,12 +798,76 @@ function setupEventListeners() {
         });
     });
 
-    if (btnLogin) {
-        btnLogin.addEventListener('click', () => {
+    // Login con Last.fm directo en pantalla de bienvenida
+    const loginLastFmInput = document.getElementById('login-lastfm-input');
+    const btnLoginLastFmSubmit = document.getElementById('btn-login-lastfm-submit');
+    const loginLastFmError = document.getElementById('login-lastfm-error');
+
+    async function processLastFmLogin() {
+        const user = loginLastFmInput ? loginLastFmInput.value.trim() : '';
+        if (!user) {
+            if (loginLastFmError) {
+                loginLastFmError.textContent = 'Por favor ingresa tu nombre de usuario de Last.fm.';
+                loginLastFmError.classList.remove('d-none');
+            }
+            if (loginLastFmInput) loginLastFmInput.focus();
+            return;
+        }
+
+        if (btnLoginLastFmSubmit) {
+            btnLoginLastFmSubmit.disabled = true;
+            btnLoginLastFmSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-1.5"></span> Conectando...';
+        }
+        if (loginLastFmError) loginLastFmError.classList.add('d-none');
+
+        try {
+            let testRes = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.getinfo&user=${encodeURIComponent(user)}&api_key=${encodeURIComponent(DEFAULT_LASTFM_KEY)}&format=json`);
+            let testData = await testRes.json();
+
+            if (testData.error === 8) {
+                await new Promise(r => setTimeout(r, 1200));
+                testRes = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.getinfo&user=${encodeURIComponent(user)}&api_key=${encodeURIComponent(DEFAULT_LASTFM_KEY)}&format=json`);
+                testData = await testRes.json();
+            }
+
+            if (testData.error) {
+                if (loginLastFmError) {
+                    loginLastFmError.textContent = `No se encontró el usuario "${user}" en Last.fm. Verifica que esté bien escrito.`;
+                    loginLastFmError.classList.remove('d-none');
+                }
+                return;
+            }
+
             localStorage.removeItem('spoti_logged_out');
+            localStorage.setItem('lastfm_user', user);
+            localStorage.setItem('lastfm_key', DEFAULT_LASTFM_KEY);
             isDemoSession = false;
             sessionStorage.removeItem('tunetracker_demo_session');
-            redirectToSpotifyLogin();
+            unifiedDb = null;
+            applyRoleBasedUI();
+            showDashboard();
+        } catch (e) {
+            if (loginLastFmError) {
+                loginLastFmError.textContent = 'Error al conectar con los servidores de Last.fm. Intenta de nuevo.';
+                loginLastFmError.classList.remove('d-none');
+            }
+        } finally {
+            if (btnLoginLastFmSubmit) {
+                btnLoginLastFmSubmit.disabled = false;
+                btnLoginLastFmSubmit.innerHTML = '<i class="fa-brands fa-lastfm me-1.5"></i> Conectar y Entrar';
+            }
+        }
+    }
+
+    if (btnLoginLastFmSubmit) {
+        btnLoginLastFmSubmit.addEventListener('click', processLastFmLogin);
+    }
+    if (loginLastFmInput) {
+        loginLastFmInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                processLastFmLogin();
+            }
         });
     }
 
@@ -2009,17 +2060,7 @@ async function syncUserProfile() {
         return;
     }
 
-    let spotifySuccess = false;
-    const token = await getValidAccessToken();
-    if (token) {
-        spotifySuccess = await fetchUserProfile();
-    }
-
-    if (!spotifySuccess) {
-        await fetchLastFmGlobalStats({ updateProfileUI: true });
-    } else {
-        fetchLastFmGlobalStats({ updateProfileUI: false });
-    }
+    await fetchLastFmGlobalStats({ updateProfileUI: true });
 }
 
 // ----------------------------------------------------
@@ -2223,7 +2264,7 @@ async function fetchLastFmGlobalStats(options = {}) {
             if (stripArtists) stripArtists.textContent = formatNumber(data.user.artist_count);
             if (stripAlbums) stripAlbums.textContent = formatNumber(data.user.album_count);
 
-            if (updateProfileUI && !userProfileData) {
+            if (updateProfileUI) {
                 const lfImg = data.user.image && data.user.image[1] && data.user.image[1]['#text'];
                 if (userImg) userImg.src = lfImg || DEFAULT_AVATAR_SVG;
                 if (drawerUserImg) drawerUserImg.src = lfImg || DEFAULT_AVATAR_SVG;
