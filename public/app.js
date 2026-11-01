@@ -2762,6 +2762,143 @@ function renderErrorState(container, title, message, retryFnName) {
 }
 window.renderErrorState = renderErrorState;
 
+// ====================================================
+// CÁLCULO UNIFICADO Y EXACTO DE STREAMS REALES
+// Sincroniza vistas previas, búsquedas, tops y modal
+// ====================================================
+function getRealItemPlays(type, name, artist, baseItem = null, periodRange = currentRange) {
+    const normN = normalizeKey(name || '');
+    const normA = normalizeKey(artist || '');
+    if (!normN && !normA) return 0;
+
+    // 1. Obtener item base de los Lookups si no se pasó
+    let item = baseItem;
+    const db = unifiedDb || spotifyDb;
+    if (!item && db) {
+        if (type === 'track') {
+            const k = `${normN}:::${normA}`;
+            item = db.tracksLookup?.[k] || Object.entries(db.tracksLookup || {}).find(([lookupKey]) => {
+                const [kN, kA] = lookupKey.split(':::');
+                const nK = normalizeKey(kN);
+                const aK = normalizeKey(kA);
+                if (!nK || !normN) return false;
+                const matchArt = !normA || aK === normA || aK.includes(normA) || normA.includes(aK);
+                const matchName = nK === normN || nK.startsWith(normN) || normN.startsWith(nK);
+                return matchArt && matchName;
+            })?.[1];
+        } else if (type === 'artist') {
+            item = db.artistsLookup?.[normN] || db.artistsLookup?.[normA];
+        } else if (type === 'album') {
+            const k = `${normN}:::${normA}`;
+            item = db.albumsLookup?.[k];
+        }
+    }
+
+    // 2. Extraer reproducciones base según periodo
+    let basePlays = 0;
+    if (item) {
+        if (!periodRange || periodRange === 'overall' || periodRange === 'era-spotify') {
+            basePlays = item.plays || 0;
+        } else if (periodRange.startsWith('year-')) {
+            const yr = periodRange.replace('year-', '');
+            basePlays = item.years?.[yr] || 0;
+        } else if (periodRange.startsWith('month-')) {
+            const ym = periodRange.replace('month-', '');
+            basePlays = item.months?.[ym] || 0;
+        } else if (periodRange === 'current-month') {
+            const now = new Date();
+            const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            basePlays = item.months?.[ym] || 0;
+        } else if (periodRange.startsWith('dates_')) {
+            const [fromD, toD] = periodRange.replace('dates_', '').split('_to_');
+            if (item.months) {
+                Object.entries(item.months).forEach(([ym, cnt]) => {
+                    const mStart = `${ym}-01`;
+                    const mEnd = `${ym}-31`;
+                    if (mEnd >= fromD && mStart <= toD) {
+                        basePlays += cnt;
+                    }
+                });
+            } else {
+                basePlays = item.plays || 0;
+            }
+        } else {
+            basePlays = item.plays || 0;
+        }
+    }
+
+    // 3. Sumar Tidal / Ajustes manuales
+    let tidalContribution = 0;
+    if (currentSource === 'unified' && isAppOwner() && tidalEstimates) {
+        if (type === 'track') {
+            const trackEntry = tidalEstimates.tracks?.[normN + ':::' + normA] || tidalEstimates.tracks?.[normN + ':::'] || Object.entries(tidalEstimates.tracks || {}).find(([k]) => k.startsWith(normN + ':::'))?.[1];
+            if (trackEntry) {
+                if (!periodRange || periodRange === 'overall') {
+                    tidalContribution = trackEntry.plays || 0;
+                } else if (periodRange.startsWith('year-')) {
+                    tidalContribution = trackEntry.years?.[periodRange.replace('year-', '')] || 0;
+                } else if (periodRange.startsWith('month-')) {
+                    tidalContribution = trackEntry.months?.[periodRange.replace('month-', '')] || 0;
+                }
+            }
+        } else if (type === 'artist') {
+            const artKey = Object.keys(tidalEstimates.artists || {}).find(k => normalizeKey(k) === normN || normalizeKey(k).includes(normN) || normN.includes(normalizeKey(k)));
+            if (artKey && tidalEstimates.artists[artKey]) {
+                const artEntry = tidalEstimates.artists[artKey];
+                if (!periodRange || periodRange === 'overall') {
+                    tidalContribution = artEntry.plays || 0;
+                } else if (periodRange.startsWith('year-')) {
+                    tidalContribution = artEntry.years?.[periodRange.replace('year-', '')] || 0;
+                }
+            }
+        }
+    }
+
+    // 4. Sumar Delta en vivo de Last.fm
+    let deltaContribution = 0;
+    if (currentSource === 'unified' && Array.isArray(lastFmRecentDelta) && lastFmRecentDelta.length > 0) {
+        lastFmRecentDelta.forEach(t => {
+            const tName = normalizeKey(t.name);
+            const tArtist = normalizeKey(t.artist ? (t.artist['#text'] || t.artist.name || '') : '');
+            const tAlbum = normalizeKey(t.album ? (t.album['#text'] || t.album.name || '') : '');
+            let match = false;
+            if (type === 'track') {
+                if (tName === normN && (!normA || !tArtist || tArtist.includes(normA) || normA.includes(tArtist))) match = true;
+            } else if (type === 'artist') {
+                if (tArtist && (tArtist === normN || tArtist.includes(normN) || normN.includes(tArtist))) match = true;
+            } else if (type === 'album') {
+                if (tAlbum === normN && (!normA || !tArtist || tArtist.includes(normA) || normA.includes(tArtist))) match = true;
+            }
+
+            if (match && t.date?.uts) {
+                if (!periodRange || periodRange === 'overall' || periodRange === 'era-lastfm') {
+                    deltaContribution++;
+                } else {
+                    const d = new Date(parseInt(t.date.uts, 10) * 1000);
+                    const dtYear = String(d.getFullYear());
+                    const dtMonth = `${dtYear}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                    if (periodRange === `year-${dtYear}`) {
+                        deltaContribution++;
+                    } else if (periodRange === `month-${dtMonth}`) {
+                        deltaContribution++;
+                    } else if (periodRange === 'current-month') {
+                        const now = new Date();
+                        const curYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                        if (dtMonth === curYM) deltaContribution++;
+                    } else if (periodRange.startsWith('dates_')) {
+                        const [fromD, toD] = periodRange.replace('dates_', '').split('_to_');
+                        const isoD = d.toISOString().slice(0, 10);
+                        if (isoD >= fromD && isoD <= toD) deltaContribution++;
+                    }
+                }
+            }
+        });
+    }
+
+    return basePlays + tidalContribution + deltaContribution;
+}
+window.getRealItemPlays = getRealItemPlays;
+
 async function loadStats(silent = false) {
     if (silent !== true) {
         if (filterSearchInput) filterSearchInput.value = '';
@@ -2793,13 +2930,21 @@ async function loadStats(silent = false) {
         let dateRangeTo = '';
 
         if (currentRange === 'current-month') {
-            topData = getRangeTopData(activeDb, '2026-10-01', '2026-10-31');
+            const now = new Date();
+            const curY = now.getFullYear();
+            const curM = String(now.getMonth() + 1).padStart(2, '0');
+            const lastDay = new Date(curY, now.getMonth() + 1, 0).getDate();
+            topData = getRangeTopData(activeDb, `${curY}-${curM}-01`, `${curY}-${curM}-${lastDay}`);
             isDateRange = true;
-            dateRangeTo = '2026-10-31';
+            dateRangeTo = `${curY}-${curM}-${lastDay}`;
         } else if (currentRange === '4weeks') {
-            topData = getRangeTopData(activeDb, '2026-09-23', '2026-10-21');
+            const now = new Date();
+            const fourWeeksAgo = new Date(now.getTime() - (28 * 24 * 60 * 60 * 1000));
+            const fromD = fourWeeksAgo.toISOString().slice(0, 10);
+            const toD = now.toISOString().slice(0, 10);
+            topData = getRangeTopData(activeDb, fromD, toD);
             isDateRange = true;
-            dateRangeTo = '2026-10-21';
+            dateRangeTo = toD;
         } else if (currentRange === 'era-tidal') {
             const tidal = tidalEstimates || await loadTidalEstimates();
             const tTracks = tidal ? Object.values(tidal.tracks).map(t => ({
@@ -2842,8 +2987,8 @@ async function loadStats(silent = false) {
         }
 
         const appliesDelta = (currentSource === 'unified' && lastFmRecentDelta.length > 0 &&
-            (currentRange === 'overall' || currentRange === 'year-2026' || currentRange === 'month-2026-10' ||
-             (isDateRange && dateRangeTo >= '2026-10-01')));
+            (currentRange === 'overall' || currentRange.startsWith('year-202') || currentRange.startsWith('month-202') || currentRange === 'current-month' || currentRange === '4weeks' || currentRange === 'era-lastfm' ||
+             (isDateRange && dateRangeTo >= '2025-08-01')));
 
         if (currentType === 'tracks') {
             const rawTracks = topData?.tracks || [];
@@ -2932,12 +3077,21 @@ async function loadStats(silent = false) {
                     if (trackMap.has(key)) {
                         trackMap.get(key).plays += 1;
                     } else {
+                        // Buscar si la pista ya existía en la base de datos principal
+                        const baseLookup = activeDb.tracksLookup?.[key] || Object.entries(activeDb.tracksLookup || {}).find(([k]) => k.startsWith(normalizeKey(dtName) + ':::'))?.[1];
+                        let baseP = 0;
+                        if (baseLookup) {
+                            if (!currentRange || currentRange === 'overall') baseP = baseLookup.plays || 0;
+                            else if (currentRange.startsWith('year-')) baseP = baseLookup.years?.[currentRange.replace('year-', '')] || 0;
+                            else if (currentRange.startsWith('month-')) baseP = baseLookup.months?.[currentRange.replace('month-', '')] || 0;
+                            else baseP = baseLookup.plays || 0;
+                        }
                         const newEntry = {
                             name: dtName,
                             artist: dtArtist,
                             album: dtAlbum,
-                            plays: 1,
-                            uri: null
+                            plays: baseP + 1,
+                            uri: baseLookup?.uri || null
                         };
                         trackMap.set(key, newEntry);
                         combinedTracks.push(newEntry);
@@ -3036,7 +3190,15 @@ async function loadStats(silent = false) {
                     if (artistMap.has(key)) {
                         artistMap.get(key).plays += 1;
                     } else {
-                        const newEntry = { name: dtArtist, plays: 1 };
+                        const baseArt = activeDb.artistsLookup?.[key] || (activeDb.artists ? Object.values(activeDb.artists).find(a => normalizeKey(a.name) === key) : null);
+                        let baseP = 0;
+                        if (baseArt) {
+                            if (!currentRange || currentRange === 'overall') baseP = baseArt.plays || 0;
+                            else if (currentRange.startsWith('year-')) baseP = baseArt.years?.[currentRange.replace('year-', '')] || 0;
+                            else if (currentRange.startsWith('month-')) baseP = baseArt.months?.[currentRange.replace('month-', '')] || 0;
+                            else baseP = baseArt.plays || 0;
+                        }
+                        const newEntry = { name: dtArtist, plays: baseP + 1 };
                         artistMap.set(key, newEntry);
                         combinedArtists.push(newEntry);
                     }
@@ -3082,7 +3244,15 @@ async function loadStats(silent = false) {
                     if (albumMap.has(key)) {
                         albumMap.get(key).plays += 1;
                     } else {
-                        const newEntry = { name: dtAlbum, artist: dtArtist, plays: 1 };
+                        const baseAlb = activeDb.albumsLookup?.[key];
+                        let baseP = 0;
+                        if (baseAlb) {
+                            if (!currentRange || currentRange === 'overall') baseP = baseAlb.plays || 0;
+                            else if (currentRange.startsWith('year-')) baseP = baseAlb.years?.[currentRange.replace('year-', '')] || 0;
+                            else if (currentRange.startsWith('month-')) baseP = baseAlb.months?.[currentRange.replace('month-', '')] || 0;
+                            else baseP = baseAlb.plays || 0;
+                        }
+                        const newEntry = { name: dtAlbum, artist: dtArtist, plays: baseP + 1 };
                         albumMap.set(key, newEntry);
                         combinedAlbums.push(newEntry);
                     }
@@ -4636,17 +4806,18 @@ async function handleFilterSearch(e) {
                 return name.includes(q) || artist.includes(q) || album.includes(q);
             });
 
-            matches.sort((a, b) => (b.plays || 0) - (a.plays || 0));
-
-            const formatted = matches.slice(0, 200).map(t => ({
+            // Enriquecer con reproducciones reales unificadas (base + Tidal + live Last.fm)
+            const enriched = matches.map(t => ({
                 name: t.name,
                 artist: { name: t.artist },
                 album: { name: t.album },
-                playcount: t.plays || 0,
+                playcount: getRealItemPlays('track', t.name, t.artist, t, currentRange),
                 uri: t.uri
             }));
 
-            renderTracks(formatted);
+            enriched.sort((a, b) => b.playcount - a.playcount);
+
+            renderTracks(enriched.slice(0, 200));
 
             // Banner indicador de búsqueda en catálogo global
             const banner = document.createElement('div');
@@ -4662,11 +4833,15 @@ async function handleFilterSearch(e) {
             statsList.prepend(banner);
             return;
         } else if (currentType === 'artists') {
-            const allArtists = activeDb.top?.overall?.artists || (activeDb.artists ? Object.values(activeDb.artists) : []);
+            const allArtists = activeDb.artistsLookup ? Object.values(activeDb.artistsLookup) : (activeDb.top?.overall?.artists || (activeDb.artists ? Object.values(activeDb.artists) : []));
             if (allArtists.length > 0) {
                 const matches = allArtists.filter(a => (a.name || '').toLowerCase().includes(q));
-                matches.sort((a, b) => (b.plays || 0) - (a.plays || 0));
-                renderArtists(matches.slice(0, 150));
+                const enriched = matches.map(a => ({
+                    name: a.name,
+                    playcount: getRealItemPlays('artist', a.name, '', a, currentRange)
+                }));
+                enriched.sort((a, b) => b.playcount - a.playcount);
+                renderArtists(enriched.slice(0, 150));
 
                 const banner = document.createElement('div');
                 banner.className = 'w-100 d-flex align-items-center justify-content-between py-1.5 px-3 mb-2 rounded border';
@@ -4682,15 +4857,20 @@ async function handleFilterSearch(e) {
                 return;
             }
         } else if (currentType === 'albums') {
-            const allAlbums = activeDb.top?.overall?.albums || (activeDb.albums ? Object.values(activeDb.albums) : []);
+            const allAlbums = activeDb.albumsLookup ? Object.values(activeDb.albumsLookup) : (activeDb.top?.overall?.albums || (activeDb.albums ? Object.values(activeDb.albums) : []));
             if (allAlbums.length > 0) {
                 const matches = allAlbums.filter(a => {
                     const name = (a.name || '').toLowerCase();
                     const artist = (a.artist || '').toLowerCase();
                     return name.includes(q) || artist.includes(q);
                 });
-                matches.sort((a, b) => (b.plays || 0) - (a.plays || 0));
-                renderAlbums(matches.slice(0, 150));
+                const enriched = matches.map(a => ({
+                    name: a.name,
+                    artist: { name: a.artist },
+                    playcount: getRealItemPlays('album', a.name, a.artist, a, currentRange)
+                }));
+                enriched.sort((a, b) => b.playcount - a.playcount);
+                renderAlbums(enriched.slice(0, 150));
 
                 const banner = document.createElement('div');
                 banner.className = 'w-100 d-flex align-items-center justify-content-between py-1.5 px-3 mb-2 rounded border';
@@ -7923,26 +8103,33 @@ async function renderHomeHighlights(db) {
 
     try {
         const yearlyTops = db.yearlyTops || {};
-        // Tomar tracks de 2026, o mes actual 10 de 2026, o overall
-        let baseTracks = yearlyTops['2026']?.months?.['10']?.tracks
-            || yearlyTops['2026']?.tracks
+        const now = new Date();
+        const curY = String(now.getFullYear());
+        const curM = String(now.getMonth() + 1);
+        const curYM = `month-${curY}-${curM.padStart(2, '0')}`;
+
+        // Tomar tracks del mes actual, año actual o general
+        let baseTracks = yearlyTops[curY]?.months?.[curM]?.tracks
+            || yearlyTops[curY]?.months?.['10']?.tracks
+            || yearlyTops[curY]?.tracks
             || yearlyTops['overall']?.tracks
             || [];
 
-        // Si no hay tracks en el mes, tomar el año 2026 o el general
+        // Si no hay tracks en el mes, tomar el año o el general
         if (!baseTracks || baseTracks.length === 0) {
-            baseTracks = yearlyTops['2026']?.tracks || yearlyTops['overall']?.tracks || [];
+            baseTracks = yearlyTops[curY]?.tracks || yearlyTops['overall']?.tracks || [];
         }
 
         const tracksMap = new Map();
         baseTracks.forEach(t => {
             const artistName = t.artist ? (t.artist.name || t.artist['#text'] || t.artist) : '';
             const k = `${normalizeKey(t.name)}:::${normalizeKey(artistName)}`;
+            const realP = getRealItemPlays('track', t.name, artistName, t, curYM);
             tracksMap.set(k, {
                 name: t.name,
                 artist: artistName,
                 album: t.album || '',
-                plays: t.plays || 0,
+                plays: realP > 0 ? realP : (t.plays || 0),
                 uri: t.uri || null
             });
         });
@@ -7955,10 +8142,11 @@ async function renderHomeHighlights(db) {
                 const dtAlbum = dt.album ? (dt.album['#text'] || dt.album.name || '') : '';
                 if (!dtName) return;
                 const k = `${normalizeKey(dtName)}:::${normalizeKey(dtArtist)}`;
-                if (tracksMap.has(k)) {
-                    tracksMap.get(k).plays += 1;
-                } else {
-                    tracksMap.set(k, { name: dtName, artist: dtArtist, album: dtAlbum, plays: 1, uri: null });
+                if (!tracksMap.has(k)) {
+                    const realP = getRealItemPlays('track', dtName, dtArtist, null, curYM);
+                    if (realP > 0) {
+                        tracksMap.set(k, { name: dtName, artist: dtArtist, album: dtAlbum, plays: realP, uri: null });
+                    }
                 }
             });
         }
