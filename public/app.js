@@ -686,6 +686,9 @@ function applyRoleBasedUI() {
 
     updateFeatureAccessBadges();
     syncAccessRequestsFromCloud(false);
+    if (typeof renderPeriodSelectOptions === 'function') {
+        renderPeriodSelectOptions(currentRange);
+    }
 }
 window.applyRoleBasedUI = applyRoleBasedUI;
 
@@ -1176,7 +1179,145 @@ const MONTH_NAMES = [
 ];
 const MONTH_SHORT_NAMES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
+function getThisWeekDateRange() {
+    const now = new Date();
+    const dayOfWeek = (now.getDay() + 6) % 7; // 0=Lun, 1=Mar, ..., 6=Dom
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - dayOfWeek);
+    monday.setHours(0, 0, 0, 0);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    sunday.setHours(23, 59, 59, 999);
+    const pad = n => String(n).padStart(2, '0');
+    const fStr = `${monday.getFullYear()}-${pad(monday.getMonth() + 1)}-${pad(monday.getDate())}`;
+    const tStr = `${sunday.getFullYear()}-${pad(sunday.getMonth() + 1)}-${pad(sunday.getDate())}`;
+    return {
+        fromD: fStr,
+        toD: tStr,
+        fromUTS: Math.floor(monday.getTime() / 1000),
+        toUTS: Math.floor(sunday.getTime() / 1000)
+    };
+}
+
+function getLastMonthInfo() {
+    const now = new Date();
+    const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevY = String(prevMonthDate.getFullYear());
+    const prevM = String(prevMonthDate.getMonth() + 1);
+    const paddedM = prevM.padStart(2, '0');
+    const ym = `${prevY}-${paddedM}`;
+    const lastDay = new Date(prevMonthDate.getFullYear(), prevMonthDate.getMonth() + 1, 0).getDate();
+    return {
+        prevY,
+        prevM,
+        ym,
+        fromD: `${ym}-01`,
+        toD: `${ym}-${String(lastDay).padStart(2, '0')}`
+    };
+}
+
+function getLast6MonthsRange() {
+    const now = new Date();
+    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+    const pad = n => String(n).padStart(2, '0');
+    const fromD = `${sixMonthsAgo.getFullYear()}-${pad(sixMonthsAgo.getMonth() + 1)}-01`;
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const toD = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(lastDay)}`;
+    return { fromD, toD };
+}
+
+function isDeltaItemInCurrentRange(t, range = currentRange) {
+    if (!t?.date?.uts) return false;
+    const uts = parseInt(t.date.uts, 10);
+    const d = new Date(uts * 1000);
+    const isoD = d.toISOString().slice(0, 10);
+    const dtYear = String(d.getFullYear());
+    const dtMonth = `${dtYear}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+
+    if (!range || range === 'overall' || range === 'era-lastfm') return true;
+    if (range === 'this-week' || range === '7day') {
+        const { fromUTS, toUTS } = getThisWeekDateRange();
+        return uts >= fromUTS && uts <= toUTS;
+    }
+    if (range === 'last-month' || range === '1month') {
+        const lm = getLastMonthInfo();
+        return dtMonth === lm.ym;
+    }
+    if (range === 'last-6-months' || range === '6month') {
+        const { fromD, toD } = getLast6MonthsRange();
+        return isoD >= fromD && isoD <= toD;
+    }
+    if (range === 'current-month') {
+        const now = new Date();
+        const curYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        return dtMonth === curYM;
+    }
+    if (range === '4weeks') {
+        const now = new Date();
+        const fourWeeksAgo = new Date(now.getTime() - (28 * 24 * 60 * 60 * 1000));
+        return isoD >= fourWeeksAgo.toISOString().slice(0, 10) && isoD <= now.toISOString().slice(0, 10);
+    }
+    if (range.startsWith('year-')) {
+        return dtYear === range.replace('year-', '');
+    }
+    if (range.startsWith('month-')) {
+        return dtMonth === range.replace('month-', '');
+    }
+    if (range.startsWith('dates_')) {
+        const [fromD, toD] = range.replace('dates_', '').split('_to_');
+        return isoD >= fromD && isoD <= toD;
+    }
+    return false;
+}
+
+function renderPeriodSelectOptions(selectedVal = currentRange || 'overall') {
+    const sel = document.getElementById('select-time-period');
+    if (!sel) return;
+    const isOwner = isAppOwner();
+
+    // Si el usuario no es admin y está seleccionada una era, resetear a 'overall'
+    if (!isOwner && (selectedVal === 'era-spotify' || selectedVal === 'era-tidal' || selectedVal === 'era-lastfm')) {
+        selectedVal = 'overall';
+        currentRange = 'overall';
+    }
+
+    // Normalizar valores legacy si existían
+    if (selectedVal === '7day') selectedVal = 'this-week';
+    if (selectedVal === '1month') selectedVal = 'last-month';
+    if (selectedVal === '6month') selectedVal = 'last-6-months';
+
+    sel.innerHTML = `
+        <optgroup label="⚡ Rápido">
+            <option value="this-week" ${selectedVal === 'this-week' ? 'selected' : ''}>Esta semana (su semana respectiva)</option>
+            <option value="last-month" ${selectedVal === 'last-month' ? 'selected' : ''}>Mes pasado</option>
+            <option value="last-6-months" ${selectedVal === 'last-6-months' ? 'selected' : ''}>Hace 6 meses</option>
+            <option value="overall" ${selectedVal === 'overall' ? 'selected' : ''}>Histórico Total</option>
+        </optgroup>
+        <optgroup label="⚙️ Avanzado">
+            ${isOwner ? `
+            <option value="era-spotify" class="owner-only-element" ${selectedVal === 'era-spotify' ? 'selected' : ''}>Era Spotify (2019 - Ago 2025)</option>
+            <option value="era-tidal" class="owner-only-element" ${selectedVal === 'era-tidal' ? 'selected' : ''}>Era Tidal (Ago 2025 - Jul 2026 ≈)</option>
+            <option value="era-lastfm" class="owner-only-element" ${selectedVal === 'era-lastfm' ? 'selected' : ''}>Nueva Era Last.fm (Ago 2025 - Hoy)</option>
+            ` : ''}
+            <option value="year-2026" ${selectedVal === 'year-2026' ? 'selected' : ''}>Año 2026</option>
+            <option value="year-2025" ${selectedVal === 'year-2025' ? 'selected' : ''}>Año 2025</option>
+            <option value="year-2024" ${selectedVal === 'year-2024' ? 'selected' : ''}>Año 2024</option>
+            <option value="year-2023" ${selectedVal === 'year-2023' ? 'selected' : ''}>Año 2023</option>
+            <option value="year-2022" ${selectedVal === 'year-2022' ? 'selected' : ''}>Año 2022</option>
+            <option value="year-2021" ${selectedVal === 'year-2021' ? 'selected' : ''}>Año 2021</option>
+            <option value="year-2020" ${selectedVal === 'year-2020' ? 'selected' : ''}>Año 2020</option>
+            <option value="year-2019" ${selectedVal === 'year-2019' ? 'selected' : ''}>Año 2019</option>
+            <option value="custom" ${selectedVal === 'custom' || (selectedVal && selectedVal.startsWith('dates_')) ? 'selected' : ''}>Rango de Fechas...</option>
+        </optgroup>
+    `;
+    sel.value = selectedVal;
+}
+window.renderPeriodSelectOptions = renderPeriodSelectOptions;
+
 function getRangeLabel(range) {
+    if (range === 'this-week' || range === '7day') return 'Esta semana';
+    if (range === 'last-month' || range === '1month') return 'Mes pasado';
+    if (range === 'last-6-months' || range === '6month') return 'Hace 6 meses';
     if (range === 'current-month') return 'Este Mes';
     if (range === '4weeks') return 'Últimas 4 Semanas';
     if (range === 'era-spotify') return 'Era Spotify (2019 - Ago 2025)';
@@ -1197,10 +1338,7 @@ function getRangeLabel(range) {
         return `${MONTH_NAMES[monthNum - 1]} ${year}`;
     }
     if (range && range.startsWith('year-')) return `Año ${range.replace('year-', '')}`;
-    if (range === '7day') return 'Últimos 7 Días';
-    if (range === '1month') return 'Último Mes';
     if (range === '3month') return 'Últimos 3 Meses';
-    if (range === '6month') return 'Últimos 6 Meses';
     if (range === '12month') return 'Último Año';
     if (range === 'overall') return 'Histórico Total';
     return range;
@@ -1679,30 +1817,7 @@ async function switchDataSource(source) {
         if (stripHoursDot) stripHoursDot.classList.add('d-none');
         if (customDatePickerContainer) customDatePickerContainer.classList.add('d-none');
 
-        if (selectTimePeriod) {
-            selectTimePeriod.innerHTML = `
-                <optgroup label="⚡ Rápido">
-                    <option value="current-month">Este mes</option>
-                    <option value="4weeks">Últimas 4 semanas</option>
-                    <option value="year-2026">Este año (2026)</option>
-                    <option value="overall" selected>Histórico Total</option>
-                </optgroup>
-                <optgroup label="⚙️ Avanzado">
-                    <option value="era-spotify">Era Spotify (2019 - Ago 2025)</option>
-                    ${isAppOwner() ? '<option value="era-tidal">Era Tidal (Ago 2025 - Jul 2026 ≈ Estimado)</option>' : ''}
-                    <option value="era-lastfm">Nueva Era Last.fm (Ago 2025 - Hoy)</option>
-                    <option value="year-2025">Año 2025</option>
-                    <option value="year-2024">Año 2024</option>
-                    <option value="year-2023">Año 2023</option>
-                    <option value="year-2022">Año 2022</option>
-                    <option value="year-2021">Año 2021</option>
-                    <option value="year-2020">Año 2020</option>
-                    <option value="year-2019">Año 2019</option>
-                    <option value="custom">Rango de Fechas...</option>
-                </optgroup>
-            `;
-            selectTimePeriod.value = 'overall';
-        }
+        renderPeriodSelectOptions(currentRange || 'overall');
         if (selectMonth) {
             selectMonth.disabled = true;
             selectMonth.innerHTML = '<option value="all" selected>Todo el año</option>';
@@ -1715,24 +1830,7 @@ async function switchDataSource(source) {
         if (stripHoursDot) stripHoursDot.classList.remove('d-none');
         if (customDatePickerContainer) customDatePickerContainer.classList.add('d-none');
 
-        if (selectTimePeriod) {
-            selectTimePeriod.innerHTML = `
-                <option value="overall" selected>Histórico Total</option>
-                <option value="era-spotify">Era Spotify (2019 - Ago 2025)</option>
-                ${isAppOwner() ? '<option value="era-tidal">Era Tidal (Ago 2025 - Jul 2026 ≈ Estimado)</option>' : ''}
-                <option value="era-lastfm">Nueva Era Last.fm (Ago 2025 - Hoy)</option>
-                <option value="custom">Rango de Fechas Personalizado...</option>
-                <option value="year-2026">Año 2026</option>
-                <option value="year-2025">Año 2025</option>
-                <option value="year-2024">Año 2024</option>
-                <option value="year-2023">Año 2023</option>
-                <option value="year-2022">Año 2022</option>
-                <option value="year-2021">Año 2021</option>
-                <option value="year-2020">Año 2020</option>
-                <option value="year-2019">Año 2019</option>
-            `;
-            selectTimePeriod.value = 'overall';
-        }
+        renderPeriodSelectOptions(currentRange || 'overall');
         if (selectMonth) {
             selectMonth.disabled = true;
             selectMonth.innerHTML = '<option value="all" selected>Todo el año</option>';
@@ -1763,16 +1861,34 @@ function handleTimePeriodChange(val) {
 
     if (customDatePickerContainer) customDatePickerContainer.classList.add('d-none');
 
-    if (val === 'current-month') {
+    if (val === 'this-week' || val === '7day') {
         if (selectMonth) {
             selectMonth.disabled = true;
-            selectMonth.innerHTML = '<option value="all" selected>Todo el año</option>';
+            selectMonth.innerHTML = '<option value="all" selected>Esta semana</option>';
+        }
+        currentRange = 'this-week';
+    } else if (val === 'last-month' || val === '1month') {
+        if (selectMonth) {
+            selectMonth.disabled = true;
+            selectMonth.innerHTML = '<option value="all" selected>Mes pasado</option>';
+        }
+        currentRange = 'last-month';
+    } else if (val === 'last-6-months' || val === '6month') {
+        if (selectMonth) {
+            selectMonth.disabled = true;
+            selectMonth.innerHTML = '<option value="all" selected>Hace 6 meses</option>';
+        }
+        currentRange = 'last-6-months';
+    } else if (val === 'current-month') {
+        if (selectMonth) {
+            selectMonth.disabled = true;
+            selectMonth.innerHTML = '<option value="all" selected>Este mes</option>';
         }
         currentRange = 'current-month';
     } else if (val === '4weeks') {
         if (selectMonth) {
             selectMonth.disabled = true;
-            selectMonth.innerHTML = '<option value="all" selected>Todo el año</option>';
+            selectMonth.innerHTML = '<option value="all" selected>Últimas 4 semanas</option>';
         }
         currentRange = '4weeks';
     } else if (val === 'era-tidal') {
@@ -1784,13 +1900,13 @@ function handleTimePeriodChange(val) {
     } else if (val === 'era-spotify') {
         if (selectMonth) {
             selectMonth.disabled = true;
-            selectMonth.innerHTML = '<option value="all" selected>Todo el año</option>';
+            selectMonth.innerHTML = '<option value="all" selected>Todo el periodo</option>';
         }
         currentRange = 'era-spotify';
     } else if (val === 'era-lastfm') {
         if (selectMonth) {
             selectMonth.disabled = true;
-            selectMonth.innerHTML = '<option value="all" selected>Todo el año</option>';
+            selectMonth.innerHTML = '<option value="all" selected>Todo el periodo</option>';
         }
         currentRange = 'era-lastfm';
     } else if (val.startsWith('year-')) {
@@ -1806,7 +1922,7 @@ function handleTimePeriodChange(val) {
             selectMonth.disabled = true;
             selectMonth.innerHTML = '<option value="all" selected>Todo el año</option>';
         }
-        currentRange = val;
+        currentRange = val || 'overall';
     }
     updateStatStrip();
     loadStats();
@@ -1972,6 +2088,54 @@ function updateStatStrip() {
 
     const deltaCount = (currentSource === 'unified') ? lastFmRecentDelta.length : 0;
     const deltaHours = deltaCount * (3.5 / 60);
+
+    // Periodo: Esta semana
+    if (currentRange === 'this-week' || currentRange === '7day') {
+        const { fromD, toD } = getThisWeekDateRange();
+        const rData = getRangeTopData(activeDb, fromD, toD);
+        const thisWeekDelta = (currentSource === 'unified') ? lastFmRecentDelta.filter(t => isDeltaItemInCurrentRange(t, 'this-week')) : [];
+        const extra = thisWeekDelta.length;
+        const extraH = extra * (3.5 / 60);
+        const baseP = rData ? rData.plays : 0;
+        const baseH = rData ? parseFloat(rData.hours || 0) : 0;
+        if (stripPlaycount) stripPlaycount.textContent = formatNumber(baseP + extra);
+        if (stripHours) stripHours.textContent = Math.round(baseH + extraH).toLocaleString();
+        if (stripArtists) stripArtists.textContent = formatNumber((rData?.artists?.length || 0) + new Set(thisWeekDelta.map(t => t.artist?.['#text'] || t.artist?.name)).size);
+        if (stripAlbums) stripAlbums.textContent = formatNumber((rData?.albums?.length || 0) + new Set(thisWeekDelta.map(t => t.album?.['#text'] || t.album?.name)).size);
+        return;
+    }
+
+    // Periodo: Mes pasado
+    if (currentRange === 'last-month' || currentRange === '1month') {
+        const lm = getLastMonthInfo();
+        const rData = activeDb.yearlyTops?.[lm.prevY]?.months?.[lm.prevM] || getRangeTopData(activeDb, lm.fromD, lm.toD);
+        const lmDelta = (currentSource === 'unified') ? lastFmRecentDelta.filter(t => isDeltaItemInCurrentRange(t, 'last-month')) : [];
+        const extra = lmDelta.length;
+        const extraH = extra * (3.5 / 60);
+        const baseP = rData ? rData.plays : 0;
+        const baseH = rData ? parseFloat(rData.hours || 0) : 0;
+        if (stripPlaycount) stripPlaycount.textContent = formatNumber(baseP + extra);
+        if (stripHours) stripHours.textContent = Math.round(baseH + extraH).toLocaleString();
+        if (stripArtists) stripArtists.textContent = formatNumber((rData?.artists?.length || 0) + new Set(lmDelta.map(t => t.artist?.['#text'] || t.artist?.name)).size);
+        if (stripAlbums) stripAlbums.textContent = formatNumber((rData?.albums?.length || 0) + new Set(lmDelta.map(t => t.album?.['#text'] || t.album?.name)).size);
+        return;
+    }
+
+    // Periodo: Hace 6 meses
+    if (currentRange === 'last-6-months' || currentRange === '6month') {
+        const { fromD, toD } = getLast6MonthsRange();
+        const rData = getRangeTopData(activeDb, fromD, toD);
+        const sixMDelta = (currentSource === 'unified') ? lastFmRecentDelta.filter(t => isDeltaItemInCurrentRange(t, 'last-6-months')) : [];
+        const extra = sixMDelta.length;
+        const extraH = extra * (3.5 / 60);
+        const baseP = rData ? rData.plays : 0;
+        const baseH = rData ? parseFloat(rData.hours || 0) : 0;
+        if (stripPlaycount) stripPlaycount.textContent = formatNumber(baseP + extra);
+        if (stripHours) stripHours.textContent = Math.round(baseH + extraH).toLocaleString();
+        if (stripArtists) stripArtists.textContent = formatNumber((rData?.artists?.length || 0) + new Set(sixMDelta.map(t => t.artist?.['#text'] || t.artist?.name)).size);
+        if (stripAlbums) stripAlbums.textContent = formatNumber((rData?.albums?.length || 0) + new Set(sixMDelta.map(t => t.album?.['#text'] || t.album?.name)).size);
+        return;
+    }
 
     // Periodo: Este mes
     if (currentRange === 'current-month') {
@@ -2771,21 +2935,13 @@ function getRealItemPlays(type, name, artist, baseItem = null, periodRange = cur
     const normA = normalizeKey(artist || '');
     if (!normN && !normA) return 0;
 
-    // 1. Obtener item base de los Lookups si no se pasó
+    // 1. Obtener item base de los Lookups si no se pasó (búsqueda instantánea O(1))
     let item = baseItem;
     const db = unifiedDb || spotifyDb;
     if (!item && db) {
         if (type === 'track') {
             const k = `${normN}:::${normA}`;
-            item = db.tracksLookup?.[k] || Object.entries(db.tracksLookup || {}).find(([lookupKey]) => {
-                const [kN, kA] = lookupKey.split(':::');
-                const nK = normalizeKey(kN);
-                const aK = normalizeKey(kA);
-                if (!nK || !normN) return false;
-                const matchArt = !normA || aK === normA || aK.includes(normA) || normA.includes(aK);
-                const matchName = nK === normN || nK.startsWith(normN) || normN.startsWith(nK);
-                return matchArt && matchName;
-            })?.[1];
+            item = db.tracksLookup?.[k];
         } else if (type === 'artist') {
             item = db.artistsLookup?.[normN] || db.artistsLookup?.[normA];
         } else if (type === 'album') {
@@ -2799,6 +2955,29 @@ function getRealItemPlays(type, name, artist, baseItem = null, periodRange = cur
     if (item) {
         if (!periodRange || periodRange === 'overall' || periodRange === 'era-spotify') {
             basePlays = item.plays || 0;
+        } else if (periodRange === 'this-week' || periodRange === '7day') {
+            const { fromD, toD } = getThisWeekDateRange();
+            if (item.months) {
+                Object.entries(item.months).forEach(([ym, cnt]) => {
+                    const mStart = `${ym}-01`;
+                    const mEnd = `${ym}-31`;
+                    if (mEnd >= fromD && mStart <= toD) {
+                        basePlays += cnt;
+                    }
+                });
+            }
+        } else if (periodRange === 'last-month' || periodRange === '1month') {
+            const lm = getLastMonthInfo();
+            basePlays = item.months?.[lm.ym] || 0;
+        } else if (periodRange === 'last-6-months' || periodRange === '6month') {
+            const { fromD, toD } = getLast6MonthsRange();
+            const fromYM = fromD.slice(0, 7);
+            const toYM = toD.slice(0, 7);
+            if (item.months) {
+                Object.entries(item.months).forEach(([ym, cnt]) => {
+                    if (ym >= fromYM && ym <= toYM) basePlays += cnt;
+                });
+            }
         } else if (periodRange.startsWith('year-')) {
             const yr = periodRange.replace('year-', '');
             basePlays = item.years?.[yr] || 0;
@@ -2854,43 +3033,25 @@ function getRealItemPlays(type, name, artist, baseItem = null, periodRange = cur
         }
     }
 
-    // 4. Sumar Delta en vivo de Last.fm
+    // 4. Sumar Delta en vivo de Last.fm (filtrado rápido con isDeltaItemInCurrentRange)
     let deltaContribution = 0;
     if (currentSource === 'unified' && Array.isArray(lastFmRecentDelta) && lastFmRecentDelta.length > 0) {
         lastFmRecentDelta.forEach(t => {
+            if (!isDeltaItemInCurrentRange(t, periodRange)) return;
             const tName = normalizeKey(t.name);
             const tArtist = normalizeKey(t.artist ? (t.artist['#text'] || t.artist.name || '') : '');
             const tAlbum = normalizeKey(t.album ? (t.album['#text'] || t.album.name || '') : '');
             let match = false;
             if (type === 'track') {
-                if (tName === normN && (!normA || !tArtist || tArtist.includes(normA) || normA.includes(tArtist))) match = true;
+                if (tName === normN && (!normA || !tArtist || tArtist === normA || tArtist.includes(normA) || normA.includes(tArtist))) match = true;
             } else if (type === 'artist') {
                 if (tArtist && (tArtist === normN || tArtist.includes(normN) || normN.includes(tArtist))) match = true;
             } else if (type === 'album') {
-                if (tAlbum === normN && (!normA || !tArtist || tArtist.includes(normA) || normA.includes(tArtist))) match = true;
+                if (tAlbum === normN && (!normA || !tArtist || tArtist === normA || tArtist.includes(normA) || normA.includes(tArtist))) match = true;
             }
 
-            if (match && t.date?.uts) {
-                if (!periodRange || periodRange === 'overall' || periodRange === 'era-lastfm') {
-                    deltaContribution++;
-                } else {
-                    const d = new Date(parseInt(t.date.uts, 10) * 1000);
-                    const dtYear = String(d.getFullYear());
-                    const dtMonth = `${dtYear}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                    if (periodRange === `year-${dtYear}`) {
-                        deltaContribution++;
-                    } else if (periodRange === `month-${dtMonth}`) {
-                        deltaContribution++;
-                    } else if (periodRange === 'current-month') {
-                        const now = new Date();
-                        const curYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-                        if (dtMonth === curYM) deltaContribution++;
-                    } else if (periodRange.startsWith('dates_')) {
-                        const [fromD, toD] = periodRange.replace('dates_', '').split('_to_');
-                        const isoD = d.toISOString().slice(0, 10);
-                        if (isoD >= fromD && isoD <= toD) deltaContribution++;
-                    }
-                }
+            if (match) {
+                deltaContribution++;
             }
         });
     }
@@ -2929,7 +3090,22 @@ async function loadStats(silent = false) {
         let isDateRange = false;
         let dateRangeTo = '';
 
-        if (currentRange === 'current-month') {
+        if (currentRange === 'this-week' || currentRange === '7day') {
+            const { fromD, toD } = getThisWeekDateRange();
+            topData = getRangeTopData(activeDb, fromD, toD);
+            isDateRange = true;
+            dateRangeTo = toD;
+        } else if (currentRange === 'last-month' || currentRange === '1month') {
+            const lm = getLastMonthInfo();
+            topData = activeDb.yearlyTops?.[lm.prevY]?.months?.[lm.prevM] || getRangeTopData(activeDb, lm.fromD, lm.toD);
+            isDateRange = true;
+            dateRangeTo = lm.toD;
+        } else if (currentRange === 'last-6-months' || currentRange === '6month') {
+            const { fromD, toD } = getLast6MonthsRange();
+            topData = getRangeTopData(activeDb, fromD, toD);
+            isDateRange = true;
+            dateRangeTo = toD;
+        } else if (currentRange === 'current-month') {
             const now = new Date();
             const curY = now.getFullYear();
             const curM = String(now.getMonth() + 1).padStart(2, '0');
@@ -2987,7 +3163,7 @@ async function loadStats(silent = false) {
         }
 
         const appliesDelta = (currentSource === 'unified' && lastFmRecentDelta.length > 0 &&
-            (currentRange === 'overall' || currentRange.startsWith('year-202') || currentRange.startsWith('month-202') || currentRange === 'current-month' || currentRange === '4weeks' || currentRange === 'era-lastfm' ||
+            (currentRange === 'overall' || currentRange === 'this-week' || currentRange === '7day' || currentRange === 'last-month' || currentRange === '1month' || currentRange === 'last-6-months' || currentRange === '6month' || currentRange.startsWith('year-202') || currentRange.startsWith('month-202') || currentRange === 'current-month' || currentRange === '4weeks' || currentRange === 'era-lastfm' ||
              (isDateRange && dateRangeTo >= '2025-08-01')));
 
         if (currentType === 'tracks') {
@@ -3070,6 +3246,7 @@ async function loadStats(silent = false) {
                 });
 
                 lastFmRecentDelta.forEach(dt => {
+                    if (!isDeltaItemInCurrentRange(dt, currentRange)) return;
                     const dtName = dt.name;
                     const dtArtist = dt.artist ? (dt.artist['#text'] || dt.artist.name || '') : '';
                     const dtAlbum = dt.album ? (dt.album['#text'] || dt.album.name || '') : '';
@@ -3077,14 +3254,11 @@ async function loadStats(silent = false) {
                     if (trackMap.has(key)) {
                         trackMap.get(key).plays += 1;
                     } else {
-                        // Buscar si la pista ya existía en la base de datos principal
-                        const baseLookup = activeDb.tracksLookup?.[key] || Object.entries(activeDb.tracksLookup || {}).find(([k]) => k.startsWith(normalizeKey(dtName) + ':::'))?.[1];
+                        // Buscar si la pista ya existía en la base de datos principal (búsqueda instantánea O(1))
+                        const baseLookup = activeDb.tracksLookup?.[key];
                         let baseP = 0;
                         if (baseLookup) {
-                            if (!currentRange || currentRange === 'overall') baseP = baseLookup.plays || 0;
-                            else if (currentRange.startsWith('year-')) baseP = baseLookup.years?.[currentRange.replace('year-', '')] || 0;
-                            else if (currentRange.startsWith('month-')) baseP = baseLookup.months?.[currentRange.replace('month-', '')] || 0;
-                            else baseP = baseLookup.plays || 0;
+                            baseP = getRealItemPlays('track', dtName, dtArtist, baseLookup, currentRange);
                         }
                         const newEntry = {
                             name: dtName,
@@ -3184,19 +3358,17 @@ async function loadStats(silent = false) {
                 });
 
                 lastFmRecentDelta.forEach(dt => {
+                    if (!isDeltaItemInCurrentRange(dt, currentRange)) return;
                     const dtArtist = dt.artist ? (dt.artist['#text'] || dt.artist.name || '') : '';
                     if (!dtArtist) return;
                     const key = normalizeKey(dtArtist);
                     if (artistMap.has(key)) {
                         artistMap.get(key).plays += 1;
                     } else {
-                        const baseArt = activeDb.artistsLookup?.[key] || (activeDb.artists ? Object.values(activeDb.artists).find(a => normalizeKey(a.name) === key) : null);
+                        const baseArt = activeDb.artistsLookup?.[key];
                         let baseP = 0;
                         if (baseArt) {
-                            if (!currentRange || currentRange === 'overall') baseP = baseArt.plays || 0;
-                            else if (currentRange.startsWith('year-')) baseP = baseArt.years?.[currentRange.replace('year-', '')] || 0;
-                            else if (currentRange.startsWith('month-')) baseP = baseArt.months?.[currentRange.replace('month-', '')] || 0;
-                            else baseP = baseArt.plays || 0;
+                            baseP = getRealItemPlays('artist', dtArtist, '', baseArt, currentRange);
                         }
                         const newEntry = { name: dtArtist, plays: baseP + 1 };
                         artistMap.set(key, newEntry);
@@ -3237,6 +3409,7 @@ async function loadStats(silent = false) {
                 });
 
                 lastFmRecentDelta.forEach(dt => {
+                    if (!isDeltaItemInCurrentRange(dt, currentRange)) return;
                     const dtAlbum = dt.album ? (dt.album['#text'] || dt.album.name || '') : '';
                     const dtArtist = dt.artist ? (dt.artist['#text'] || dt.artist.name || '') : '';
                     if (!dtAlbum) return;
@@ -3247,10 +3420,7 @@ async function loadStats(silent = false) {
                         const baseAlb = activeDb.albumsLookup?.[key];
                         let baseP = 0;
                         if (baseAlb) {
-                            if (!currentRange || currentRange === 'overall') baseP = baseAlb.plays || 0;
-                            else if (currentRange.startsWith('year-')) baseP = baseAlb.years?.[currentRange.replace('year-', '')] || 0;
-                            else if (currentRange.startsWith('month-')) baseP = baseAlb.months?.[currentRange.replace('month-', '')] || 0;
-                            else baseP = baseAlb.plays || 0;
+                            baseP = getRealItemPlays('album', dtAlbum, dtArtist, baseAlb, currentRange);
                         }
                         const newEntry = { name: dtAlbum, artist: dtArtist, plays: baseP + 1 };
                         albumMap.set(key, newEntry);
@@ -3351,9 +3521,14 @@ async function loadStats(silent = false) {
             return;
         }
 
+        let apiPeriod = currentRange;
+        if (apiPeriod === 'this-week') apiPeriod = '7day';
+        else if (apiPeriod === 'last-month') apiPeriod = '1month';
+        else if (apiPeriod === 'last-6-months') apiPeriod = '6month';
+
         // 1. TOP CANCIONES (Ordenado por scrobbles)
         if (currentType === 'tracks') {
-            const res = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.getTopTracks&user=${encodeURIComponent(user)}&period=${currentRange}&limit=${currentLimit}&api_key=${encodeURIComponent(key)}&format=json`);
+            const res = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.getTopTracks&user=${encodeURIComponent(user)}&period=${apiPeriod}&limit=${currentLimit}&api_key=${encodeURIComponent(key)}&format=json`);
             const data = await res.json();
             loader.classList.add('d-none');
             const tracks = data?.toptracks?.track || [];
@@ -3368,7 +3543,7 @@ async function loadStats(silent = false) {
 
         // 2. TOP ARTISTAS (Ordenado por scrobbles)
         if (currentType === 'artists') {
-            const res = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.getTopArtists&user=${encodeURIComponent(user)}&period=${currentRange}&limit=${currentLimit}&api_key=${encodeURIComponent(key)}&format=json`);
+            const res = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.getTopArtists&user=${encodeURIComponent(user)}&period=${apiPeriod}&limit=${currentLimit}&api_key=${encodeURIComponent(key)}&format=json`);
             const data = await res.json();
             loader.classList.add('d-none');
             const artists = data?.topartists?.artist || [];
@@ -3383,7 +3558,7 @@ async function loadStats(silent = false) {
 
         // 3. TOP ÁLBUMES (Ordenado por scrobbles)
         if (currentType === 'albums') {
-            const res = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.getTopAlbums&user=${encodeURIComponent(user)}&period=${currentRange}&limit=${currentLimit}&api_key=${encodeURIComponent(key)}&format=json`);
+            const res = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.getTopAlbums&user=${encodeURIComponent(user)}&period=${apiPeriod}&limit=${currentLimit}&api_key=${encodeURIComponent(key)}&format=json`);
             const data = await res.json();
             loader.classList.add('d-none');
             const albums = data?.topalbums?.album || [];
@@ -8031,19 +8206,21 @@ function switchAppView(viewName) {
         }
     });
 
-    // 4. Acciones específicas por vista
-    if (viewName === 'home') {
-        refreshHomeView();
-    } else if (viewName === 'catalog') {
-        if (!currentLoadedItems || currentLoadedItems.length === 0) {
-            loadStats();
+    // 4. Acciones diferidas para que el navegador pinte el cambio de vista al instante (0ms lag)
+    setTimeout(() => {
+        if (viewName === 'home') {
+            refreshHomeView();
+        } else if (viewName === 'catalog') {
+            if (!currentLoadedItems || currentLoadedItems.length === 0) {
+                loadStats();
+            }
+        } else if (viewName === 'curator') {
+            initCuratorSectionIfNeeded();
+        } else if (viewName === 'profile') {
+            renderProfileSection();
+            renderWrappedTeaser();
         }
-    } else if (viewName === 'curator') {
-        initCuratorSectionIfNeeded();
-    } else if (viewName === 'profile') {
-        renderProfileSection();
-        renderWrappedTeaser();
-    }
+    }, 15);
 
     // Scroll suave hacia el inicio
     window.scrollTo({ top: 0, behavior: 'instant' });
@@ -8083,10 +8260,12 @@ async function refreshHomeView() {
         // 3. Métricas clave (Streams, Horas, Artistas)
         const db = await getActiveDatabase();
         if (db) {
-            initEngagement(db);
-
-            // 3. Mini Desafío / Gancho Interactivo de Portada
-            generateHomeHookGame(db);
+            if (!engagementInitialized) {
+                setTimeout(() => initEngagement(db), 60);
+            }
+            if (!currentHomeHookQuestion) {
+                generateHomeHookGame(db);
+            }
 
             // 4. Tu #1 y Mini-Top 5
             await renderHomeHighlights(db);
@@ -8102,64 +8281,88 @@ async function renderHomeHighlights(db) {
     if (!db) return;
 
     try {
-        const yearlyTops = db.yearlyTops || {};
         const now = new Date();
         const curY = String(now.getFullYear());
         const curM = String(now.getMonth() + 1);
         const curYM = `month-${curY}-${curM.padStart(2, '0')}`;
+        const monthNamesEs = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        const currentMonthName = monthNamesEs[now.getMonth()];
 
-        // Tomar tracks del mes actual, año actual o general
-        let baseTracks = yearlyTops[curY]?.months?.[curM]?.tracks
-            || yearlyTops[curY]?.months?.['10']?.tracks
-            || yearlyTops[curY]?.tracks
-            || yearlyTops['overall']?.tracks
-            || [];
-
-        // Si no hay tracks en el mes, tomar el año o el general
-        if (!baseTracks || baseTracks.length === 0) {
-            baseTracks = yearlyTops[curY]?.tracks || yearlyTops['overall']?.tracks || [];
-        }
+        // OJO: Solo canciones del mes EN CURSO. Al iniciar un nuevo mes, comienza en 0 y se va llenando día a día.
+        // NUNCA hacer fallback a meses anteriores (ej: octubre), ni a años ni a overall.
+        const baseTracks = (db.yearlyTops?.[curY]?.months?.[curM]?.tracks) || [];
 
         const tracksMap = new Map();
+
+        // 1. Cargar tracks del mes actual de la base de datos si ya existen
         baseTracks.forEach(t => {
             const artistName = t.artist ? (t.artist.name || t.artist['#text'] || t.artist) : '';
             const k = `${normalizeKey(t.name)}:::${normalizeKey(artistName)}`;
-            const realP = getRealItemPlays('track', t.name, artistName, t, curYM);
             tracksMap.set(k, {
                 name: t.name,
                 artist: artistName,
                 album: t.album || '',
-                plays: realP > 0 ? realP : (t.plays || 0),
+                plays: t.plays || 0,
                 uri: t.uri || null
             });
         });
 
-        // Agregar delta reciente de Last.fm si existe
+        // 2. Sumar scrobbles en vivo de Last.fm que pertenezcan ESTRICTAMENTE a este mes actual
         if (Array.isArray(lastFmRecentDelta)) {
             lastFmRecentDelta.forEach(dt => {
+                if (!dt.date?.uts) return;
+                const d = new Date(parseInt(dt.date.uts, 10) * 1000);
+                if (String(d.getFullYear()) !== curY || String(d.getMonth() + 1) !== curM) return;
+
                 const dtName = dt.name;
                 const dtArtist = dt.artist ? (dt.artist['#text'] || dt.artist.name || '') : '';
                 const dtAlbum = dt.album ? (dt.album['#text'] || dt.album.name || '') : '';
                 if (!dtName) return;
+
                 const k = `${normalizeKey(dtName)}:::${normalizeKey(dtArtist)}`;
-                if (!tracksMap.has(k)) {
-                    const realP = getRealItemPlays('track', dtName, dtArtist, null, curYM);
-                    if (realP > 0) {
-                        tracksMap.set(k, { name: dtName, artist: dtArtist, album: dtAlbum, plays: realP, uri: null });
-                    }
+                const existing = tracksMap.get(k);
+                if (existing) {
+                    existing.plays += 1;
+                } else {
+                    tracksMap.set(k, {
+                        name: dtName,
+                        artist: dtArtist,
+                        album: dtAlbum,
+                        plays: 1,
+                        uri: null
+                    });
                 }
             });
         }
 
-        const sorted = Array.from(tracksMap.values()).sort((a, b) => b.plays - a.plays);
+        const sorted = Array.from(tracksMap.values()).filter(t => t.plays > 0).sort((a, b) => b.plays - a.plays);
 
+        // Si no hay reproducciones en el mes actual (mes recién iniciado)
         if (sorted.length === 0) {
-            if (spotlightEl) spotlightEl.innerHTML = '<span class="text-secondary small">Aún no hay reproducciones registradas este mes.</span>';
-            if (miniListEl) miniListEl.innerHTML = '<span class="text-secondary small">Sin canciones recientes.</span>';
+            if (spotlightEl) {
+                spotlightEl.innerHTML = `
+                    <div class="d-flex align-items-center gap-3 w-100 py-1">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 52px; height: 52px; background: rgba(168, 85, 247, 0.12); border: 1px dashed rgba(168, 85, 247, 0.35);">
+                            <i class="fa-solid fa-compact-disc text-primary fs-5"></i>
+                        </div>
+                        <div class="overflow-hidden flex-grow-1">
+                            <div class="fw-bold text-white text-truncate" style="font-size: 0.95rem;">Inicio de ${currentMonthName}</div>
+                            <div class="text-secondary small" style="font-size: 0.74rem;">0 streams este mes. Escucha música para posicionar tu tema #1 en rotación.</div>
+                        </div>
+                    </div>
+                `;
+            }
+            if (miniListEl) {
+                miniListEl.innerHTML = `
+                    <div class="text-center py-3 text-secondary" style="font-size: 0.74rem;">
+                        <i class="fa-regular fa-clock me-1 text-muted"></i>Aún sin temas en rotación para ${currentMonthName}. Se irá llenando a medida que avances en el mes.
+                    </div>
+                `;
+            }
             return;
         }
 
-        // 1. Destacado #1
+        // 1. Destacado #1 del mes
         const top1 = sorted[0];
         const top1Key = `track::${normalizeKey(top1.name)}::${normalizeKey(top1.artist)}`;
         const top1Cover = artCache[top1Key] || FALLBACK_ART_SVG;
@@ -8174,7 +8377,7 @@ async function renderHomeHighlights(db) {
                     <div class="text-secondary text-truncate mb-2" style="font-size: 0.85rem;">${escapeHtml(top1.artist)}</div>
                     <div class="d-flex align-items-center flex-wrap gap-2">
                         <span class="badge rounded-pill px-2.5 py-1" style="background: rgba(191,90,242,0.18); color: #e9d5ff; font-size: 0.72rem; border: 1px solid rgba(191,90,242,0.35);">
-                            <i class="fa-solid fa-headphones me-1"></i>${formatNumber(top1.plays)} streams
+                            <i class="fa-solid fa-headphones me-1"></i>${formatNumber(top1.plays)} ${top1.plays === 1 ? 'stream' : 'streams'} (${currentMonthName})
                         </span>
                         <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-2.5 py-0.5" style="font-size: 0.70rem; border-color: rgba(255,255,255,0.18);" onclick="showItemStats('track', '${escapeJsStr(top1.name)}', '${escapeJsStr(top1.artist)}')">
                             <i class="fa-solid fa-chart-simple me-1 text-info"></i>Detalles
@@ -8192,7 +8395,7 @@ async function renderHomeHighlights(db) {
             }
         }
 
-        // 2. Mini Top 5
+        // 2. Mini Top 5 del mes
         if (miniListEl) {
             const top5 = sorted.slice(0, 5);
             miniListEl.innerHTML = top5.map((t, idx) => {
@@ -8210,7 +8413,7 @@ async function renderHomeHighlights(db) {
                                 <div class="text-secondary text-truncate" style="font-size: 0.70rem;">${escapeHtml(t.artist)}</div>
                             </div>
                         </div>
-                        <span class="badge bg-secondary bg-opacity-25 text-white flex-shrink-0 ms-2" style="font-size: 0.68rem;">${formatNumber(t.plays)} plays</span>
+                        <span class="badge bg-secondary bg-opacity-25 text-white flex-shrink-0 ms-2" style="font-size: 0.68rem;">${formatNumber(t.plays)} ${t.plays === 1 ? 'play' : 'plays'}</span>
                     </div>
                 `;
             }).join('');

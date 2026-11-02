@@ -1614,15 +1614,16 @@
                             <label class="filter-label"><i class="fa-regular fa-calendar-days me-1 text-muted"></i> Periodo</label>
                             <select id="select-time-period" class="form-select form-select-sm filter-select">
                                 <optgroup label="⚡ Rápido">
-                                    <option value="current-month">Este mes</option>
-                                    <option value="4weeks">Últimas 4 semanas</option>
-                                    <option value="year-2026">Este año (2026)</option>
+                                    <option value="this-week">Esta semana (su semana respectiva)</option>
+                                    <option value="last-month">Mes pasado</option>
+                                    <option value="last-6-months">Hace 6 meses</option>
                                     <option value="overall" selected>Histórico Total</option>
                                 </optgroup>
                                 <optgroup label="⚙️ Avanzado">
-                                    <option value="era-spotify">Era Spotify (2019 - Ago 2025)</option>
+                                    <option value="era-spotify" class="owner-only-element d-none">Era Spotify (2019 - Ago 2025)</option>
                                     <option value="era-tidal" class="owner-only-element d-none">Era Tidal (Ago 2025 - Jul 2026 ≈)</option>
-                                    <option value="era-lastfm">Nueva Era Last.fm (Ago 2025 - Hoy)</option>
+                                    <option value="era-lastfm" class="owner-only-element d-none">Nueva Era Last.fm (Ago 2025 - Hoy)</option>
+                                    <option value="year-2026">Año 2026</option>
                                     <option value="year-2025">Año 2025</option>
                                     <option value="year-2024">Año 2024</option>
                                     <option value="year-2023">Año 2023</option>
@@ -2792,7 +2793,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
         <!-- App Logic -->
-    <script src="/app.js?v=61"></script>
+    <script src="/app.js?v=62"></script>
 
     <!-- Barra de Navegación Inferior Móvil (Bottom Navigation Bar) -->
     <nav id="bottom-nav-bar" class="bottom-nav-bar d-none">
