@@ -2957,7 +2957,7 @@ window.renderErrorState = renderErrorState;
 // CÁLCULO UNIFICADO Y EXACTO DE STREAMS REALES
 // Sincroniza vistas previas, búsquedas, tops y modal
 // ====================================================
-function getRealItemPlays(type, name, artist, baseItem = null, periodRange = currentRange) {
+function getStaticItemBasePlays(type, name, artist, baseItem = null, periodRange = currentRange) {
     const normN = normalizeKey(name || '');
     const normA = normalizeKey(artist || '');
     if (!normN && !normA) return 0;
@@ -3063,6 +3063,17 @@ function getRealItemPlays(type, name, artist, baseItem = null, periodRange = cur
         }
     }
 
+    return basePlays + tidalContribution;
+}
+window.getStaticItemBasePlays = getStaticItemBasePlays;
+
+function getRealItemPlays(type, name, artist, baseItem = null, periodRange = currentRange) {
+    const staticBase = getStaticItemBasePlays(type, name, artist, baseItem, periodRange);
+
+    const normN = normalizeKey(name || '');
+    const normA = normalizeKey(artist || '');
+    if (!normN && !normA) return staticBase;
+
     // 4. Sumar Delta en vivo de Last.fm (filtrado rápido con isDeltaItemInCurrentRange)
     let deltaContribution = 0;
     if (currentSource === 'unified' && Array.isArray(lastFmRecentDelta) && lastFmRecentDelta.length > 0) {
@@ -3086,7 +3097,7 @@ function getRealItemPlays(type, name, artist, baseItem = null, periodRange = cur
         });
     }
 
-    return basePlays + tidalContribution + deltaContribution;
+    return staticBase + deltaContribution;
 }
 window.getRealItemPlays = getRealItemPlays;
 
@@ -3295,7 +3306,7 @@ async function loadStats(silent = false) {
                         const baseLookup = activeDb.tracksLookup?.[key];
                         let baseP = 0;
                         if (baseLookup) {
-                            baseP = getRealItemPlays('track', dtName, dtArtist, baseLookup, currentRange);
+                            baseP = getStaticItemBasePlays('track', dtName, dtArtist, baseLookup, currentRange);
                         }
                         const newEntry = {
                             name: dtName,
@@ -3405,7 +3416,7 @@ async function loadStats(silent = false) {
                         const baseArt = activeDb.artistsLookup?.[key];
                         let baseP = 0;
                         if (baseArt) {
-                            baseP = getRealItemPlays('artist', dtArtist, '', baseArt, currentRange);
+                            baseP = getStaticItemBasePlays('artist', dtArtist, '', baseArt, currentRange);
                         }
                         const newEntry = { name: dtArtist, plays: baseP + 1 };
                         artistMap.set(key, newEntry);
@@ -3457,7 +3468,7 @@ async function loadStats(silent = false) {
                         const baseAlb = activeDb.albumsLookup?.[key];
                         let baseP = 0;
                         if (baseAlb) {
-                            baseP = getRealItemPlays('album', dtAlbum, dtArtist, baseAlb, currentRange);
+                            baseP = getStaticItemBasePlays('album', dtAlbum, dtArtist, baseAlb, currentRange);
                         }
                         const newEntry = { name: dtAlbum, artist: dtArtist, plays: baseP + 1 };
                         albumMap.set(key, newEntry);
