@@ -1227,12 +1227,27 @@ function getLast6MonthsRange() {
 }
 
 function isDeltaItemInCurrentRange(t, range = currentRange) {
-    if (!t?.date?.uts) return false;
-    const uts = parseInt(t.date.uts, 10);
-    const d = new Date(uts * 1000);
-    const isoD = d.toISOString().slice(0, 10);
-    const dtYear = String(d.getFullYear());
-    const dtMonth = `${dtYear}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    if (!t) return false;
+    let uts = t._uts;
+    let isoD = t._isoD;
+    let dtYear = t._year;
+    let dtMonth = t._month;
+
+    if (uts === undefined) {
+        if (!t.date?.uts) return false;
+        uts = parseInt(t.date.uts, 10);
+        const d = new Date(uts * 1000);
+        isoD = d.toISOString().slice(0, 10);
+        dtYear = String(d.getFullYear());
+        dtMonth = `${dtYear}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        t._uts = uts;
+        t._isoD = isoD;
+        t._year = dtYear;
+        t._month = dtMonth;
+        t._normName = normalizeKey(t.name || '');
+        t._normArtist = normalizeKey(t.artist ? (t.artist['#text'] || t.artist.name || '') : '');
+        t._normAlbum = normalizeKey(t.album ? (t.album['#text'] || t.album.name || '') : '');
+    }
 
     if (!range || range === 'overall' || range === 'era-lastfm') return true;
     if (range === 'this-week' || range === '7day') {
@@ -1263,8 +1278,9 @@ function isDeltaItemInCurrentRange(t, range = currentRange) {
     if (range.startsWith('month-')) {
         const parts = range.replace('month-', '').split('-');
         const rY = parts[0];
-        const rM = parseInt(parts[1], 10);
-        return String(d.getFullYear()) === rY && (d.getMonth() + 1) === rM;
+        const rM = parts[1];
+        const targetYM = `${rY}-${String(parseInt(rM, 10)).padStart(2, '0')}`;
+        return dtMonth === targetYM;
     }
     if (range.startsWith('dates_')) {
         const [fromD, toD] = range.replace('dates_', '').split('_to_');
@@ -1601,9 +1617,19 @@ function setupEventListeners() {
         btnApplyUpdate.addEventListener('click', forceAppUpdate);
     }
 
-    // Buscador en tiempo real
+    // Buscador en tiempo real con soporte para escape
     if (filterSearchInput) {
         filterSearchInput.addEventListener('input', handleFilterSearch);
+        filterSearchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                filterSearchInput.value = '';
+                if (typeof filterSearchDebounceTimer !== 'undefined' && filterSearchDebounceTimer) {
+                    clearTimeout(filterSearchDebounceTimer);
+                }
+                filterSearchInput.blur();
+                renderCurrentItems(currentLoadedItems);
+            }
+        });
     }
 
     // Acciones de Análisis y Estadísticas
@@ -3067,6 +3093,61 @@ function getStaticItemBasePlays(type, name, artist, baseItem = null, periodRange
 }
 window.getStaticItemBasePlays = getStaticItemBasePlays;
 
+let deltaIndexCache = {
+    range: null,
+    deltaLength: -1,
+    tracks: new Map(),
+    artists: new Map(),
+    albums: new Map()
+};
+
+function getDeltaIndexForRange(periodRange = currentRange) {
+    if (!Array.isArray(lastFmRecentDelta) || lastFmRecentDelta.length === 0) {
+        return null;
+    }
+    if (deltaIndexCache.range === periodRange && deltaIndexCache.deltaLength === lastFmRecentDelta.length) {
+        return deltaIndexCache;
+    }
+
+    const tracks = new Map();
+    const artists = new Map();
+    const albums = new Map();
+
+    for (let i = 0; i < lastFmRecentDelta.length; i++) {
+        const t = lastFmRecentDelta[i];
+        if (!isDeltaItemInCurrentRange(t, periodRange)) continue;
+
+        const tName = t._normName !== undefined ? t._normName : normalizeKey(t.name || '');
+        const tArtist = t._normArtist !== undefined ? t._normArtist : normalizeKey(t.artist ? (t.artist['#text'] || t.artist.name || '') : '');
+        const tAlbum = t._normAlbum !== undefined ? t._normAlbum : normalizeKey(t.album ? (t.album['#text'] || t.album.name || '') : '');
+
+        if (tName) {
+            const tk = `${tName}:::${tArtist}`;
+            tracks.set(tk, (tracks.get(tk) || 0) + 1);
+            if (!tracks.has(tName)) tracks.set(tName, 0);
+            tracks.set(tName, tracks.get(tName) + 1);
+        }
+        if (tArtist) {
+            artists.set(tArtist, (artists.get(tArtist) || 0) + 1);
+        }
+        if (tAlbum) {
+            const ak = `${tAlbum}:::${tArtist}`;
+            albums.set(ak, (albums.get(ak) || 0) + 1);
+            if (!albums.has(tAlbum)) albums.set(tAlbum, 0);
+            albums.set(tAlbum, albums.get(tAlbum) + 1);
+        }
+    }
+
+    deltaIndexCache = {
+        range: periodRange,
+        deltaLength: lastFmRecentDelta.length,
+        tracks,
+        artists,
+        albums
+    };
+    return deltaIndexCache;
+}
+
 function getRealItemPlays(type, name, artist, baseItem = null, periodRange = currentRange) {
     const staticBase = getStaticItemBasePlays(type, name, artist, baseItem, periodRange);
 
@@ -3074,27 +3155,38 @@ function getRealItemPlays(type, name, artist, baseItem = null, periodRange = cur
     const normA = normalizeKey(artist || '');
     if (!normN && !normA) return staticBase;
 
-    // 4. Sumar Delta en vivo de Last.fm (filtrado rápido con isDeltaItemInCurrentRange)
+    // 4. Sumar Delta en vivo de Last.fm con índice O(1) de alto rendimiento
     let deltaContribution = 0;
     if (currentSource === 'unified' && Array.isArray(lastFmRecentDelta) && lastFmRecentDelta.length > 0) {
-        lastFmRecentDelta.forEach(t => {
-            if (!isDeltaItemInCurrentRange(t, periodRange)) return;
-            const tName = normalizeKey(t.name);
-            const tArtist = normalizeKey(t.artist ? (t.artist['#text'] || t.artist.name || '') : '');
-            const tAlbum = normalizeKey(t.album ? (t.album['#text'] || t.album.name || '') : '');
-            let match = false;
+        const dIdx = getDeltaIndexForRange(periodRange);
+        if (dIdx) {
             if (type === 'track') {
-                if (tName === normN && (!normA || !tArtist || tArtist === normA || tArtist.includes(normA) || normA.includes(tArtist))) match = true;
+                const fullKey = `${normN}:::${normA}`;
+                if (dIdx.tracks.has(fullKey)) {
+                    deltaContribution = dIdx.tracks.get(fullKey);
+                } else if (!normA && dIdx.tracks.has(normN)) {
+                    deltaContribution = dIdx.tracks.get(normN);
+                } else {
+                    // Fallback para nombres con feat/variaciones leves de artista
+                    for (const [k, count] of dIdx.tracks.entries()) {
+                        if (!k.includes(':::')) continue;
+                        const [kN, kA] = k.split(':::');
+                        if (kN === normN && (!normA || !kA || kA.includes(normA) || normA.includes(kA))) {
+                            deltaContribution += count;
+                        }
+                    }
+                }
             } else if (type === 'artist') {
-                if (tArtist && (tArtist === normN || tArtist.includes(normN) || normN.includes(tArtist))) match = true;
+                deltaContribution = dIdx.artists.get(normN) || 0;
             } else if (type === 'album') {
-                if (tAlbum === normN && (!normA || !tArtist || tArtist === normA || tArtist.includes(normA) || normA.includes(tArtist))) match = true;
+                const fullKey = `${normN}:::${normA}`;
+                if (dIdx.albums.has(fullKey)) {
+                    deltaContribution = dIdx.albums.get(fullKey);
+                } else if (!normA && dIdx.albums.has(normN)) {
+                    deltaContribution = dIdx.albums.get(normN);
+                }
             }
-
-            if (match) {
-                deltaContribution++;
-            }
-        });
+        }
     }
 
     return staticBase + deltaContribution;
@@ -3104,6 +3196,9 @@ window.getRealItemPlays = getRealItemPlays;
 async function loadStats(silent = false) {
     if (silent !== true) {
         if (filterSearchInput) filterSearchInput.value = '';
+        if (typeof filterSearchDebounceTimer !== 'undefined' && filterSearchDebounceTimer) {
+            clearTimeout(filterSearchDebounceTimer);
+        }
         renderSkeletons(currentLimit === 'all' ? 20 : Math.min(parseInt(currentLimit, 10) || 12, 16));
     }
     if (loader) loader.classList.add('d-none');
@@ -5001,8 +5096,10 @@ async function handleDownloadCard() {
 }
 
 // ----------------------------------------------------
-// 6. BUSCADOR GLOBAL EN TIEMPO REAL
+// 6. BUSCADOR GLOBAL EN TIEMPO REAL (OPTIMIZADO)
 // ----------------------------------------------------
+let filterSearchDebounceTimer = null;
+
 function renderCurrentItems(items) {
     if (currentType === 'tracks') renderTracks(items);
     else if (currentType === 'artists') renderArtists(items);
@@ -5010,8 +5107,25 @@ function renderCurrentItems(items) {
     else if (currentType === 'recent') renderRecent(items);
 }
 
-async function handleFilterSearch(e) {
-    const q = (e.target.value || '').trim().toLowerCase();
+function handleFilterSearch(e) {
+    const rawVal = e?.target?.value || '';
+    const q = rawVal.trim().toLowerCase();
+
+    // 1. Si se borra todo el texto, restaurar inmediatamente sin delay
+    if (!q) {
+        if (filterSearchDebounceTimer) clearTimeout(filterSearchDebounceTimer);
+        renderCurrentItems(currentLoadedItems);
+        return;
+    }
+
+    // 2. Debounce de 120ms: permite teclear o borrar súper rápido sin congelar la interfaz
+    if (filterSearchDebounceTimer) clearTimeout(filterSearchDebounceTimer);
+    filterSearchDebounceTimer = setTimeout(() => {
+        executeFilterSearch(q);
+    }, 120);
+}
+
+async function executeFilterSearch(q) {
     if (!q) {
         renderCurrentItems(currentLoadedItems);
         return;
@@ -5021,7 +5135,11 @@ async function handleFilterSearch(e) {
     const activeDb = unifiedDb || spotifyDb || await getActiveDatabase();
     if (activeDb) {
         if (currentType === 'tracks' && activeDb.tracksLookup) {
-            const all = Object.values(activeDb.tracksLookup);
+            // Reusar lista en memoria para no crear Object.values() en cada tecla
+            if (!activeDb._cachedTracksList) {
+                activeDb._cachedTracksList = Object.values(activeDb.tracksLookup);
+            }
+            const all = activeDb._cachedTracksList;
             const matches = all.filter(t => {
                 const name = (t.name || '').toLowerCase();
                 const artist = (t.artist || '').toLowerCase();
@@ -5029,8 +5147,24 @@ async function handleFilterSearch(e) {
                 return name.includes(q) || artist.includes(q) || album.includes(q);
             });
 
-            // Enriquecer con reproducciones reales unificadas (base + Tidal + live Last.fm)
-            const enriched = matches.map(t => ({
+            if (matches.length === 0) {
+                statsList.innerHTML = `
+                    <div class="w-100 text-center py-5 text-secondary" style="grid-column: 1 / -1;">
+                        <i class="fa-solid fa-magnifying-glass mb-2" style="font-size: 1.5rem; opacity: 0.5;"></i>
+                        <div>No se encontraron canciones para "<strong>${escapeHtml(q)}</strong>"</div>
+                    </div>
+                `;
+                return;
+            }
+
+            // Si hay muchos resultados, ordenar por popularidad base y tomar los mejores 80
+            if (matches.length > 80) {
+                matches.sort((a, b) => (b.plays || 0) - (a.plays || 0));
+            }
+            const topSlice = matches.slice(0, 80);
+
+            // Enriquecer con reproducciones reales unificadas (O(1) ultra rápido)
+            const enriched = topSlice.map(t => ({
                 name: t.name,
                 artist: { name: t.artist },
                 album: { name: t.album },
@@ -5039,8 +5173,7 @@ async function handleFilterSearch(e) {
             }));
 
             enriched.sort((a, b) => b.playcount - a.playcount);
-
-            renderTracks(enriched.slice(0, 200));
+            renderTracks(enriched);
 
             // Banner indicador de búsqueda en catálogo global
             const banner = document.createElement('div');
@@ -5056,15 +5189,33 @@ async function handleFilterSearch(e) {
             statsList.prepend(banner);
             return;
         } else if (currentType === 'artists') {
-            const allArtists = activeDb.artistsLookup ? Object.values(activeDb.artistsLookup) : (activeDb.top?.overall?.artists || (activeDb.artists ? Object.values(activeDb.artists) : []));
+            if (!activeDb._cachedArtistsList) {
+                activeDb._cachedArtistsList = activeDb.artistsLookup ? Object.values(activeDb.artistsLookup) : (activeDb.top?.overall?.artists || (activeDb.artists ? Object.values(activeDb.artists) : []));
+            }
+            const allArtists = activeDb._cachedArtistsList;
             if (allArtists.length > 0) {
                 const matches = allArtists.filter(a => (a.name || '').toLowerCase().includes(q));
-                const enriched = matches.map(a => ({
+                if (matches.length === 0) {
+                    statsList.innerHTML = `
+                        <div class="w-100 text-center py-5 text-secondary" style="grid-column: 1 / -1;">
+                            <i class="fa-solid fa-magnifying-glass mb-2" style="font-size: 1.5rem; opacity: 0.5;"></i>
+                            <div>No se encontraron artistas para "<strong>${escapeHtml(q)}</strong>"</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                if (matches.length > 60) {
+                    matches.sort((a, b) => (b.plays || 0) - (a.plays || 0));
+                }
+                const topSlice = matches.slice(0, 60);
+
+                const enriched = topSlice.map(a => ({
                     name: a.name,
                     playcount: getRealItemPlays('artist', a.name, '', a, currentRange)
                 }));
                 enriched.sort((a, b) => b.playcount - a.playcount);
-                renderArtists(enriched.slice(0, 150));
+                renderArtists(enriched);
 
                 const banner = document.createElement('div');
                 banner.className = 'w-100 d-flex align-items-center justify-content-between py-1.5 px-3 mb-2 rounded border';
@@ -5080,20 +5231,38 @@ async function handleFilterSearch(e) {
                 return;
             }
         } else if (currentType === 'albums') {
-            const allAlbums = activeDb.albumsLookup ? Object.values(activeDb.albumsLookup) : (activeDb.top?.overall?.albums || (activeDb.albums ? Object.values(activeDb.albums) : []));
+            if (!activeDb._cachedAlbumsList) {
+                activeDb._cachedAlbumsList = activeDb.albumsLookup ? Object.values(activeDb.albumsLookup) : (activeDb.top?.overall?.albums || (activeDb.albums ? Object.values(activeDb.albums) : []));
+            }
+            const allAlbums = activeDb._cachedAlbumsList;
             if (allAlbums.length > 0) {
                 const matches = allAlbums.filter(a => {
                     const name = (a.name || '').toLowerCase();
                     const artist = (a.artist || '').toLowerCase();
                     return name.includes(q) || artist.includes(q);
                 });
-                const enriched = matches.map(a => ({
+                if (matches.length === 0) {
+                    statsList.innerHTML = `
+                        <div class="w-100 text-center py-5 text-secondary" style="grid-column: 1 / -1;">
+                            <i class="fa-solid fa-magnifying-glass mb-2" style="font-size: 1.5rem; opacity: 0.5;"></i>
+                            <div>No se encontraron álbumes para "<strong>${escapeHtml(q)}</strong>"</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                if (matches.length > 60) {
+                    matches.sort((a, b) => (b.plays || 0) - (a.plays || 0));
+                }
+                const topSlice = matches.slice(0, 60);
+
+                const enriched = topSlice.map(a => ({
                     name: a.name,
                     artist: { name: a.artist },
                     playcount: getRealItemPlays('album', a.name, a.artist, a, currentRange)
                 }));
                 enriched.sort((a, b) => b.playcount - a.playcount);
-                renderAlbums(enriched.slice(0, 150));
+                renderAlbums(enriched);
 
                 const banner = document.createElement('div');
                 banner.className = 'w-100 d-flex align-items-center justify-content-between py-1.5 px-3 mb-2 rounded border';
