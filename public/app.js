@@ -1261,7 +1261,10 @@ function isDeltaItemInCurrentRange(t, range = currentRange) {
         return dtYear === range.replace('year-', '');
     }
     if (range.startsWith('month-')) {
-        return dtMonth === range.replace('month-', '');
+        const parts = range.replace('month-', '').split('-');
+        const rY = parts[0];
+        const rM = parseInt(parts[1], 10);
+        return String(d.getFullYear()) === rY && (d.getMonth() + 1) === rM;
     }
     if (range.startsWith('dates_')) {
         const [fromD, toD] = range.replace('dates_', '').split('_to_');
@@ -2041,10 +2044,28 @@ function handleMonthChange(val) {
 
 function updateMonthDropdown(year) {
     if (!selectMonth) return;
-    const activeDb = (currentSource === 'unified') ? (unifiedDb || spotifyDb) : spotifyDb;
-    const availableMonths = (activeDb?.yearlyTops?.[year]?.months) ?
-        Object.keys(activeDb.yearlyTops[year].months).map(m => parseInt(m, 10)).sort((a, b) => a - b) :
-        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+    const targetYear = parseInt(year, 10);
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1; // 1 = Enero, 11 = Noviembre, etc.
+
+    let minMonth = 1;
+    let maxMonth = 12;
+
+    if (targetYear === currentYear) {
+        // En el año en curso, mostrar todos los meses transcurridos hasta el mes actual (sin meses futuros)
+        maxMonth = currentMonth;
+    } else if (targetYear > currentYear) {
+        maxMonth = 0; // Años futuros no tienen meses disponibles
+    } else if (targetYear === 2019) {
+        // En 2019 la biblioteca inició en Mayo
+        minMonth = 5;
+    }
+
+    const availableMonths = [];
+    for (let m = minMonth; m <= maxMonth; m++) {
+        availableMonths.push(m);
+    }
 
     selectMonth.innerHTML = '<option value="all" selected>Todo el año</option>';
     availableMonths.forEach(m => {
@@ -2234,16 +2255,22 @@ function updateStatStrip() {
         const parts = currentRange.split('-');
         const y = parts[1];
         const m = parts[2];
-        const mData = activeDb.yearlyTops?.[y]?.months?.[m];
-        if (mData) {
-            const extra = (y === '2026' && m === '10') ? deltaCount : 0;
-            const extraH = (y === '2026' && m === '10') ? deltaHours : 0;
-            if (stripPlaycount) stripPlaycount.textContent = formatNumber(mData.plays + extra);
-            if (stripHours) stripHours.textContent = (parseFloat(mData.hours || 0) + extraH).toFixed(1);
-            if (stripArtists) stripArtists.textContent = formatNumber(mData.artists?.length || 0);
-            if (stripAlbums) stripAlbums.textContent = formatNumber(mData.albums?.length || 0);
-            return;
-        }
+        const mData = activeDb.yearlyTops?.[y]?.months?.[m] || activeDb.yearlyTops?.[y]?.months?.[String(parseInt(m, 10))];
+        const mDelta = (currentSource === 'unified') ? lastFmRecentDelta.filter(t => isDeltaItemInCurrentRange(t, currentRange)) : [];
+        const extra = mDelta.length;
+        const extraH = extra * (3.5 / 60);
+        const baseP = mData ? (mData.plays || 0) : 0;
+        const baseH = mData ? parseFloat(mData.hours || 0) : 0;
+        const baseArt = mData?.artists?.length || 0;
+        const baseAlb = mData?.albums?.length || 0;
+        const deltaArtists = new Set(mDelta.map(t => t.artist?.['#text'] || t.artist?.name)).size;
+        const deltaAlbums = new Set(mDelta.map(t => t.album?.['#text'] || t.album?.name)).size;
+
+        if (stripPlaycount) stripPlaycount.textContent = formatNumber(baseP + extra);
+        if (stripHours) stripHours.textContent = Math.round(baseH + extraH).toLocaleString();
+        if (stripArtists) stripArtists.textContent = formatNumber(baseArt + deltaArtists);
+        if (stripAlbums) stripAlbums.textContent = formatNumber(baseAlb + deltaAlbums);
+        return;
     }
 
     // Apartado General / Histórico Total Unificado o Spotify
@@ -2983,7 +3010,10 @@ function getRealItemPlays(type, name, artist, baseItem = null, periodRange = cur
             basePlays = item.years?.[yr] || 0;
         } else if (periodRange.startsWith('month-')) {
             const ym = periodRange.replace('month-', '');
-            basePlays = item.months?.[ym] || 0;
+            const [y, m] = ym.split('-');
+            const paddedYM = `${y}-${String(m).padStart(2, '0')}`;
+            const unpaddedYM = `${y}-${parseInt(m, 10)}`;
+            basePlays = item.months?.[paddedYM] || item.months?.[unpaddedYM] || 0;
         } else if (periodRange === 'current-month') {
             const now = new Date();
             const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -3159,7 +3189,14 @@ async function loadStats(silent = false) {
             const parts = currentRange.split('-');
             const y = parts[1];
             const m = parts[2];
-            topData = activeDb.yearlyTops?.[y]?.months?.[m] || activeDb.yearlyTops?.overall;
+            const mData = activeDb.yearlyTops?.[y]?.months?.[m] || activeDb.yearlyTops?.[y]?.months?.[String(parseInt(m, 10))];
+            topData = mData || {
+                plays: 0,
+                hours: '0',
+                tracks: [],
+                artists: [],
+                albums: []
+            };
         }
 
         const appliesDelta = (currentSource === 'unified' && lastFmRecentDelta.length > 0 &&
