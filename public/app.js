@@ -2102,6 +2102,328 @@ function updateMonthDropdown(year) {
     });
 }
 
+function navigateToCatalog(type = 'tracks', targetRange = 'current-month') {
+    switchAppView('catalog');
+    currentType = type || 'tracks';
+
+    // Sincronizar segmented tabs de categorías (Canciones, Artistas, Álbumes, Recientes)
+    document.querySelectorAll('#content-type-tabs .segmented-tab').forEach(b => {
+        if (b.getAttribute('data-type') === currentType) {
+            b.classList.add('active');
+        } else {
+            b.classList.remove('active');
+        }
+    });
+
+    if (targetRange === 'current-month') {
+        const now = new Date();
+        const curY = now.getFullYear();
+        const curM = String(now.getMonth() + 1);
+        if (selectTimePeriod) {
+            selectTimePeriod.value = `year-${curY}`;
+        }
+        updateMonthDropdown(curY);
+        if (selectMonth) {
+            selectMonth.disabled = false;
+            selectMonth.value = curM;
+        }
+        currentRange = `month-${curY}-${curM}`;
+        updateQuickFilterPills('current-month');
+    } else if (targetRange === 'overall') {
+        handleQuickPeriodClick('overall');
+        return;
+    } else if (targetRange) {
+        handleQuickPeriodClick(targetRange);
+        return;
+    }
+
+    if (customDatePickerContainer) customDatePickerContainer.classList.add('d-none');
+    updateStatStrip();
+    loadStats();
+
+    // Scroll suave hacia la sección de tops y catálogo
+    const catSection = document.getElementById('section-catalog');
+    if (catSection) {
+        catSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+window.navigateToCatalog = navigateToCatalog;
+
+function handleQuickPeriodClick(periodKey) {
+    updateQuickFilterPills(periodKey);
+
+    if (periodKey === 'current-month') {
+        const now = new Date();
+        const curY = now.getFullYear();
+        const curM = String(now.getMonth() + 1);
+        if (selectTimePeriod) {
+            selectTimePeriod.value = `year-${curY}`;
+        }
+        updateMonthDropdown(curY);
+        if (selectMonth) {
+            selectMonth.disabled = false;
+            selectMonth.value = curM;
+        }
+        currentRange = `month-${curY}-${curM}`;
+    } else if (periodKey === 'this-week') {
+        if (selectTimePeriod) selectTimePeriod.value = 'this-week';
+        if (selectMonth) {
+            selectMonth.disabled = true;
+            selectMonth.innerHTML = '<option value="all" selected>Esta semana</option>';
+        }
+        currentRange = 'this-week';
+    } else if (periodKey === 'last-month') {
+        if (selectTimePeriod) selectTimePeriod.value = 'last-month';
+        if (selectMonth) {
+            selectMonth.disabled = true;
+            selectMonth.innerHTML = '<option value="all" selected>Mes pasado</option>';
+        }
+        currentRange = 'last-month';
+    } else if (periodKey === 'last-6-months') {
+        if (selectTimePeriod) selectTimePeriod.value = 'last-6-months';
+        if (selectMonth) {
+            selectMonth.disabled = true;
+            selectMonth.innerHTML = '<option value="all" selected>Hace 6 meses</option>';
+        }
+        currentRange = 'last-6-months';
+    } else if (periodKey === 'year-2026') {
+        if (selectTimePeriod) selectTimePeriod.value = 'year-2026';
+        updateMonthDropdown(2026);
+        if (selectMonth) {
+            selectMonth.disabled = false;
+            selectMonth.value = 'all';
+        }
+        currentRange = 'year-2026';
+    } else if (periodKey === 'overall') {
+        if (selectTimePeriod) selectTimePeriod.value = 'overall';
+        if (selectMonth) {
+            selectMonth.disabled = true;
+            selectMonth.innerHTML = '<option value="all" selected>Todo el tiempo</option>';
+        }
+        currentRange = 'overall';
+    } else {
+        if (selectTimePeriod) selectTimePeriod.value = periodKey;
+        handleTimePeriodChange(periodKey);
+        return;
+    }
+
+    if (customDatePickerContainer) customDatePickerContainer.classList.add('d-none');
+    updateStatStrip();
+    loadStats();
+}
+window.handleQuickPeriodClick = handleQuickPeriodClick;
+
+function updateQuickFilterPills(range) {
+    const pills = document.querySelectorAll('.lastfm-pill-btn[data-period]');
+    if (!pills || pills.length === 0) return;
+
+    const now = new Date();
+    const curY = String(now.getFullYear());
+    const curM = String(now.getMonth() + 1);
+    const curMonthKey = `month-${curY}-${curM}`;
+
+    let matchKey = range;
+    if (range === 'current-month' || range === curMonthKey) {
+        matchKey = 'current-month';
+    } else if (range === 'this-week' || range === '7day') {
+        matchKey = 'this-week';
+    } else if (range === 'last-month' || range === '1month') {
+        matchKey = 'last-month';
+    } else if (range === 'last-6-months' || range === '6month') {
+        matchKey = 'last-6-months';
+    } else if (range === 'year-2026') {
+        matchKey = 'year-2026';
+    } else if (range === 'overall') {
+        matchKey = 'overall';
+    }
+
+    pills.forEach(p => {
+        if (p.getAttribute('data-period') === matchKey) {
+            p.classList.add('active');
+        } else {
+            p.classList.remove('active');
+        }
+    });
+}
+window.updateQuickFilterPills = updateQuickFilterPills;
+
+function toggleAdvancedFilterToolbar() {
+    const toolbar = document.querySelector('.filter-toolbar');
+    const toggleBtn = document.getElementById('btn-toggle-advanced-filters');
+    if (!toolbar) return;
+    const isHidden = toolbar.classList.contains('d-none');
+    if (isHidden) {
+        toolbar.classList.remove('d-none');
+        if (toggleBtn) {
+            toggleBtn.innerHTML = '<i class="fa-solid fa-sliders me-1 text-primary"></i>Filtros Avanzados <i class="fa-solid fa-chevron-up ms-1" style="font-size: 0.65rem;"></i>';
+            toggleBtn.classList.add('active');
+        }
+    } else {
+        toolbar.classList.add('d-none');
+        if (toggleBtn) {
+            toggleBtn.innerHTML = '<i class="fa-solid fa-sliders me-1"></i>Filtros Avanzados <i class="fa-solid fa-chevron-down ms-1" style="font-size: 0.65rem;"></i>';
+            toggleBtn.classList.remove('active');
+        }
+    }
+}
+window.toggleAdvancedFilterToolbar = toggleAdvancedFilterToolbar;
+
+function renderCatalogActivityChart(periodRange, db) {
+    const container = document.getElementById('catalog-activity-chart-container');
+    if (!container) return;
+    if (!db || !db.yearlyTops) {
+        container.classList.add('d-none');
+        return;
+    }
+
+    const now = new Date();
+    const curYear = now.getFullYear();
+    const curMonth = now.getMonth() + 1;
+    let dataPoints = [];
+    let periodTitle = 'Histórico';
+
+    if (periodRange === 'overall') {
+        periodTitle = 'Histórico Total (2019 - 2026)';
+        const years = ['2019', '2020', '2021', '2022', '2023', '2024', '2025', '2026'];
+        dataPoints = years.map(yr => {
+            let p = db.yearlyTops[yr]?.plays || 0;
+            if (yr === '2026' && Array.isArray(lastFmRecentDelta)) {
+                p += lastFmRecentDelta.filter(dt => {
+                    if (!dt.date?.uts) return false;
+                    return new Date(parseInt(dt.date.uts, 10) * 1000).getFullYear() === 2026;
+                }).length;
+            }
+            return {
+                label: "'" + yr.slice(2),
+                fullLabel: yr,
+                plays: p,
+                isActive: yr === String(curYear)
+            };
+        });
+    } else if (periodRange.startsWith('year-')) {
+        const targetY = periodRange.replace('year-', '');
+        periodTitle = `Año ${targetY}`;
+        const mNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        const yData = db.yearlyTops[targetY]?.months || {};
+        dataPoints = mNames.map((mn, idx) => {
+            const mNum = idx + 1;
+            let p = yData[String(mNum)]?.plays || 0;
+            if (String(targetY) === String(curYear) && Array.isArray(lastFmRecentDelta)) {
+                p += lastFmRecentDelta.filter(dt => {
+                    if (!dt.date?.uts) return false;
+                    const d = new Date(parseInt(dt.date.uts, 10) * 1000);
+                    return d.getFullYear() === curYear && (d.getMonth() + 1) === mNum;
+                }).length;
+            }
+            return {
+                label: mn,
+                fullLabel: `${mn} ${targetY}`,
+                plays: p,
+                isActive: (String(targetY) === String(curYear) && mNum === curMonth)
+            };
+        });
+    } else if (periodRange === 'current-month' || periodRange.startsWith('month-')) {
+        let targetY = curYear;
+        let targetM = curMonth;
+        if (periodRange.startsWith('month-')) {
+            const parts = periodRange.split('-');
+            targetY = parseInt(parts[1], 10) || curYear;
+            targetM = parseInt(parts[2], 10) || curMonth;
+        }
+        const mNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        periodTitle = `${mNames[targetM - 1]} ${targetY}`;
+
+        const daysInMonth = new Date(targetY, targetM, 0).getDate();
+        const dailyCounts = {};
+        for (let d = 1; d <= daysInMonth; d++) dailyCounts[d] = 0;
+
+        if (Array.isArray(lastFmRecentDelta)) {
+            lastFmRecentDelta.forEach(dt => {
+                if (!dt.date?.uts) return;
+                const d = new Date(parseInt(dt.date.uts, 10) * 1000);
+                if (d.getFullYear() === targetY && (d.getMonth() + 1) === targetM) {
+                    const day = d.getDate();
+                    dailyCounts[day] = (dailyCounts[day] || 0) + 1;
+                }
+            });
+        }
+
+        const baseMonthPlays = db.yearlyTops[String(targetY)]?.months?.[String(targetM)]?.plays || 0;
+        const recordedLivePlays = Object.values(dailyCounts).reduce((a, b) => a + b, 0);
+
+        dataPoints = Array.from({ length: daysInMonth }, (_, i) => {
+            const dayNum = i + 1;
+            let p = dailyCounts[dayNum] || 0;
+            if (recordedLivePlays === 0 && baseMonthPlays > 0) {
+                p = Math.round(baseMonthPlays / daysInMonth);
+            }
+            return {
+                label: (dayNum === 1 || dayNum % 5 === 0 || dayNum === daysInMonth) ? String(dayNum) : '',
+                fullLabel: `${dayNum} ${mNames[targetM - 1]}`,
+                plays: p,
+                isActive: (targetY === curYear && targetM === curMonth && dayNum === now.getDate())
+            };
+        });
+    } else if (periodRange === 'this-week') {
+        periodTitle = 'Esta Semana';
+        const dNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+        const weekMap = [0, 0, 0, 0, 0, 0, 0];
+        const { fromD, toD } = getThisWeekDateRange();
+
+        if (Array.isArray(lastFmRecentDelta)) {
+            lastFmRecentDelta.forEach(dt => {
+                if (!dt.date?.uts) return;
+                const d = new Date(parseInt(dt.date.uts, 10) * 1000);
+                const iso = d.toISOString().slice(0, 10);
+                if (iso >= fromD && iso <= toD) {
+                    const dayIdx = (d.getDay() + 6) % 7;
+                    weekMap[dayIdx] = (weekMap[dayIdx] || 0) + 1;
+                }
+            });
+        }
+
+        const todayIdx = (now.getDay() + 6) % 7;
+        dataPoints = dNames.map((name, idx) => ({
+            label: name,
+            fullLabel: name,
+            plays: weekMap[idx],
+            isActive: idx === todayIdx
+        }));
+    } else {
+        container.classList.add('d-none');
+        return;
+    }
+
+    const totalPlays = dataPoints.reduce((sum, pt) => sum + pt.plays, 0);
+    const maxPlays = Math.max(1, ...dataPoints.map(pt => pt.plays));
+
+    container.classList.remove('d-none');
+    container.innerHTML = `
+        <div class="lastfm-chart-card mb-2">
+            <div class="d-flex align-items-center justify-content-between mb-1.5">
+                <span class="fw-semibold text-secondary" style="font-size: 0.74rem;">
+                    <i class="fa-solid fa-chart-column me-1 text-danger"></i>Actividad de Escucha · <span class="text-white">${periodTitle}</span>
+                </span>
+                <span class="badge rounded-pill bg-dark border border-white border-opacity-15 text-white" style="font-size: 0.70rem;">
+                    <i class="fa-solid fa-headphones me-1 text-primary"></i>${formatNumber(totalPlays)} streams
+                </span>
+            </div>
+            <div class="lastfm-bars-wrap">
+                ${dataPoints.map(pt => {
+                    const hPct = Math.max(5, Math.round((pt.plays / maxPlays) * 100));
+                    return `
+                        <div class="lastfm-bar-col" title="${pt.fullLabel}: ${formatNumber(pt.plays)} streams">
+                            <div class="lastfm-bar-fill ${pt.isActive ? 'is-active' : ''}" style="height: ${hPct}%;"></div>
+                            <span class="lastfm-bar-label">${pt.label}</span>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `;
+}
+window.renderCatalogActivityChart = renderCatalogActivityChart;
+
 function updateStatStrip() {
     if (!statStrip) return;
     statStrip.classList.remove('d-none');
@@ -3219,6 +3541,8 @@ async function loadStats(silent = false) {
         }
 
         updateStatStrip();
+        updateQuickFilterPills(currentRange);
+        renderCatalogActivityChart(currentRange, activeDb);
         checkArtistMilestones(activeDb);
         initEngagement(activeDb);
 
@@ -4011,15 +4335,16 @@ function getImageFromItem(item) {
     return getInitialImage(item, item.name, artistName, itemType);
 }
 
-function buildPodiumCardHtml(type, index, name, subtitle, playcount, imgId, initialImg, isCircle = false) {
+function buildPodiumCardHtml(type, index, name, subtitle, playcount, imgId, initialImg, isCircle = false, pct = 100) {
     const rankNum = index + 1;
     const medalIcon = rankNum === 1 ? '<i class="fa-solid fa-crown text-warning"></i> #1' : (rankNum === 2 ? '<i class="fa-solid fa-medal text-info"></i> #2' : '<i class="fa-solid fa-award" style="color:#c084fc;"></i> #3');
     const badgeColor = rankNum === 1 ? 'rgba(251, 191, 36, 0.2)' : (rankNum === 2 ? 'rgba(56, 189, 248, 0.2)' : 'rgba(192, 132, 252, 0.2)');
     const textColor = rankNum === 1 ? '#fbbf24' : (rankNum === 2 ? '#38bdf8' : '#c084fc');
     return `
-        <div class="podium-card podium-${rankNum}" onclick="showItemStats('${type}', '${escapeJsStr(name)}', '${escapeJsStr(type === 'artist' ? '' : subtitle)}')">
-            <img id="${imgId}" src="${initialImg}" class="podium-cover ${isCircle ? 'rounded-circle' : ''}" alt="Cover" onerror="safeImgError(this)">
-            <div class="overflow-hidden flex-grow-1" style="min-width: 0;">
+        <div class="podium-card podium-${rankNum} position-relative overflow-hidden" onclick="showItemStats('${type}', '${escapeJsStr(name)}', '${escapeJsStr(type === 'artist' ? '' : subtitle)}')">
+            <div class="chartlist-row-bar" style="width: ${pct}%; opacity: 0.35;"></div>
+            <img id="${imgId}" src="${initialImg}" class="podium-cover ${isCircle ? 'rounded-circle' : ''}" alt="Cover" onerror="safeImgError(this)" style="position: relative; z-index: 1;">
+            <div class="overflow-hidden flex-grow-1" style="min-width: 0; position: relative; z-index: 1;">
                 <div class="d-flex align-items-center justify-content-between gap-1 mb-1">
                     <span class="badge rounded-pill fw-bold" style="background: ${badgeColor}; color: ${textColor}; font-size: 0.65rem;">${medalIcon}</span>
                     <span class="badge-scrobble" style="font-size: 0.66rem;"><i class="fa-solid fa-headphones"></i>${playcount}</span>
@@ -4035,6 +4360,7 @@ function renderTracks(tracks) {
     statsList.innerHTML = '';
     const isSearching = !!(filterSearchInput && filterSearchInput.value.trim());
     const showPodium = !isSearching && tracks.length >= 3;
+    const maxPlays = Math.max(1, Number(tracks[0]?.playcount) || 1);
 
     if (showPodium) {
         const podiumRow = document.createElement('div');
@@ -4042,9 +4368,11 @@ function renderTracks(tracks) {
         podiumRow.innerHTML = tracks.slice(0, 3).map((track, idx) => {
             const artistName = track.artist ? (track.artist.name || track.artist['#text'] || track.artist) : '';
             const playcount = formatNumber(track.playcount);
+            const rawPlays = Number(track.playcount) || 0;
+            const pct = Math.min(100, Math.max(3, Math.round((rawPlays / maxPlays) * 100)));
             const imgId = `art-track-${idx}`;
             const initialImg = getInitialImage(track, track.name, artistName, 'track');
-            return buildPodiumCardHtml('track', idx, track.name, artistName, playcount, imgId, initialImg, false);
+            return buildPodiumCardHtml('track', idx, track.name, artistName, playcount, imgId, initialImg, false, pct);
         }).join('');
         statsList.appendChild(podiumRow);
 
@@ -4061,19 +4389,25 @@ function renderTracks(tracks) {
         item.className = 'card-uniform';
         const artistName = track.artist ? (track.artist.name || track.artist['#text'] || track.artist) : '';
         const playcount = formatNumber(track.playcount);
+        const rawPlays = Number(track.playcount) || 0;
+        const pct = Math.min(100, Math.max(3, Math.round((rawPlays / maxPlays) * 100)));
         const imgId = `art-track-${index}`;
         const initialImg = getInitialImage(track, track.name, artistName, 'track');
         const spotifySearch = `https://open.spotify.com/search/${encodeURIComponent(track.name + ' ' + artistName)}`;
 
         item.innerHTML = `
-            <span class="card-rank ${index === 0 ? 'top-1' : (index === 1 ? 'top-2' : (index === 2 ? 'top-3' : ''))}">#${String(index + 1).padStart(2, '0')}</span>
-            <img id="${imgId}" src="${initialImg}" class="img-thumb" alt="Cover" onerror="safeImgError(this)">
-            <div class="overflow-hidden flex-grow-1" style="min-width: 0;">
+            <div class="chartlist-row-bar" style="width: ${pct}%;"></div>
+            <span class="card-rank ${index === 0 ? 'top-1' : (index === 1 ? 'top-2' : (index === 2 ? 'top-3' : ''))}" style="position: relative; z-index: 1;">#${String(index + 1).padStart(2, '0')}</span>
+            <img id="${imgId}" src="${initialImg}" class="img-thumb" alt="Cover" onerror="safeImgError(this)" style="position: relative; z-index: 1;">
+            <div class="overflow-hidden flex-grow-1" style="min-width: 0; position: relative; z-index: 1;">
                 <div class="fw-bold text-truncate text-white" style="font-size: 0.84rem;" title="${escapeHtml(track.name)}">${escapeHtml(track.name)}</div>
                 <small class="text-secondary text-truncate d-block" style="font-size: 0.72rem;">${escapeHtml(artistName)}</small>
             </div>
-            <span class="badge-scrobble"><i class="fa-solid fa-headphones"></i>${playcount}</span>
-            <a href="${spotifySearch}" target="_blank" rel="noopener noreferrer" class="btn-card-action" title="Escuchar en Spotify">
+            <div class="chartlist-bar-meter align-self-center mx-2" title="${pct}% del #1" style="position: relative; z-index: 1;">
+                <div class="chartlist-bar-fill" style="width: ${pct}%;"></div>
+            </div>
+            <span class="badge-scrobble" style="position: relative; z-index: 1;"><i class="fa-solid fa-headphones"></i>${playcount}</span>
+            <a href="${spotifySearch}" target="_blank" rel="noopener noreferrer" class="btn-card-action" style="position: relative; z-index: 1;" title="Escuchar en Spotify">
                 <i class="fa-brands fa-spotify" style="color: #1ed760; font-size: 0.85rem;"></i>
             </a>
         `;
@@ -4096,6 +4430,7 @@ function renderArtists(artists) {
     statsList.innerHTML = '';
     const isSearching = !!(filterSearchInput && filterSearchInput.value.trim());
     const showPodium = !isSearching && artists.length >= 3;
+    const maxPlays = Math.max(1, Number(artists[0]?.playcount || artists[0]?.plays) || 1);
 
     if (showPodium) {
         const podiumRow = document.createElement('div');
@@ -4103,9 +4438,11 @@ function renderArtists(artists) {
         podiumRow.innerHTML = artists.slice(0, 3).map((artist, idx) => {
             const artistName = artist.name || '';
             const playcount = formatNumber(artist.playcount || artist.plays);
+            const rawPlays = Number(artist.playcount || artist.plays) || 0;
+            const pct = Math.min(100, Math.max(3, Math.round((rawPlays / maxPlays) * 100)));
             const imgId = `art-artist-${idx}`;
             const initialImg = getInitialImage(artist, artistName, '', 'artist');
-            return buildPodiumCardHtml('artist', idx, artistName, 'Artista Top', playcount, imgId, initialImg, true);
+            return buildPodiumCardHtml('artist', idx, artistName, 'Artista Top', playcount, imgId, initialImg, true, pct);
         }).join('');
         statsList.appendChild(podiumRow);
 
@@ -4122,19 +4459,25 @@ function renderArtists(artists) {
         item.className = 'card-uniform';
         const artistName = artist.name || '';
         const playcount = formatNumber(artist.playcount || artist.plays);
+        const rawPlays = Number(artist.playcount || artist.plays) || 0;
+        const pct = Math.min(100, Math.max(3, Math.round((rawPlays / maxPlays) * 100)));
         const imgId = `art-artist-${index}`;
         const initialImg = getInitialImage(artist, artistName, '', 'artist');
         const spotifySearch = `https://open.spotify.com/search/${encodeURIComponent(artistName)}`;
 
         item.innerHTML = `
-            <span class="card-rank ${index === 0 ? 'top-1' : (index === 1 ? 'top-2' : (index === 2 ? 'top-3' : ''))}">#${String(index + 1).padStart(2, '0')}</span>
-            <img id="${imgId}" src="${initialImg}" class="img-thumb rounded-circle" alt="Artist" onerror="safeImgError(this)">
-            <div class="overflow-hidden flex-grow-1" style="min-width: 0;">
+            <div class="chartlist-row-bar" style="width: ${pct}%;"></div>
+            <span class="card-rank ${index === 0 ? 'top-1' : (index === 1 ? 'top-2' : (index === 2 ? 'top-3' : ''))}" style="position: relative; z-index: 1;">#${String(index + 1).padStart(2, '0')}</span>
+            <img id="${imgId}" src="${initialImg}" class="img-thumb rounded-circle" alt="Artist" onerror="safeImgError(this)" style="position: relative; z-index: 1;">
+            <div class="overflow-hidden flex-grow-1" style="min-width: 0; position: relative; z-index: 1;">
                 <div class="fw-bold text-truncate text-white" style="font-size: 0.84rem;" title="${escapeHtml(artistName)}">${escapeHtml(artistName)}</div>
                 <small class="text-secondary text-truncate d-block" style="font-size: 0.72rem;">Artista</small>
             </div>
-            <span class="badge-scrobble"><i class="fa-solid fa-headphones"></i>${playcount}</span>
-            <a href="${spotifySearch}" target="_blank" rel="noopener noreferrer" class="btn-card-action" title="Ver en Spotify">
+            <div class="chartlist-bar-meter align-self-center mx-2" title="${pct}% del #1" style="position: relative; z-index: 1;">
+                <div class="chartlist-bar-fill" style="width: ${pct}%;"></div>
+            </div>
+            <span class="badge-scrobble" style="position: relative; z-index: 1;"><i class="fa-solid fa-headphones"></i>${playcount}</span>
+            <a href="${spotifySearch}" target="_blank" rel="noopener noreferrer" class="btn-card-action" style="position: relative; z-index: 1;" title="Ver en Spotify">
                 <i class="fa-brands fa-spotify" style="color: #1ed760; font-size: 0.85rem;"></i>
             </a>
         `;
@@ -4157,6 +4500,7 @@ function renderAlbums(albums) {
     statsList.innerHTML = '';
     const isSearching = !!(filterSearchInput && filterSearchInput.value.trim());
     const showPodium = !isSearching && albums.length >= 3;
+    const maxPlays = Math.max(1, Number(albums[0]?.playcount || albums[0]?.plays) || 1);
 
     if (showPodium) {
         const podiumRow = document.createElement('div');
@@ -4164,9 +4508,11 @@ function renderAlbums(albums) {
         podiumRow.innerHTML = albums.slice(0, 3).map((album, idx) => {
             const artistName = album.artist ? (album.artist.name || album.artist['#text'] || album.artist) : '';
             const playcount = formatNumber(album.playcount || album.plays);
+            const rawPlays = Number(album.playcount || album.plays) || 0;
+            const pct = Math.min(100, Math.max(3, Math.round((rawPlays / maxPlays) * 100)));
             const imgId = `art-album-${idx}`;
             const initialImg = getInitialImage(album, album.name, artistName, 'album');
-            return buildPodiumCardHtml('album', idx, album.name, artistName, playcount, imgId, initialImg, false);
+            return buildPodiumCardHtml('album', idx, album.name, artistName, playcount, imgId, initialImg, false, pct);
         }).join('');
         statsList.appendChild(podiumRow);
 
@@ -4183,19 +4529,25 @@ function renderAlbums(albums) {
         item.className = 'card-uniform';
         const artistName = album.artist ? (album.artist.name || album.artist['#text'] || album.artist) : '';
         const playcount = formatNumber(album.playcount || album.plays);
+        const rawPlays = Number(album.playcount || album.plays) || 0;
+        const pct = Math.min(100, Math.max(3, Math.round((rawPlays / maxPlays) * 100)));
         const imgId = `art-album-${index}`;
         const initialImg = getInitialImage(album, album.name, artistName, 'album');
         const spotifySearch = `https://open.spotify.com/search/${encodeURIComponent(album.name + ' ' + artistName)}`;
 
         item.innerHTML = `
-            <span class="card-rank ${index === 0 ? 'top-1' : (index === 1 ? 'top-2' : (index === 2 ? 'top-3' : ''))}">#${String(index + 1).padStart(2, '0')}</span>
-            <img id="${imgId}" src="${initialImg}" class="img-thumb" alt="Album" onerror="safeImgError(this)">
-            <div class="overflow-hidden flex-grow-1" style="min-width: 0;">
+            <div class="chartlist-row-bar" style="width: ${pct}%;"></div>
+            <span class="card-rank ${index === 0 ? 'top-1' : (index === 1 ? 'top-2' : (index === 2 ? 'top-3' : ''))}" style="position: relative; z-index: 1;">#${String(index + 1).padStart(2, '0')}</span>
+            <img id="${imgId}" src="${initialImg}" class="img-thumb" alt="Album" onerror="safeImgError(this)" style="position: relative; z-index: 1;">
+            <div class="overflow-hidden flex-grow-1" style="min-width: 0; position: relative; z-index: 1;">
                 <div class="fw-bold text-truncate text-white" style="font-size: 0.84rem;" title="${escapeHtml(album.name)}">${escapeHtml(album.name)}</div>
                 <small class="text-secondary text-truncate d-block" style="font-size: 0.72rem;">${escapeHtml(artistName)}</small>
             </div>
-            <span class="badge-scrobble"><i class="fa-solid fa-headphones"></i>${playcount}</span>
-            <a href="${spotifySearch}" target="_blank" rel="noopener noreferrer" class="btn-card-action" title="Escuchar en Spotify">
+            <div class="chartlist-bar-meter align-self-center mx-2" title="${pct}% del #1" style="position: relative; z-index: 1;">
+                <div class="chartlist-bar-fill" style="width: ${pct}%;"></div>
+            </div>
+            <span class="badge-scrobble" style="position: relative; z-index: 1;"><i class="fa-solid fa-headphones"></i>${playcount}</span>
+            <a href="${spotifySearch}" target="_blank" rel="noopener noreferrer" class="btn-card-action" style="position: relative; z-index: 1;" title="Escuchar en Spotify">
                 <i class="fa-brands fa-spotify" style="color: #1ed760; font-size: 0.85rem;"></i>
             </a>
         `;
@@ -8505,13 +8857,9 @@ async function renderHomeHighlights(db) {
         const monthNamesEs = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
         const currentMonthName = monthNamesEs[now.getMonth()];
 
-        // OJO: Solo canciones del mes EN CURSO. Al iniciar un nuevo mes, comienza en 0 y se va llenando día a día.
-        // NUNCA hacer fallback a meses anteriores (ej: octubre), ni a años ni a overall.
+        // OJO: Solo canciones del mes EN CURSO para Bento 1 ("#1 EN ROTACIÓN")
         const baseTracks = (db.yearlyTops?.[curY]?.months?.[curM]?.tracks) || [];
-
         const tracksMap = new Map();
-
-        // 1. Cargar tracks del mes actual de la base de datos si ya existen
         baseTracks.forEach(t => {
             const artistName = t.artist ? (t.artist.name || t.artist['#text'] || t.artist) : '';
             const k = `${normalizeKey(t.name)}:::${normalizeKey(artistName)}`;
@@ -8524,7 +8872,20 @@ async function renderHomeHighlights(db) {
             });
         });
 
-        // 2. Sumar scrobbles en vivo de Last.fm que pertenezcan ESTRICTAMENTE a este mes actual
+        // OJO: Artistas del mes EN CURSO para Bento 4 ("TOP 5 ARTISTAS EN ROTACIÓN")
+        const baseArtists = (db.yearlyTops?.[curY]?.months?.[curM]?.artists) || [];
+        const artistsMap = new Map();
+        baseArtists.forEach(a => {
+            const aName = a.name || a['#text'] || '';
+            if (!aName) return;
+            const k = normalizeKey(aName);
+            artistsMap.set(k, {
+                name: aName,
+                plays: a.plays || a.playcount || 0
+            });
+        });
+
+        // Sumar scrobbles en vivo de Last.fm que pertenezcan ESTRICTAMENTE a este mes actual
         if (Array.isArray(lastFmRecentDelta)) {
             lastFmRecentDelta.forEach(dt => {
                 if (!dt.date?.uts) return;
@@ -8534,29 +8895,44 @@ async function renderHomeHighlights(db) {
                 const dtName = dt.name;
                 const dtArtist = dt.artist ? (dt.artist['#text'] || dt.artist.name || '') : '';
                 const dtAlbum = dt.album ? (dt.album['#text'] || dt.album.name || '') : '';
-                if (!dtName) return;
 
-                const k = `${normalizeKey(dtName)}:::${normalizeKey(dtArtist)}`;
-                const existing = tracksMap.get(k);
-                if (existing) {
-                    existing.plays += 1;
-                } else {
-                    tracksMap.set(k, {
-                        name: dtName,
-                        artist: dtArtist,
-                        album: dtAlbum,
-                        plays: 1,
-                        uri: null
-                    });
+                if (dtName) {
+                    const k = `${normalizeKey(dtName)}:::${normalizeKey(dtArtist)}`;
+                    const existing = tracksMap.get(k);
+                    if (existing) {
+                        existing.plays += 1;
+                    } else {
+                        tracksMap.set(k, {
+                            name: dtName,
+                            artist: dtArtist,
+                            album: dtAlbum,
+                            plays: 1,
+                            uri: null
+                        });
+                    }
+                }
+
+                if (dtArtist) {
+                    const kArt = normalizeKey(dtArtist);
+                    const existingArt = artistsMap.get(kArt);
+                    if (existingArt) {
+                        existingArt.plays += 1;
+                    } else {
+                        artistsMap.set(kArt, {
+                            name: dtArtist,
+                            plays: 1
+                        });
+                    }
                 }
             });
         }
 
         const sorted = Array.from(tracksMap.values()).filter(t => t.plays > 0).sort((a, b) => b.plays - a.plays);
+        const sortedArtists = Array.from(artistsMap.values()).filter(a => a.plays > 0).sort((a, b) => b.plays - a.plays);
 
-        // Si no hay reproducciones en el mes actual (mes recién iniciado)
-        if (sorted.length === 0) {
-            if (spotlightEl) {
+        // 1. Destacado #1 del mes (Canción en rotación)
+        if (spotlightEl) {
+            if (sorted.length === 0) {
                 spotlightEl.innerHTML = `
                     <div class="d-flex align-items-center gap-3 w-100 py-1">
                         <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 52px; height: 52px; background: rgba(168, 85, 247, 0.12); border: 1px dashed rgba(168, 85, 247, 0.35);">
@@ -8568,81 +8944,78 @@ async function renderHomeHighlights(db) {
                         </div>
                     </div>
                 `;
+            } else {
+                const top1 = sorted[0];
+                const top1Key = `track::${normalizeKey(top1.name)}::${normalizeKey(top1.artist)}`;
+                const top1Cover = artCache[top1Key] || FALLBACK_ART_SVG;
+
+                spotlightEl.innerHTML = `
+                    <div class="position-relative flex-shrink-0">
+                        <img id="home-spotlight-img" src="${top1Cover}" class="rounded-4 shadow-lg border border-white border-opacity-15" style="width: 84px; height: 84px; object-fit: cover;" alt="Cover" onerror="safeImgError(this)">
+                    </div>
+                    <div class="overflow-hidden flex-grow-1" style="min-width: 0;">
+                        <div class="fw-bold text-white text-truncate" style="font-size: 1.18rem; letter-spacing: -0.02em;" title="${escapeHtml(top1.name)}">${escapeHtml(top1.name)}</div>
+                        <div class="text-secondary text-truncate mb-2" style="font-size: 0.85rem;">${escapeHtml(top1.artist)}</div>
+                        <div class="d-flex align-items-center flex-wrap gap-2">
+                            <span class="badge rounded-pill px-2.5 py-1" style="background: rgba(191,90,242,0.18); color: #e9d5ff; font-size: 0.72rem; border: 1px solid rgba(191,90,242,0.35);">
+                                <i class="fa-solid fa-headphones me-1"></i>${formatNumber(top1.plays)} ${top1.plays === 1 ? 'stream' : 'streams'} (${currentMonthName})
+                            </span>
+                            <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-2.5 py-0.5" style="font-size: 0.70rem; border-color: rgba(255,255,255,0.18);" onclick="showItemStats('track', '${escapeJsStr(top1.name)}', '${escapeJsStr(top1.artist)}')">
+                                <i class="fa-solid fa-chart-simple me-1 text-info"></i>Detalles
+                            </button>
+                            ${isAppOwner() ? `
+                            <button type="button" class="btn btn-sm btn-outline-info rounded-pill px-2.5 py-0.5" style="font-size: 0.70rem;" onclick="openStreamAdjustmentModal('track', '${escapeJsStr(top1.name)}', '${escapeJsStr(top1.artist)}')">
+                                <i class="fa-solid fa-sliders me-1"></i>Ajustar
+                            </button>` : ''}
+                        </div>
+                    </div>
+                `;
+
+                if (!artCache[top1Key]) {
+                    resolveSpotifyArtwork(top1.name, top1.artist, 'track', 'home-spotlight-img');
+                }
             }
-            if (miniListEl) {
+        }
+
+        // 2. Mini Top 5 Artistas en rotación del mes (Bento 4)
+        if (miniListEl) {
+            if (sortedArtists.length === 0) {
                 miniListEl.innerHTML = `
                     <div class="text-center py-3 text-secondary" style="font-size: 0.74rem;">
-                        <i class="fa-regular fa-clock me-1 text-muted"></i>Aún sin temas en rotación para ${currentMonthName}. Se irá llenando a medida que avances en el mes.
+                        <i class="fa-regular fa-clock me-1 text-muted"></i>Aún sin artistas en rotación para ${currentMonthName}. Se irá llenando a medida que avances en el mes.
                     </div>
                 `;
-            }
-            return;
-        }
+            } else {
+                const top5Artists = sortedArtists.slice(0, 5);
+                miniListEl.innerHTML = top5Artists.map((a, idx) => {
+                    const aKey = `artist::${normalizeKey(a.name)}::`;
+                    const aCover = artCache[aKey] || FALLBACK_ART_SVG;
+                    const imgElementId = `home-mini-artist-${idx}`;
 
-        // 1. Destacado #1 del mes
-        const top1 = sorted[0];
-        const top1Key = `track::${normalizeKey(top1.name)}::${normalizeKey(top1.artist)}`;
-        const top1Cover = artCache[top1Key] || FALLBACK_ART_SVG;
-
-        if (spotlightEl) {
-            spotlightEl.innerHTML = `
-                <div class="position-relative flex-shrink-0">
-                    <img id="home-spotlight-img" src="${top1Cover}" class="rounded-4 shadow-lg border border-white border-opacity-15" style="width: 84px; height: 84px; object-fit: cover;" alt="Cover" onerror="safeImgError(this)">
-                </div>
-                <div class="overflow-hidden flex-grow-1" style="min-width: 0;">
-                    <div class="fw-bold text-white text-truncate" style="font-size: 1.18rem; letter-spacing: -0.02em;" title="${escapeHtml(top1.name)}">${escapeHtml(top1.name)}</div>
-                    <div class="text-secondary text-truncate mb-2" style="font-size: 0.85rem;">${escapeHtml(top1.artist)}</div>
-                    <div class="d-flex align-items-center flex-wrap gap-2">
-                        <span class="badge rounded-pill px-2.5 py-1" style="background: rgba(191,90,242,0.18); color: #e9d5ff; font-size: 0.72rem; border: 1px solid rgba(191,90,242,0.35);">
-                            <i class="fa-solid fa-headphones me-1"></i>${formatNumber(top1.plays)} ${top1.plays === 1 ? 'stream' : 'streams'} (${currentMonthName})
-                        </span>
-                        <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-2.5 py-0.5" style="font-size: 0.70rem; border-color: rgba(255,255,255,0.18);" onclick="showItemStats('track', '${escapeJsStr(top1.name)}', '${escapeJsStr(top1.artist)}')">
-                            <i class="fa-solid fa-chart-simple me-1 text-info"></i>Detalles
-                        </button>
-                        ${isAppOwner() ? `
-                        <button type="button" class="btn btn-sm btn-outline-info rounded-pill px-2.5 py-0.5" style="font-size: 0.70rem;" onclick="openStreamAdjustmentModal('track', '${escapeJsStr(top1.name)}', '${escapeJsStr(top1.artist)}')">
-                            <i class="fa-solid fa-sliders me-1"></i>Ajustar
-                        </button>` : ''}
-                    </div>
-                </div>
-            `;
-
-            if (!artCache[top1Key]) {
-                resolveSpotifyArtwork(top1.name, top1.artist, 'track', 'home-spotlight-img');
-            }
-        }
-
-        // 2. Mini Top 5 del mes
-        if (miniListEl) {
-            const top5 = sorted.slice(0, 5);
-            miniListEl.innerHTML = top5.map((t, idx) => {
-                const tKey = `track::${normalizeKey(t.name)}::${normalizeKey(t.artist)}`;
-                const tCover = artCache[tKey] || FALLBACK_ART_SVG;
-                const imgElementId = `home-mini-track-${idx}`;
-
-                return `
-                    <div class="d-flex align-items-center justify-content-between p-2 rounded-2" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); cursor: pointer;" onclick="showItemStats('track', '${escapeHtml(t.name)}', '${escapeHtml(t.artist)}')">
-                        <div class="d-flex align-items-center gap-2.5 overflow-hidden" style="min-width: 0;">
-                            <span class="fw-bold text-secondary text-center flex-shrink-0" style="width: 18px; font-size: 0.78rem;">#${idx + 1}</span>
-                            <img id="${imgElementId}" src="${tCover}" class="rounded flex-shrink-0" style="width: 36px; height: 36px; object-fit: cover;" alt="Cover" onerror="safeImgError(this)">
-                            <div class="overflow-hidden" style="min-width: 0;">
-                                <div class="fw-semibold text-white text-truncate" style="font-size: 0.80rem;">${escapeHtml(t.name)}</div>
-                                <div class="text-secondary text-truncate" style="font-size: 0.70rem;">${escapeHtml(t.artist)}</div>
+                    return `
+                        <div class="d-flex align-items-center justify-content-between p-2 rounded-2" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); cursor: pointer;" onclick="showItemStats('artist', '${escapeJsStr(a.name)}', '')">
+                            <div class="d-flex align-items-center gap-2.5 overflow-hidden" style="min-width: 0;">
+                                <span class="fw-bold text-secondary text-center flex-shrink-0" style="width: 18px; font-size: 0.78rem;">#${idx + 1}</span>
+                                <img id="${imgElementId}" src="${aCover}" class="rounded-circle flex-shrink-0" style="width: 36px; height: 36px; object-fit: cover; border: 1px solid rgba(255, 255, 255, 0.1);" alt="${escapeHtml(a.name)}" onerror="safeImgError(this)">
+                                <div class="overflow-hidden" style="min-width: 0;">
+                                    <div class="fw-semibold text-white text-truncate" style="font-size: 0.82rem;">${escapeHtml(a.name)}</div>
+                                    <div class="text-secondary text-truncate" style="font-size: 0.70rem;">Artista en rotación</div>
+                                </div>
                             </div>
+                            <span class="badge bg-secondary bg-opacity-25 text-white flex-shrink-0 ms-2" style="font-size: 0.68rem;">${formatNumber(a.plays)} ${a.plays === 1 ? 'play' : 'plays'}</span>
                         </div>
-                        <span class="badge bg-secondary bg-opacity-25 text-white flex-shrink-0 ms-2" style="font-size: 0.68rem;">${formatNumber(t.plays)} ${t.plays === 1 ? 'play' : 'plays'}</span>
-                    </div>
-                `;
-            }).join('');
+                    `;
+                }).join('');
 
-            // Resolver carátulas de forma asíncrona
-            top5.forEach((t, idx) => {
-                const tKey = `track::${normalizeKey(t.name)}::${normalizeKey(t.artist)}`;
-                const imgElementId = `home-mini-track-${idx}`;
-                if (!artCache[tKey]) {
-                    resolveSpotifyArtwork(t.name, t.artist, 'track', imgElementId);
-                }
-            });
+                // Resolver fotos de los artistas de forma asíncrona
+                top5Artists.forEach((a, idx) => {
+                    const aKey = `artist::${normalizeKey(a.name)}::`;
+                    const imgElementId = `home-mini-artist-${idx}`;
+                    if (!artCache[aKey]) {
+                        resolveSpotifyArtwork(a.name, '', 'artist', imgElementId);
+                    }
+                });
+            }
         }
     } catch (err) {
         console.error('Error renderizando highlights del home:', err);
