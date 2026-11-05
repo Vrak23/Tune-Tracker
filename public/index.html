@@ -622,21 +622,21 @@
             background: rgba(255, 255, 255, 0.055);
             border-color: rgba(255, 255, 255, 0.12);
         }
-        .lastfm-chartlist-row-bar {
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            background: linear-gradient(90deg, rgba(225, 29, 72, 0.16) 0%, rgba(225, 29, 72, 0.02) 100%);
-            border-right: 2px solid rgba(225, 29, 72, 0.5);
-            pointer-events: none;
-            transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-            z-index: 0;
-            border-radius: 8px 0 0 8px;
+        /* Apple Bento Skeleton Shimmer (Carga Rápida en Inicio) */
+        @keyframes appleShimmerPulse {
+            0% { opacity: 0.28; }
+            50% { opacity: 0.72; }
+            100% { opacity: 0.28; }
         }
-        .lastfm-chartlist-row:hover .lastfm-chartlist-row-bar {
-            background: linear-gradient(90deg, rgba(244, 63, 94, 0.25) 0%, rgba(225, 29, 72, 0.06) 100%);
-            border-right-color: rgba(244, 63, 94, 0.85);
+        .apple-skeleton-shimmer {
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.14) 50%, rgba(255, 255, 255, 0.06) 100%);
+            background-size: 200% 100%;
+            animation: appleShimmerPulse 1.6s ease-in-out infinite;
+            border-radius: 6px;
+        }
+
+        .lastfm-chartlist-row-bar {
+            display: none !important;
         }
         .lastfm-chartlist-index {
             position: relative;
@@ -655,8 +655,8 @@
         .lastfm-chartlist-image {
             position: relative;
             z-index: 1;
-            width: 36px;
-            height: 36px;
+            width: 38px;
+            height: 38px;
             border-radius: 6px;
             object-fit: cover;
             flex-shrink: 0;
@@ -670,7 +670,7 @@
             overflow: hidden;
         }
         .lastfm-chartlist-name {
-            font-size: 0.84rem;
+            font-size: 0.88rem;
             font-weight: 600;
             color: #f1f5f9;
             white-space: nowrap;
@@ -679,7 +679,7 @@
             line-height: 1.25;
         }
         .lastfm-chartlist-artist {
-            font-size: 0.72rem;
+            font-size: 0.74rem;
             color: #8e8ea0;
             white-space: nowrap;
             overflow: hidden;
@@ -690,7 +690,7 @@
             position: relative;
             z-index: 1;
             width: 100px;
-            height: 5px;
+            height: 6px;
             background: rgba(255, 255, 255, 0.08);
             border-radius: 999px;
             overflow: hidden;
@@ -712,13 +712,22 @@
             position: relative;
             z-index: 1;
             flex-shrink: 0;
-            font-size: 0.74rem;
-            color: #cbd5e1;
-            font-weight: 600;
-            padding: 3px 8px;
+            font-size: 0.95rem;
+            color: #ffffff;
+            font-weight: 700;
+            padding: 4px 10px;
             border-radius: 999px;
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.09);
             white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            letter-spacing: -0.01em;
+        }
+        .lastfm-chartlist-count i {
+            font-size: 0.82rem;
+            color: #f43f5e;
         }
         .lastfm-chartlist-actions {
             position: relative;
@@ -727,6 +736,81 @@
             align-items: center;
             gap: 4px;
             flex-shrink: 0;
+        }
+
+        /* Last.fm Horizontal Activity Bar Chart (Sidebar) */
+        .lastfm-h-chart {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            width: 100%;
+        }
+        .lastfm-h-bar-row {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 3px 0;
+            font-size: 0.76rem;
+            cursor: pointer;
+            transition: opacity 0.15s ease;
+        }
+        .lastfm-h-bar-row:hover {
+            opacity: 0.92;
+        }
+        .lastfm-h-bar-label {
+            width: 54px;
+            flex-shrink: 0;
+            font-size: 0.73rem;
+            color: #94a3b8;
+            font-weight: 600;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .lastfm-h-bar-label.is-active {
+            color: #ffffff;
+            font-weight: 700;
+        }
+        .lastfm-h-bars-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        .lastfm-h-bars-list::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 999px;
+        }
+        .lastfm-h-bars-list::-webkit-scrollbar-thumb {
+            background: rgba(225, 29, 72, 0.4);
+            border-radius: 999px;
+        }
+        .lastfm-h-bar-track {
+            flex-grow: 1;
+            height: 16px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+        .lastfm-h-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, rgba(225, 29, 72, 0.75) 0%, #e11d48 100%);
+            border-radius: 3px;
+            transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .lastfm-h-bar-fill.is-active {
+            background: linear-gradient(90deg, #f43f5e 0%, #e11d48 100%);
+            box-shadow: 0 0 10px rgba(225, 29, 72, 0.5);
+        }
+        .lastfm-h-bar-value {
+            min-width: 50px;
+            flex-shrink: 0;
+            font-size: 0.74rem;
+            font-weight: 700;
+            color: #e2e8f0;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
         }
 
         /* Last.fm Inspired Scrobble Activity Bar Chart */
@@ -1896,8 +1980,15 @@
                             </button>
                         </div>
                         <div id="home-spotlight-content" class="d-flex align-items-center gap-3 my-auto py-1">
-                            <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
-                            <span class="text-secondary" style="font-size: 0.80rem;">Sincronizando tu canción #1...</span>
+                            <div class="apple-skeleton-shimmer flex-shrink-0" style="width: 84px; height: 84px; border-radius: 16px;"></div>
+                            <div class="d-flex flex-column gap-2 flex-grow-1" style="min-width: 0;">
+                                <div class="apple-skeleton-shimmer" style="width: 70%; height: 20px;"></div>
+                                <div class="apple-skeleton-shimmer" style="width: 45%; height: 14px;"></div>
+                                <div class="d-flex align-items-center gap-2 mt-1">
+                                    <div class="apple-skeleton-shimmer" style="width: 90px; height: 22px; border-radius: 999px;"></div>
+                                    <div class="apple-skeleton-shimmer" style="width: 70px; height: 22px; border-radius: 999px;"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -1953,8 +2044,38 @@
                             </button>
                         </div>
                         <div id="home-top-mini-list" class="d-flex flex-column gap-1.5">
-                            <div class="text-center py-3 text-secondary" style="font-size: 0.76rem;">
-                                <span class="spinner-border spinner-border-sm me-1.5 text-secondary"></span>Cargando artistas...
+                            <div class="d-flex align-items-center justify-content-between p-2 rounded-2" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05);">
+                                <div class="d-flex align-items-center gap-2.5 flex-grow-1">
+                                    <div class="apple-skeleton-shimmer" style="width: 18px; height: 14px;"></div>
+                                    <div class="apple-skeleton-shimmer rounded-circle" style="width: 36px; height: 36px; flex-shrink: 0;"></div>
+                                    <div class="d-flex flex-column gap-1 flex-grow-1">
+                                        <div class="apple-skeleton-shimmer" style="width: 65%; height: 13px;"></div>
+                                        <div class="apple-skeleton-shimmer" style="width: 40%; height: 10px;"></div>
+                                    </div>
+                                </div>
+                                <div class="apple-skeleton-shimmer rounded-pill" style="width: 45px; height: 18px; flex-shrink: 0;"></div>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between p-2 rounded-2" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05);">
+                                <div class="d-flex align-items-center gap-2.5 flex-grow-1">
+                                    <div class="apple-skeleton-shimmer" style="width: 18px; height: 14px;"></div>
+                                    <div class="apple-skeleton-shimmer rounded-circle" style="width: 36px; height: 36px; flex-shrink: 0;"></div>
+                                    <div class="d-flex flex-column gap-1 flex-grow-1">
+                                        <div class="apple-skeleton-shimmer" style="width: 50%; height: 13px;"></div>
+                                        <div class="apple-skeleton-shimmer" style="width: 35%; height: 10px;"></div>
+                                    </div>
+                                </div>
+                                <div class="apple-skeleton-shimmer rounded-pill" style="width: 45px; height: 18px; flex-shrink: 0;"></div>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between p-2 rounded-2" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05);">
+                                <div class="d-flex align-items-center gap-2.5 flex-grow-1">
+                                    <div class="apple-skeleton-shimmer" style="width: 18px; height: 14px;"></div>
+                                    <div class="apple-skeleton-shimmer rounded-circle" style="width: 36px; height: 36px; flex-shrink: 0;"></div>
+                                    <div class="d-flex flex-column gap-1 flex-grow-1">
+                                        <div class="apple-skeleton-shimmer" style="width: 55%; height: 13px;"></div>
+                                        <div class="apple-skeleton-shimmer" style="width: 30%; height: 10px;"></div>
+                                    </div>
+                                </div>
+                                <div class="apple-skeleton-shimmer rounded-pill" style="width: 45px; height: 18px; flex-shrink: 0;"></div>
                             </div>
                         </div>
                     </div>
@@ -2055,23 +2176,23 @@
                         <!-- Stat Overview Strip & List Toolbar -->
                         <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
                             <!-- Metricas Rápidas Estilo Last.fm -->
-                            <div id="stat-strip" class="d-flex align-items-baseline gap-3.5">
-                                <div>
-                                    <span class="text-secondary text-uppercase fw-bold d-block" style="font-size: 0.66rem; letter-spacing: 0.06em;">SCROBBLINGS</span>
-                                    <span class="text-white fw-bolder fs-4" id="strip-playcount">63.1K</span>
+                            <div id="stat-strip" class="d-flex align-items-baseline gap-4 flex-wrap">
+                                <div class="me-3">
+                                    <span class="text-secondary text-uppercase fw-bold d-block" style="font-size: 0.68rem; letter-spacing: 0.08em; margin-bottom: 2px;">SCROBBLINGS</span>
+                                    <span class="text-white fw-bolder fs-3" id="strip-playcount">63.1K</span>
                                 </div>
-                                <div id="strip-hours-wrapper">
-                                    <span class="text-secondary text-uppercase fw-bold d-block" style="font-size: 0.66rem; letter-spacing: 0.06em;">TIEMPO TOTAL</span>
-                                    <span class="text-white fw-bolder fs-4"><span id="strip-hours">3,192</span> <small class="text-secondary" style="font-size: 0.75rem;">h</small></span>
+                                <div id="strip-hours-wrapper" class="me-3">
+                                    <span class="text-secondary text-uppercase fw-bold d-block" style="font-size: 0.68rem; letter-spacing: 0.08em; margin-bottom: 2px;">TIEMPO TOTAL</span>
+                                    <span class="text-white fw-bolder fs-3"><span id="strip-hours">3,192</span> <small class="text-secondary" style="font-size: 0.85rem;">h</small></span>
                                 </div>
                                 <span class="d-none" id="strip-hours-dot"></span>
-                                <div class="d-none d-sm-block">
-                                    <span class="text-secondary text-uppercase fw-bold d-block" style="font-size: 0.66rem; letter-spacing: 0.06em;">ARTISTAS</span>
-                                    <span class="text-white fw-bolder fs-4" id="strip-artists">1,654</span>
+                                <div class="d-none d-sm-block me-3">
+                                    <span class="text-secondary text-uppercase fw-bold d-block" style="font-size: 0.68rem; letter-spacing: 0.08em; margin-bottom: 2px;">ARTISTAS</span>
+                                    <span class="text-white fw-bolder fs-3" id="strip-artists">1,654</span>
                                 </div>
                                 <div class="d-none d-md-block">
-                                    <span class="text-secondary text-uppercase fw-bold d-block" style="font-size: 0.66rem; letter-spacing: 0.06em;">ÁLBUMES</span>
-                                    <span class="text-white fw-bolder fs-4" id="strip-albums">3,465</span>
+                                    <span class="text-secondary text-uppercase fw-bold d-block" style="font-size: 0.68rem; letter-spacing: 0.08em; margin-bottom: 2px;">ÁLBUMES</span>
+                                    <span class="text-white fw-bolder fs-3" id="strip-albums">3,465</span>
                                 </div>
                             </div>
 
@@ -2141,7 +2262,7 @@
                     <div class="lastfm-library-sidebar">
                         <div class="lastfm-sidebar-card">
                             <!-- Header Intervalo de fechas -->
-                            <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom border-white border-opacity-10">
+                            <div class="d-flex align-items-center justify-content-between mb-3 pb-1">
                                 <span class="text-secondary text-uppercase fw-bold" style="font-size: 0.70rem; letter-spacing: 0.05em;">
                                     <i class="fa-regular fa-calendar text-danger me-1"></i>Intervalo de fechas
                                 </span>
@@ -3305,7 +3426,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
         <!-- App Logic -->
-    <script src="/app.js?v=68"></script>
+    <script src="/app.js?v=69"></script>
 
     <!-- Barra de Navegación Inferior Móvil (Bottom Navigation Bar) -->
     <nav id="bottom-nav-bar" class="bottom-nav-bar d-none">

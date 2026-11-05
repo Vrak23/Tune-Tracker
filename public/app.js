@@ -2379,10 +2379,11 @@ function renderCatalogActivityChart(periodRange, db) {
                 }).length;
             }
             return {
-                label: "'" + yr.slice(2),
+                label: yr,
                 fullLabel: yr,
                 plays: p,
-                isActive: yr === String(curYear)
+                isActive: yr === String(curYear),
+                filterKey: `year-${yr}`
             };
         });
     } else if (periodRange.startsWith('year-')) {
@@ -2404,7 +2405,8 @@ function renderCatalogActivityChart(periodRange, db) {
                 label: mn,
                 fullLabel: `${mn} ${targetY}`,
                 plays: p,
-                isActive: (String(targetY) === String(curYear) && mNum === curMonth)
+                isActive: (String(targetY) === String(curYear) && mNum === curMonth),
+                filterKey: `month-${targetY}-${mNum}`
             };
         });
     } else if (periodRange === 'current-month' || periodRange.startsWith('month-')) {
@@ -2435,15 +2437,16 @@ function renderCatalogActivityChart(periodRange, db) {
 
         const baseMonthPlays = db.yearlyTops[String(targetY)]?.months?.[String(targetM)]?.plays || 0;
         const recordedLivePlays = Object.values(dailyCounts).reduce((a, b) => a + b, 0);
+        const maxDayToShow = (targetY === curYear && targetM === curMonth) ? Math.min(daysInMonth, now.getDate()) : daysInMonth;
 
-        dataPoints = Array.from({ length: daysInMonth }, (_, i) => {
+        dataPoints = Array.from({ length: maxDayToShow }, (_, i) => {
             const dayNum = i + 1;
             let p = dailyCounts[dayNum] || 0;
             if (recordedLivePlays === 0 && baseMonthPlays > 0) {
                 p = Math.round(baseMonthPlays / daysInMonth);
             }
             return {
-                label: (dayNum === 1 || dayNum % 5 === 0 || dayNum === daysInMonth) ? String(dayNum) : '',
+                label: `Día ${dayNum}`,
                 fullLabel: `${dayNum} ${mNames[targetM - 1]}`,
                 plays: p,
                 isActive: (targetY === curYear && targetM === curMonth && dayNum === now.getDate())
@@ -2477,13 +2480,13 @@ function renderCatalogActivityChart(periodRange, db) {
     } else if (periodRange === 'last-month') {
         const lm = getLastMonthInfo();
         const mNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-        periodTitle = `Mes Pasado (${mNames[lm.prevM - 1]})`;
+        periodTitle = `Mes Pasado (${mNames[lm.prevM - 1]} ${lm.prevY})`;
         const daysInMonth = new Date(lm.prevY, lm.prevM, 0).getDate();
         const mPlays = db.yearlyTops[String(lm.prevY)]?.months?.[String(lm.prevM)]?.plays || 0;
         dataPoints = Array.from({ length: daysInMonth }, (_, i) => {
             const dayNum = i + 1;
             return {
-                label: (dayNum === 1 || dayNum % 5 === 0 || dayNum === daysInMonth) ? String(dayNum) : '',
+                label: `Día ${dayNum}`,
                 fullLabel: `${dayNum} ${mNames[lm.prevM - 1]}`,
                 plays: Math.round(mPlays / daysInMonth),
                 isActive: false
@@ -2506,20 +2509,51 @@ function renderCatalogActivityChart(periodRange, db) {
                 }).length;
             }
             dataPoints.push({
-                label: mNames[m - 1],
+                label: `${mNames[m - 1]} '${String(y).slice(2)}`,
                 fullLabel: `${mNames[m - 1]} ${y}`,
                 plays: p,
-                isActive: (y === curYear && m === curMonth)
+                isActive: (y === curYear && m === curMonth),
+                filterKey: `month-${y}-${m}`
             });
         }
+    } else if (periodRange === 'era-spotify') {
+        periodTitle = 'Era Spotify (2019 - 2025)';
+        const years = ['2019', '2020', '2021', '2022', '2023', '2024', '2025'];
+        dataPoints = years.map(yr => ({
+            label: yr,
+            fullLabel: yr,
+            plays: db.yearlyTops[yr]?.plays || 0,
+            isActive: false,
+            filterKey: `year-${yr}`
+        }));
+    } else if (periodRange === 'era-tidal' || periodRange === 'era-lastfm') {
+        periodTitle = periodRange === 'era-tidal' ? 'Era Tidal (2025 - 2026)' : 'Era Last.fm (2025 - Hoy)';
+        const years = ['2025', '2026'];
+        dataPoints = years.map(yr => {
+            let p = db.yearlyTops[yr]?.plays || 0;
+            if (yr === '2026' && Array.isArray(lastFmRecentDelta)) {
+                p += lastFmRecentDelta.filter(dt => {
+                    if (!dt.date?.uts) return false;
+                    return new Date(parseInt(dt.date.uts, 10) * 1000).getFullYear() === 2026;
+                }).length;
+            }
+            return {
+                label: yr,
+                fullLabel: yr,
+                plays: p,
+                isActive: yr === String(curYear),
+                filterKey: `year-${yr}`
+            };
+        });
     } else {
         periodTitle = 'Actividad Histórica';
         const years = ['2019', '2020', '2021', '2022', '2023', '2024', '2025', '2026'];
         dataPoints = years.map(yr => ({
-            label: "'" + yr.slice(2),
+            label: yr,
             fullLabel: yr,
             plays: db.yearlyTops[yr]?.plays || 0,
-            isActive: yr === String(curYear)
+            isActive: yr === String(curYear),
+            filterKey: `year-${yr}`
         }));
     }
 
@@ -2528,22 +2562,26 @@ function renderCatalogActivityChart(periodRange, db) {
 
     container.classList.remove('d-none');
     container.innerHTML = `
-        <div class="lastfm-chart-card">
-            <div class="d-flex align-items-center justify-content-between mb-1.5">
-                <span class="fw-semibold text-secondary" style="font-size: 0.72rem;">
-                    <i class="fa-solid fa-chart-column me-1 text-danger"></i>${periodTitle}
+        <div class="lastfm-h-chart">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="text-secondary fw-semibold" style="font-size: 0.72rem;">
+                    <i class="fa-solid fa-chart-simple text-danger me-1"></i>${periodTitle}
                 </span>
                 <span class="badge rounded-pill bg-dark border border-white border-opacity-15 text-white" style="font-size: 0.68rem;">
-                    <i class="fa-solid fa-headphones me-1 text-danger"></i>${formatNumber(totalPlays)}
+                    <i class="fa-solid fa-headphones text-danger me-1"></i>${formatNumber(totalPlays)}
                 </span>
             </div>
-            <div class="lastfm-bars-wrap">
+            <div class="lastfm-h-bars-list" style="max-height: 420px; overflow-y: auto; padding-right: 4px;">
                 ${dataPoints.map(pt => {
-                    const hPct = Math.max(6, Math.round((pt.plays / maxPlays) * 100));
+                    const pct = Math.min(100, Math.max(pt.plays > 0 ? 3 : 0, Math.round((pt.plays / maxPlays) * 100)));
+                    const clickAttr = pt.filterKey ? `onclick="selectLastFmDatePreset('${pt.filterKey}')" style="cursor: pointer;"` : '';
                     return `
-                        <div class="lastfm-bar-col" title="${pt.fullLabel}: ${formatNumber(pt.plays)} streams">
-                            <div class="lastfm-bar-fill ${pt.isActive ? 'is-active' : ''}" style="height: ${hPct}%;"></div>
-                            <span class="lastfm-bar-label">${pt.label}</span>
+                        <div class="lastfm-h-bar-row" ${clickAttr} title="${pt.fullLabel}: ${formatNumber(pt.plays)} streams">
+                            <span class="lastfm-h-bar-label ${pt.isActive ? 'is-active' : ''}">${pt.label}</span>
+                            <div class="lastfm-h-bar-track">
+                                <div class="lastfm-h-bar-fill ${pt.isActive ? 'is-active' : ''}" style="width: ${pct}%;"></div>
+                            </div>
+                            <span class="lastfm-h-bar-value">${formatNumber(pt.plays)}</span>
                         </div>
                     `;
                 }).join('')}
@@ -4506,7 +4544,6 @@ function renderTracks(tracks) {
         const rankClass = index === 0 ? 'top-1' : (index === 1 ? 'top-2' : (index === 2 ? 'top-3' : ''));
 
         item.innerHTML = `
-            <div class="lastfm-chartlist-row-bar" style="width: ${pct}%;"></div>
             <span class="lastfm-chartlist-index ${rankClass}">#${String(index + 1).padStart(2, '0')}</span>
             <img id="${imgId}" src="${initialImg}" class="lastfm-chartlist-image" alt="Cover" onerror="safeImgError(this)">
             <div class="lastfm-chartlist-info">
@@ -4559,7 +4596,6 @@ function renderArtists(artists) {
         const rankClass = index === 0 ? 'top-1' : (index === 1 ? 'top-2' : (index === 2 ? 'top-3' : ''));
 
         item.innerHTML = `
-            <div class="lastfm-chartlist-row-bar" style="width: ${pct}%;"></div>
             <span class="lastfm-chartlist-index ${rankClass}">#${String(index + 1).padStart(2, '0')}</span>
             <img id="${imgId}" src="${initialImg}" class="lastfm-chartlist-image rounded-circle" alt="Artist" onerror="safeImgError(this)">
             <div class="lastfm-chartlist-info">
@@ -4612,7 +4648,6 @@ function renderAlbums(albums) {
         const rankClass = index === 0 ? 'top-1' : (index === 1 ? 'top-2' : (index === 2 ? 'top-3' : ''));
 
         item.innerHTML = `
-            <div class="lastfm-chartlist-row-bar" style="width: ${pct}%;"></div>
             <span class="lastfm-chartlist-index ${rankClass}">#${String(index + 1).padStart(2, '0')}</span>
             <img id="${imgId}" src="${initialImg}" class="lastfm-chartlist-image" alt="Album" onerror="safeImgError(this)">
             <div class="lastfm-chartlist-info">
