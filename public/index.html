@@ -327,63 +327,330 @@
             color: #64748b !important;
         }
 
-        /* Last.fm Inspired Period Filter Pills */
-        .lastfm-date-pills-container {
-            -webkit-overflow-scrolling: touch;
+        /* ========================================================
+           LAST.FM LIBRARY INTERFACE & DATE SELECTOR
+           ======================================================== */
+
+        /* Secondary Nav Bar (Temas, Artistas, Álbumes, Scrobbles) */
+        .lastfm-secondary-nav {
+            display: flex;
+            align-items: center;
+            gap: 22px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 0 4px;
+            margin-bottom: 14px;
+            overflow-x: auto;
+            scrollbar-width: none;
         }
-        .lastfm-pill-btn {
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+        .lastfm-secondary-nav::-webkit-scrollbar {
+            display: none;
+        }
+        .lastfm-nav-tab {
+            background: transparent;
+            border: none;
+            outline: none;
             color: #94a3b8;
-            font-size: 0.74rem;
-            font-weight: 500;
-            padding: 5px 12px;
-            border-radius: 999px;
-            white-space: nowrap;
+            font-size: 0.90rem;
+            font-weight: 600;
+            padding: 8px 4px 12px;
+            position: relative;
             cursor: pointer;
-            transition: all 0.18s ease;
+            transition: color 0.18s ease;
+            white-space: nowrap;
             display: inline-flex;
             align-items: center;
-            line-height: 1.2;
-            flex-shrink: 0;
-            user-select: none;
+            gap: 7px;
         }
-        .lastfm-pill-btn:hover {
-            background: rgba(255, 255, 255, 0.09);
+        .lastfm-nav-tab:hover {
             color: #ffffff;
-            border-color: rgba(255, 255, 255, 0.18);
         }
-        .lastfm-pill-btn.active {
-            background: rgba(168, 85, 247, 0.22) !important;
-            border-color: rgba(168, 85, 247, 0.5) !important;
-            color: #ffffff !important;
-            font-weight: 600;
-            box-shadow: 0 0 14px rgba(168, 85, 247, 0.28);
+        .lastfm-nav-tab.active {
+            color: #ffffff;
         }
-        .lastfm-pill-more {
-            background: rgba(255, 255, 255, 0.02);
-            border-style: dashed;
+        .lastfm-nav-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #e11d48; /* Last.fm red accent */
+            border-radius: 3px 3px 0 0;
+            box-shadow: 0 0 10px rgba(225, 29, 72, 0.6);
         }
 
-        /* Last.fm Inspired Chartlist Bars */
-        .chartlist-row-bar {
+        /* Controls Header (Search + Date Selector) */
+        .lastfm-controls-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+
+        /* Search Box */
+        .lastfm-search-wrap {
+            position: relative;
+            flex-grow: 1;
+            min-width: 200px;
+            max-width: 440px;
+        }
+        .lastfm-search-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            border-radius: 999px;
+            padding: 7px 14px 7px 34px;
+            font-size: 0.80rem;
+            color: #ffffff;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+        .lastfm-search-input:focus {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(225, 29, 72, 0.5);
+            box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.15);
+        }
+        .lastfm-search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #64748b;
+            font-size: 0.76rem;
+            pointer-events: none;
+        }
+
+        /* Date Selector Button */
+        .lastfm-date-selector-wrapper {
+            position: relative;
+        }
+        .lastfm-date-picker-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #f1f5f9;
+            font-size: 0.76rem;
+            font-weight: 600;
+            padding: 7px 14px;
+            border-radius: 999px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+        .lastfm-date-picker-btn:hover, .lastfm-date-picker-btn.is-open {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(225, 29, 72, 0.45);
+            color: #ffffff;
+            box-shadow: 0 0 12px rgba(225, 29, 72, 0.2);
+        }
+
+        /* Date Range Popover Dropdown */
+        .lastfm-date-popover {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            width: 320px;
+            max-width: 92vw;
+            background: #141418;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 16px;
+            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05);
+            padding: 14px;
+            z-index: 1050;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .lastfm-popover-section {
+            padding-bottom: 11px;
+            margin-bottom: 11px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+        }
+        .lastfm-popover-title {
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #94a3b8;
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+        }
+        .lastfm-presets-list {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+        .lastfm-preset-item {
+            background: transparent;
+            border: none;
+            text-align: left;
+            color: #cbd5e1;
+            font-size: 0.78rem;
+            padding: 6px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+        }
+        .lastfm-preset-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: #ffffff;
+        }
+        .lastfm-preset-item.active {
+            background: rgba(225, 29, 72, 0.18);
+            color: #ffffff;
+            font-weight: 600;
+        }
+        .lastfm-preset-item.active::after {
+            content: '✓';
+            color: #f43f5e;
+            font-weight: bold;
+            font-size: 0.82rem;
+        }
+
+        /* Years & Months Grid inside Popover */
+        .lastfm-pill-chip {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #cbd5e1;
+            font-size: 0.70rem;
+            padding: 3px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .lastfm-pill-chip:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+        }
+        .lastfm-pill-chip.active {
+            background: rgba(225, 29, 72, 0.25);
+            border-color: rgba(225, 29, 72, 0.6);
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        /* Custom Date Inputs inside Popover */
+        .lastfm-date-label {
+            font-size: 0.66rem;
+            color: #94a3b8;
+            margin-bottom: 2px;
+            display: block;
+        }
+        .lastfm-date-input {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            font-size: 0.74rem;
+            border-radius: 6px;
+            padding: 4px 8px;
+        }
+        .lastfm-date-input:focus {
+            background: rgba(255, 255, 255, 0.09);
+            border-color: #e11d48;
+            color: #ffffff;
+        }
+
+        /* Chartlist Table Layout (Last.fm Exact Structure) */
+        .lastfm-chartlist {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            width: 100%;
+        }
+        .lastfm-chartlist-row {
+            position: relative;
+            display: flex;
+            align-items: center;
+            padding: 6px 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 8px;
+            gap: 12px;
+            transition: background 0.18s ease, border-color 0.18s ease;
+            cursor: pointer;
+            overflow: hidden;
+            min-height: 48px;
+        }
+        .lastfm-chartlist-row:hover {
+            background: rgba(255, 255, 255, 0.055);
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+        .lastfm-chartlist-row-bar {
             position: absolute;
             left: 0;
             top: 0;
             bottom: 0;
-            background: linear-gradient(90deg, rgba(168, 85, 247, 0.16) 0%, rgba(168, 85, 247, 0.03) 100%);
-            border-right: 2px solid rgba(168, 85, 247, 0.45);
+            background: linear-gradient(90deg, rgba(225, 29, 72, 0.16) 0%, rgba(225, 29, 72, 0.02) 100%);
+            border-right: 2px solid rgba(225, 29, 72, 0.5);
             pointer-events: none;
             transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1);
             z-index: 0;
-            border-radius: 12px 0 0 12px;
+            border-radius: 8px 0 0 8px;
         }
-        .card-uniform:hover .chartlist-row-bar {
-            background: linear-gradient(90deg, rgba(192, 132, 252, 0.25) 0%, rgba(168, 85, 247, 0.08) 100%);
-            border-right-color: rgba(192, 132, 252, 0.8);
+        .lastfm-chartlist-row:hover .lastfm-chartlist-row-bar {
+            background: linear-gradient(90deg, rgba(244, 63, 94, 0.25) 0%, rgba(225, 29, 72, 0.06) 100%);
+            border-right-color: rgba(244, 63, 94, 0.85);
         }
-        .chartlist-bar-meter {
-            width: 85px;
+        .lastfm-chartlist-index {
+            position: relative;
+            z-index: 1;
+            width: 24px;
+            text-align: center;
+            font-size: 0.80rem;
+            font-weight: 700;
+            color: #64748b;
+            flex-shrink: 0;
+        }
+        .lastfm-chartlist-index.top-1 { color: #fbbf24; }
+        .lastfm-chartlist-index.top-2 { color: #38bdf8; }
+        .lastfm-chartlist-index.top-3 { color: #c084fc; }
+
+        .lastfm-chartlist-image {
+            position: relative;
+            z-index: 1;
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            object-fit: cover;
+            flex-shrink: 0;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .lastfm-chartlist-info {
+            position: relative;
+            z-index: 1;
+            flex: 1 1 200px;
+            min-width: 0;
+            overflow: hidden;
+        }
+        .lastfm-chartlist-name {
+            font-size: 0.84rem;
+            font-weight: 600;
+            color: #f1f5f9;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.25;
+        }
+        .lastfm-chartlist-artist {
+            font-size: 0.72rem;
+            color: #8e8ea0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.2;
+        }
+        .lastfm-chartlist-bar-meter {
+            position: relative;
+            z-index: 1;
+            width: 100px;
             height: 5px;
             background: rgba(255, 255, 255, 0.08);
             border-radius: 999px;
@@ -391,23 +658,43 @@
             flex-shrink: 0;
             display: none;
         }
-        @media (min-width: 600px) {
-            .chartlist-bar-meter {
+        @media (min-width: 680px) {
+            .lastfm-chartlist-bar-meter {
                 display: flex;
             }
         }
-        .chartlist-bar-fill {
+        .lastfm-chartlist-bar-fill {
             height: 100%;
-            background: linear-gradient(90deg, #a855f7 0%, #c084fc 100%);
+            background: linear-gradient(90deg, #e11d48 0%, #f43f5e 100%);
             border-radius: 999px;
             transition: width 0.4s ease;
+        }
+        .lastfm-chartlist-count {
+            position: relative;
+            z-index: 1;
+            flex-shrink: 0;
+            font-size: 0.74rem;
+            color: #cbd5e1;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.05);
+            white-space: nowrap;
+        }
+        .lastfm-chartlist-actions {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
         }
 
         /* Last.fm Inspired Scrobble Activity Bar Chart */
         .lastfm-chart-card {
             background: rgba(22, 22, 26, 0.7);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 14px;
+            border-radius: 12px;
             padding: 10px 14px 12px;
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
@@ -416,7 +703,7 @@
             display: flex;
             align-items: flex-end;
             gap: 4px;
-            height: 60px;
+            height: 56px;
             padding-top: 6px;
         }
         .lastfm-bar-col {
@@ -431,20 +718,20 @@
             cursor: pointer;
         }
         .lastfm-bar-col:hover .lastfm-bar-fill {
-            background: linear-gradient(180deg, #c084fc 0%, #a855f7 100%);
-            box-shadow: 0 0 10px rgba(168, 85, 247, 0.6);
+            background: linear-gradient(180deg, #f43f5e 0%, #e11d48 100%);
+            box-shadow: 0 0 10px rgba(225, 29, 72, 0.6);
         }
         .lastfm-bar-fill {
             width: 100%;
             max-width: 24px;
             min-height: 3px;
             border-radius: 4px 4px 1px 1px;
-            background: linear-gradient(180deg, rgba(168, 85, 247, 0.85) 0%, rgba(147, 51, 234, 0.45) 100%);
+            background: linear-gradient(180deg, rgba(225, 29, 72, 0.85) 0%, rgba(190, 18, 60, 0.45) 100%);
             transition: height 0.3s ease, background 0.15s ease;
         }
         .lastfm-bar-fill.is-active {
             background: linear-gradient(180deg, #f43f5e 0%, #e11d48 100%);
-            box-shadow: 0 0 8px rgba(244, 63, 94, 0.5);
+            box-shadow: 0 0 8px rgba(244, 63, 94, 0.6);
         }
         .lastfm-bar-label {
             font-size: 0.60rem;
@@ -1703,7 +1990,7 @@
             </div>
 
             <!-- ============================================== -->
-            <!-- VISTA 2: TOPS & CATÁLOGO (Buscador, Filtros)   -->
+            <!-- VISTA 2: TOPS & CATÁLOGO (ESTILO LAST.FM)      -->
             <!-- ============================================== -->
             <div id="section-catalog" class="dashboard-section d-none">
                 <!-- Sleek Minimalist Stat Strip -->
@@ -1717,160 +2004,166 @@
                     <span class="text-secondary flex-shrink-0"><strong id="strip-albums" class="text-white">3,465</strong> álbumes</span>
                 </div>
 
-                <!-- Primary Content Tabs (Canciones, Artistas, Álbumes, Recientes) -->
-                <div class="segmented-tabs mb-2" id="content-type-tabs">
-                    <button class="segmented-tab active" data-type="tracks"><i class="fa-solid fa-music me-1"></i> Canciones</button>
-                    <button class="segmented-tab" data-type="artists"><i class="fa-solid fa-user-group me-1"></i> Artistas</button>
-                    <button class="segmented-tab" data-type="albums"><i class="fa-solid fa-compact-disc me-1"></i> Álbumes</button>
-                    <button class="segmented-tab" data-type="recent"><i class="fa-solid fa-clock-rotate-left me-1"></i> Recientes</button>
-                </div>
-
-                <!-- Last.fm Inspired Quick Date Filter Pills -->
-                <div class="lastfm-date-pills-container d-flex align-items-center gap-1.5 mb-2 overflow-auto py-1" style="scrollbar-width: none;">
-                    <button type="button" class="lastfm-pill-btn" data-period="current-month" onclick="handleQuickPeriodClick('current-month')">
-                        <i class="fa-solid fa-bolt me-1 text-warning"></i>Este Mes
+                <!-- Last.fm Secondary Navigation (Temas, Artistas, Álbumes, Scrobbles) -->
+                <div class="lastfm-secondary-nav" id="content-type-tabs">
+                    <button type="button" class="lastfm-nav-tab active" data-type="tracks">
+                        <i class="fa-solid fa-music"></i> Temas
                     </button>
-                    <button type="button" class="lastfm-pill-btn" data-period="this-week" onclick="handleQuickPeriodClick('this-week')">
-                        Esta Semana
+                    <button type="button" class="lastfm-nav-tab" data-type="artists">
+                        <i class="fa-solid fa-user-group"></i> Artistas
                     </button>
-                    <button type="button" class="lastfm-pill-btn" data-period="last-month" onclick="handleQuickPeriodClick('last-month')">
-                        Mes Pasado
+                    <button type="button" class="lastfm-nav-tab" data-type="albums">
+                        <i class="fa-solid fa-compact-disc"></i> Álbumes
                     </button>
-                    <button type="button" class="lastfm-pill-btn" data-period="last-6-months" onclick="handleQuickPeriodClick('last-6-months')">
-                        Hace 6 Meses
-                    </button>
-                    <button type="button" class="lastfm-pill-btn" data-period="year-2026" onclick="handleQuickPeriodClick('year-2026')">
-                        Año 2026
-                    </button>
-                    <button type="button" class="lastfm-pill-btn active" data-period="overall" onclick="handleQuickPeriodClick('overall')">
-                        Histórico Total
-                    </button>
-                    <button type="button" class="lastfm-pill-btn lastfm-pill-more ms-auto" id="btn-toggle-advanced-filters" onclick="toggleAdvancedFilterToolbar()">
-                        <i class="fa-solid fa-sliders me-1"></i>Filtros Avanzados <i class="fa-solid fa-chevron-down ms-1" style="font-size: 0.65rem;"></i>
+                    <button type="button" class="lastfm-nav-tab" data-type="recent">
+                        <i class="fa-solid fa-clock-rotate-left"></i> Scrobbles
                     </button>
                 </div>
 
-                <!-- Last.fm Inspired Scrobble Activity Bar Chart Container -->
-                <div id="catalog-activity-chart-container" class="mb-2.5 d-none"></div>
+                <!-- Last.fm Library Controls Bar -->
+                <div class="lastfm-controls-bar">
+                    <!-- Search Input (Buscador estilo Last.fm) -->
+                    <div class="lastfm-search-wrap">
+                        <i class="fa-solid fa-magnifying-glass lastfm-search-icon"></i>
+                        <input type="text" id="filter-search-input" class="lastfm-search-input" placeholder="Buscar canciones, artistas o álbumes..." autocomplete="off">
+                    </div>
 
-                <!-- Buscador en tiempo real -->
-                <div class="position-relative mb-2">
-                    <i class="fa-solid fa-magnifying-glass position-absolute text-muted" style="left: 12px; top: 50%; transform: translateY(-50%); font-size: 0.74rem;"></i>
-                    <input type="text" id="filter-search-input" class="search-input" placeholder="Buscar canciones, artistas o álbumes en este listado..." autocomplete="off">
-                </div>
-
-                <!-- Toolbar con Desplegables -->
-                <div class="filter-toolbar p-2 mb-2 rounded-3">
-                    <div class="row g-2 align-items-center">
-                        <div class="col-6 col-sm-3">
-                            <label class="filter-label"><i class="fa-solid fa-database me-1 text-muted"></i> Datos</label>
-                            <select id="select-data-source" class="form-select form-select-sm filter-select">
+                    <!-- Right Controls: Data Source + Last.fm Date Selector + Page Size + Actions -->
+                    <div class="d-flex align-items-center gap-2 flex-wrap ms-auto">
+                        <!-- Data Source Quick Selector -->
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1 text-white dropdown-toggle" type="button" id="dropdownDataSource" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.74rem; background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.1);">
+                                <i class="fa-solid fa-database me-1 text-info"></i><span id="data-source-label">Unificado</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow" aria-labelledby="dropdownDataSource" style="font-size: 0.78rem;">
+                                <li><a class="dropdown-item active" href="javascript:void(0)" onclick="switchDataSource('unified')"><i class="fa-solid fa-check me-1"></i>Unificado (Total)</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0)" onclick="switchDataSource('lastfm')"><i class="fa-solid fa-tower-broadcast me-1 text-danger"></i>Last.fm (En Vivo)</a></li>
+                            </ul>
+                            <select id="select-data-source" class="d-none">
                                 <option value="unified" selected>Unificado (Total)</option>
                                 <option value="lastfm">Last.fm (En Vivo)</option>
                             </select>
                         </div>
 
-                        <div class="col-6 col-sm-3">
-                            <label class="filter-label"><i class="fa-regular fa-calendar-days me-1 text-muted"></i> Periodo</label>
-                            <select id="select-time-period" class="form-select form-select-sm filter-select">
-                                <optgroup label="⚡ Rápido">
-                                    <option value="this-week">Esta semana (su semana respectiva)</option>
-                                    <option value="last-month">Mes pasado</option>
-                                    <option value="last-6-months">Hace 6 meses</option>
-                                    <option value="overall" selected>Histórico Total</option>
-                                </optgroup>
-                                <optgroup label="⚙️ Avanzado">
-                                    <option value="era-spotify" class="owner-only-element d-none">Era Spotify (2019 - Ago 2025)</option>
-                                    <option value="era-tidal" class="owner-only-element d-none">Era Tidal (Ago 2025 - Jul 2026 ≈)</option>
-                                    <option value="era-lastfm" class="owner-only-element d-none">Nueva Era Last.fm (Ago 2025 - Hoy)</option>
-                                    <option value="year-2026">Año 2026</option>
-                                    <option value="year-2025">Año 2025</option>
-                                    <option value="year-2024">Año 2024</option>
-                                    <option value="year-2023">Año 2023</option>
-                                    <option value="year-2022">Año 2022</option>
-                                    <option value="year-2021">Año 2021</option>
-                                    <option value="year-2020">Año 2020</option>
-                                    <option value="year-2019">Año 2019</option>
-                                    <option value="custom">Rango de Fechas...</option>
-                                </optgroup>
-                            </select>
+                        <!-- Last.fm Date Range Selector Dropdown -->
+                        <div class="lastfm-date-selector-wrapper">
+                            <button type="button" class="lastfm-date-picker-btn" id="lastfm-date-picker-btn" onclick="toggleLastFmDateMenu()">
+                                <i class="fa-regular fa-calendar-days text-danger"></i>
+                                <span id="lastfm-date-btn-label">Todo el tiempo</span>
+                                <i class="fa-solid fa-chevron-down small text-secondary"></i>
+                            </button>
+
+                            <!-- Last.fm Date Dropdown Popover Menu -->
+                            <div id="lastfm-date-dropdown-menu" class="lastfm-date-popover d-none">
+                                <!-- Predeterminados -->
+                                <div class="lastfm-popover-section">
+                                    <div class="lastfm-popover-title">
+                                        <i class="fa-solid fa-bolt text-warning me-1.5"></i>Predeterminados
+                                    </div>
+                                    <div class="lastfm-presets-list">
+                                        <button type="button" class="lastfm-preset-item active" data-period="overall" onclick="selectLastFmDatePreset('overall')">Todo el tiempo</button>
+                                        <button type="button" class="lastfm-preset-item" data-period="current-month" onclick="selectLastFmDatePreset('current-month')">Este mes</button>
+                                        <button type="button" class="lastfm-preset-item" data-period="this-week" onclick="selectLastFmDatePreset('this-week')">Últimos 7 días (Esta semana)</button>
+                                        <button type="button" class="lastfm-preset-item" data-period="last-month" onclick="selectLastFmDatePreset('last-month')">Últimos 30 días (Mes pasado)</button>
+                                        <button type="button" class="lastfm-preset-item" data-period="last-6-months" onclick="selectLastFmDatePreset('last-6-months')">Últimos 180 días (Hace 6 meses)</button>
+                                        <button type="button" class="lastfm-preset-item" data-period="year-2026" onclick="selectLastFmDatePreset('year-2026')">Últimos 365 días (Año 2026)</button>
+                                    </div>
+                                </div>
+
+                                <!-- Años y Meses -->
+                                <div class="lastfm-popover-section">
+                                    <div class="lastfm-popover-title">
+                                        <i class="fa-solid fa-calendar text-info me-1.5"></i>Por Año / Mes
+                                    </div>
+                                    <div class="d-flex flex-wrap gap-1 mb-2" id="lastfm-years-chips">
+                                        <!-- Chips generados por JS: 2026, 2025, 2024, etc. -->
+                                    </div>
+                                    <div class="d-flex flex-wrap gap-1" id="lastfm-months-chips">
+                                        <!-- Meses disponibles del año seleccionado -->
+                                    </div>
+
+                                    <!-- Eras de escucha (solo admin) -->
+                                    <div class="owner-only-element d-none mt-2 pt-2 border-top border-white border-opacity-10">
+                                        <div class="text-secondary small mb-1" style="font-size: 0.68rem;">Eras de escucha:</div>
+                                        <div class="d-flex flex-wrap gap-1">
+                                            <button type="button" class="lastfm-pill-chip" onclick="selectLastFmDatePreset('era-spotify')">Era Spotify (2019-2025)</button>
+                                            <button type="button" class="lastfm-pill-chip" onclick="selectLastFmDatePreset('era-tidal')">Era Tidal (2025-2026)</button>
+                                            <button type="button" class="lastfm-pill-chip" onclick="selectLastFmDatePreset('era-lastfm')">Era Last.fm (2025-Hoy)</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Rango Personalizado -->
+                                <div class="lastfm-popover-section border-0 mb-0 pb-0">
+                                    <div class="lastfm-popover-title">
+                                        <i class="fa-solid fa-sliders text-danger me-1.5"></i>Rango Personalizado
+                                    </div>
+                                    <div class="d-flex flex-column gap-2">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="flex-grow-1">
+                                                <label class="lastfm-date-label">Desde</label>
+                                                <input type="date" id="input-date-from" class="form-control form-control-sm lastfm-date-input text-white" min="2019-05-01" max="2026-12-31" value="2019-05-01">
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <label class="lastfm-date-label">Hasta</label>
+                                                <input type="date" id="input-date-to" class="form-control form-control-sm lastfm-date-input text-white" min="2019-05-01" max="2026-12-31" value="2026-11-05">
+                                            </div>
+                                        </div>
+                                        <button type="button" id="btn-apply-custom-dates" class="btn btn-sm btn-danger w-100 rounded-pill fw-semibold py-1" style="font-size: 0.74rem;" onclick="applyCustomDateRange()">
+                                            Aplicar Rango
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="col-6 col-sm-3" id="col-select-month">
-                            <label class="filter-label"><i class="fa-regular fa-calendar me-1 text-muted"></i> Mes</label>
-                            <select id="select-month" class="form-select form-select-sm filter-select" disabled>
-                                <option value="all" selected>Todo el año</option>
-                            </select>
-                        </div>
+                        <!-- Selector de Límite (Top 50) -->
+                        <select id="select-page-size" class="form-select form-select-sm filter-select rounded-pill px-2.5 py-1 text-white" style="width: auto; font-size: 0.74rem; background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.1);">
+                            <option value="25">Top 25</option>
+                            <option value="50" selected>Top 50</option>
+                            <option value="100">Top 100</option>
+                            <option value="200">Top 200</option>
+                            <option value="all">Ver Todos</option>
+                        </select>
 
-                        <div class="col-6 col-sm-3">
-                            <label class="filter-label"><i class="fa-solid fa-list-ol me-1 text-muted"></i> Mostrar</label>
-                            <select id="select-page-size" class="form-select form-select-sm filter-select">
-                                <option value="25">Top 25</option>
-                                <option value="50" selected>Top 50</option>
-                                <option value="100">Top 100</option>
-                                <option value="200">Top 200</option>
-                                <option value="all">Ver Todos</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Barra de Acciones: Comparar Periodos y Exportar -->
-                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-2 pt-2 border-top border-secondary border-opacity-10">
-                        <button id="btn-open-compare" class="btn btn-sm btn-outline-brand rounded-pill px-2.5 py-1 fw-semibold d-inline-flex align-items-center gap-1.5" style="font-size: 0.76rem;" onclick="openPeriodComparisonModal()">
-                            <i class="fa-solid fa-code-compare text-primary"></i>
-                            <span>Comparar Periodos</span>
+                        <!-- Botón Comparar Periodos -->
+                        <button id="btn-open-compare" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1 text-white" style="font-size: 0.74rem; background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.1);" onclick="openPeriodComparisonModal()" title="Comparar Periodos">
+                            <i class="fa-solid fa-code-compare text-info"></i>
                         </button>
-                        <div class="d-flex align-items-center gap-1.5">
-                            <span class="text-secondary" style="font-size: 0.72rem;"><i class="fa-solid fa-download me-1 text-muted"></i>Exportar top:</span>
-                            <button id="btn-export-csv" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1 text-white" style="font-size: 0.74rem;" onclick="exportCurrentTop('csv')">
-                                <i class="fa-solid fa-file-csv text-success me-1"></i>CSV
-                            </button>
-                            <button id="btn-export-json" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1 text-white" style="font-size: 0.74rem;" onclick="exportCurrentTop('json')">
-                                <i class="fa-solid fa-file-code text-info me-1"></i>JSON
-                            </button>
-                        </div>
                     </div>
 
-                    <!-- Panel colapsable de Rango de Fechas Personalizado -->
-                    <div id="custom-date-container" class="d-none mt-2 pt-2 border-top border-secondary border-opacity-10">
-                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-                            <div class="d-flex flex-wrap align-items-center gap-2">
-                                <div class="d-flex align-items-center gap-1.5">
-                                    <label for="input-date-from" class="form-label mb-0 filter-label d-flex align-items-center gap-1">
-                                        <i class="fa-regular fa-calendar text-info"></i>
-                                        <span>Desde:</span>
-                                    </label>
-                                    <input type="date" id="input-date-from" class="form-control form-control-sm custom-date-input text-white" style="width: 142px;" min="2019-05-01" max="2026-12-31" value="2019-05-01">
-                                </div>
-                                <div class="d-flex align-items-center gap-1.5">
-                                    <label for="input-date-to" class="form-label mb-0 filter-label d-flex align-items-center gap-1">
-                                        <i class="fa-solid fa-calendar-check text-info"></i>
-                                        <span>Hasta:</span>
-                                    </label>
-                                    <input type="date" id="input-date-to" class="form-control form-control-sm custom-date-input text-white" style="width: 142px;" min="2019-05-01" max="2026-12-31" value="2026-10-18">
-                                </div>
-                            </div>
-
-                            <div class="d-flex align-items-center gap-2">
-                                <button id="btn-apply-custom-dates" class="btn btn-sm btn-brand rounded-pill px-3 py-1.5 fw-semibold text-nowrap d-flex align-items-center gap-1.5" style="font-size: 0.78rem;">
-                                    <i class="fa-solid fa-sliders"></i>
-                                    <span>Filtrar Fechas</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                    <!-- Hidden legacy controls for perfect JS compatibility -->
+                    <select id="select-time-period" class="d-none"></select>
+                    <select id="select-month" class="d-none"></select>
                 </div>
+
+                <!-- Last.fm Inspired Scrobble Activity Bar Chart Container -->
+                <div id="catalog-activity-chart-container" class="mb-3 d-none"></div>
 
                 <!-- Loader -->
                 <div id="loader" class="text-center py-5 d-none">
-                    <div class="spinner-border text-primary" style="color: var(--brand-primary) !important;" role="status">
+                    <div class="spinner-border text-danger" role="status">
                         <span class="visually-hidden">Cargando...</span>
                     </div>
                 </div>
 
-                <!-- Stats List / Grid Container -->
-                <div id="stats-list" class="stats-grid"></div>
+                <!-- Stats List / Chartlist Container -->
+                <div id="stats-list" class="lastfm-chartlist mb-4"></div>
+
+                <!-- Footer: Exportar CSV / JSON -->
+                <div class="d-flex align-items-center justify-content-between p-2 rounded-3 mt-2" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); font-size: 0.72rem;">
+                    <span class="text-secondary"><i class="fa-solid fa-chart-line me-1 text-danger"></i>Catálogo Last.fm Pro</span>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="text-secondary">Exportar:</span>
+                        <button id="btn-export-csv" class="btn btn-sm btn-link text-success p-0 text-decoration-none" onclick="exportCurrentTop('csv')">
+                            <i class="fa-solid fa-file-csv me-1"></i>CSV
+                        </button>
+                        <span class="text-muted">|</span>
+                        <button id="btn-export-json" class="btn btn-sm btn-link text-info p-0 text-decoration-none" onclick="exportCurrentTop('json')">
+                            <i class="fa-solid fa-file-code me-1"></i>JSON
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <!-- ============================================== -->
@@ -2953,7 +3246,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
         <!-- App Logic -->
-    <script src="/app.js?v=66"></script>
+    <script src="/app.js?v=67"></script>
 
     <!-- Barra de Navegación Inferior Móvil (Bottom Navigation Bar) -->
     <nav id="bottom-nav-bar" class="bottom-nav-bar d-none">

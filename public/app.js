@@ -1493,10 +1493,10 @@ function setupEventListeners() {
         });
     }
 
-    // Segmented Content Tabs (Canciones, Artistas, Álbumes, Recientes)
-    document.querySelectorAll('#content-type-tabs .segmented-tab').forEach(btn => {
+    // Last.fm Secondary Navigation Tabs (Temas, Artistas, Álbumes, Scrobbles)
+    document.querySelectorAll('#content-type-tabs .lastfm-nav-tab, #content-type-tabs .segmented-tab').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            document.querySelectorAll('#content-type-tabs .segmented-tab').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('#content-type-tabs .lastfm-nav-tab, #content-type-tabs .segmented-tab').forEach(b => b.classList.remove('active'));
             const target = e.currentTarget;
             target.classList.add('active');
             currentType = target.getAttribute('data-type');
@@ -2106,8 +2106,8 @@ function navigateToCatalog(type = 'tracks', targetRange = 'current-month') {
     switchAppView('catalog');
     currentType = type || 'tracks';
 
-    // Sincronizar segmented tabs de categorías (Canciones, Artistas, Álbumes, Recientes)
-    document.querySelectorAll('#content-type-tabs .segmented-tab').forEach(b => {
+    // Sincronizar pestañas secundarias de categorías (Temas, Artistas, Álbumes, Scrobbles)
+    document.querySelectorAll('#content-type-tabs .lastfm-nav-tab, #content-type-tabs .segmented-tab').forEach(b => {
         if (b.getAttribute('data-type') === currentType) {
             b.classList.add('active');
         } else {
@@ -2116,30 +2116,12 @@ function navigateToCatalog(type = 'tracks', targetRange = 'current-month') {
     });
 
     if (targetRange === 'current-month') {
-        const now = new Date();
-        const curY = now.getFullYear();
-        const curM = String(now.getMonth() + 1);
-        if (selectTimePeriod) {
-            selectTimePeriod.value = `year-${curY}`;
-        }
-        updateMonthDropdown(curY);
-        if (selectMonth) {
-            selectMonth.disabled = false;
-            selectMonth.value = curM;
-        }
-        currentRange = `month-${curY}-${curM}`;
-        updateQuickFilterPills('current-month');
-    } else if (targetRange === 'overall') {
-        handleQuickPeriodClick('overall');
-        return;
+        selectLastFmDatePreset('current-month');
     } else if (targetRange) {
-        handleQuickPeriodClick(targetRange);
-        return;
+        selectLastFmDatePreset(targetRange);
+    } else {
+        selectLastFmDatePreset('overall');
     }
-
-    if (customDatePickerContainer) customDatePickerContainer.classList.add('d-none');
-    updateStatStrip();
-    loadStats();
 
     // Scroll suave hacia la sección de tops y catálogo
     const catSection = document.getElementById('section-catalog');
@@ -2149,124 +2131,222 @@ function navigateToCatalog(type = 'tracks', targetRange = 'current-month') {
 }
 window.navigateToCatalog = navigateToCatalog;
 
-function handleQuickPeriodClick(periodKey) {
-    updateQuickFilterPills(periodKey);
+function toggleLastFmDateMenu() {
+    const menu = document.getElementById('lastfm-date-dropdown-menu');
+    const btn = document.getElementById('lastfm-date-picker-btn');
+    if (!menu) return;
+    const isHidden = menu.classList.contains('d-none');
+    if (isHidden) {
+        menu.classList.remove('d-none');
+        btn?.classList.add('is-open');
+        renderLastFmYearMonthChips();
+    } else {
+        menu.classList.add('d-none');
+        btn?.classList.remove('is-open');
+    }
+}
+window.toggleLastFmDateMenu = toggleLastFmDateMenu;
 
-    if (periodKey === 'current-month') {
-        const now = new Date();
-        const curY = now.getFullYear();
-        const curM = String(now.getMonth() + 1);
-        if (selectTimePeriod) {
-            selectTimePeriod.value = `year-${curY}`;
+function closeLastFmDateMenu() {
+    const menu = document.getElementById('lastfm-date-dropdown-menu');
+    const btn = document.getElementById('lastfm-date-picker-btn');
+    if (menu) menu.classList.add('d-none');
+    if (btn) btn.classList.remove('is-open');
+}
+window.closeLastFmDateMenu = closeLastFmDateMenu;
+
+document.addEventListener('click', (e) => {
+    const wrapper = document.querySelector('.lastfm-date-selector-wrapper');
+    if (wrapper && !wrapper.contains(e.target)) {
+        closeLastFmDateMenu();
+    }
+});
+
+function selectLastFmDatePreset(periodKey) {
+    const now = new Date();
+    const curY = now.getFullYear();
+    const curM = now.getMonth() + 1;
+    const monthNamesEs = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    let displayLabel = 'Todo el tiempo';
+
+    if (periodKey === 'overall') {
+        currentRange = 'overall';
+        displayLabel = 'Todo el tiempo';
+        if (selectTimePeriod) selectTimePeriod.value = 'overall';
+        if (selectMonth) {
+            selectMonth.disabled = true;
+            selectMonth.value = 'all';
         }
+    } else if (periodKey === 'current-month') {
+        currentRange = `month-${curY}-${curM}`;
+        displayLabel = `${monthNamesEs[curM - 1]} ${curY}`;
+        if (selectTimePeriod) selectTimePeriod.value = `year-${curY}`;
         updateMonthDropdown(curY);
         if (selectMonth) {
             selectMonth.disabled = false;
-            selectMonth.value = curM;
+            selectMonth.value = String(curM);
         }
-        currentRange = `month-${curY}-${curM}`;
     } else if (periodKey === 'this-week') {
+        currentRange = 'this-week';
+        displayLabel = 'Últimos 7 días';
         if (selectTimePeriod) selectTimePeriod.value = 'this-week';
         if (selectMonth) {
             selectMonth.disabled = true;
-            selectMonth.innerHTML = '<option value="all" selected>Esta semana</option>';
+            selectMonth.value = 'all';
         }
-        currentRange = 'this-week';
     } else if (periodKey === 'last-month') {
+        currentRange = 'last-month';
+        displayLabel = 'Últimos 30 días';
         if (selectTimePeriod) selectTimePeriod.value = 'last-month';
         if (selectMonth) {
             selectMonth.disabled = true;
-            selectMonth.innerHTML = '<option value="all" selected>Mes pasado</option>';
+            selectMonth.value = 'all';
         }
-        currentRange = 'last-month';
     } else if (periodKey === 'last-6-months') {
+        currentRange = 'last-6-months';
+        displayLabel = 'Últimos 180 días';
         if (selectTimePeriod) selectTimePeriod.value = 'last-6-months';
         if (selectMonth) {
             selectMonth.disabled = true;
-            selectMonth.innerHTML = '<option value="all" selected>Hace 6 meses</option>';
+            selectMonth.value = 'all';
         }
-        currentRange = 'last-6-months';
     } else if (periodKey === 'year-2026') {
+        currentRange = 'year-2026';
+        displayLabel = 'Año 2026';
         if (selectTimePeriod) selectTimePeriod.value = 'year-2026';
         updateMonthDropdown(2026);
         if (selectMonth) {
             selectMonth.disabled = false;
             selectMonth.value = 'all';
         }
-        currentRange = 'year-2026';
-    } else if (periodKey === 'overall') {
-        if (selectTimePeriod) selectTimePeriod.value = 'overall';
-        if (selectMonth) {
-            selectMonth.disabled = true;
-            selectMonth.innerHTML = '<option value="all" selected>Todo el tiempo</option>';
-        }
-        currentRange = 'overall';
-    } else {
+    } else if (periodKey.startsWith('year-')) {
+        const y = periodKey.replace('year-', '');
+        currentRange = periodKey;
+        displayLabel = `Año ${y}`;
         if (selectTimePeriod) selectTimePeriod.value = periodKey;
-        handleTimePeriodChange(periodKey);
-        return;
+        updateMonthDropdown(y);
+        if (selectMonth) {
+            selectMonth.disabled = false;
+            selectMonth.value = 'all';
+        }
+    } else if (periodKey.startsWith('month-')) {
+        const parts = periodKey.split('-');
+        const y = parts[1];
+        const m = parseInt(parts[2], 10);
+        currentRange = periodKey;
+        displayLabel = `${monthNamesEs[m - 1]} ${y}`;
+        if (selectTimePeriod) selectTimePeriod.value = `year-${y}`;
+        updateMonthDropdown(y);
+        if (selectMonth) {
+            selectMonth.disabled = false;
+            selectMonth.value = String(m);
+        }
+    } else if (periodKey === 'era-spotify') {
+        currentRange = 'era-spotify';
+        displayLabel = 'Era Spotify (2019-2025)';
+        if (selectTimePeriod) selectTimePeriod.value = 'era-spotify';
+    } else if (periodKey === 'era-tidal') {
+        currentRange = 'era-tidal';
+        displayLabel = 'Era Tidal (2025-2026)';
+        if (selectTimePeriod) selectTimePeriod.value = 'era-tidal';
+    } else if (periodKey === 'era-lastfm') {
+        currentRange = 'era-lastfm';
+        displayLabel = 'Era Last.fm (2025-Hoy)';
+        if (selectTimePeriod) selectTimePeriod.value = 'era-lastfm';
+    } else {
+        currentRange = periodKey;
+        displayLabel = periodKey;
     }
 
-    if (customDatePickerContainer) customDatePickerContainer.classList.add('d-none');
+    updateLastFmDateLabel(displayLabel);
+    updateLastFmActivePresets(periodKey);
+    closeLastFmDateMenu();
+
     updateStatStrip();
     loadStats();
 }
-window.handleQuickPeriodClick = handleQuickPeriodClick;
+window.selectLastFmDatePreset = selectLastFmDatePreset;
 
-function updateQuickFilterPills(range) {
-    const pills = document.querySelectorAll('.lastfm-pill-btn[data-period]');
-    if (!pills || pills.length === 0) return;
+function updateLastFmDateLabel(label) {
+    const lbl = document.getElementById('lastfm-date-btn-label');
+    if (lbl) lbl.textContent = label;
+}
 
-    const now = new Date();
-    const curY = String(now.getFullYear());
-    const curM = String(now.getMonth() + 1);
-    const curMonthKey = `month-${curY}-${curM}`;
-
-    let matchKey = range;
-    if (range === 'current-month' || range === curMonthKey) {
-        matchKey = 'current-month';
-    } else if (range === 'this-week' || range === '7day') {
-        matchKey = 'this-week';
-    } else if (range === 'last-month' || range === '1month') {
-        matchKey = 'last-month';
-    } else if (range === 'last-6-months' || range === '6month') {
-        matchKey = 'last-6-months';
-    } else if (range === 'year-2026') {
-        matchKey = 'year-2026';
-    } else if (range === 'overall') {
-        matchKey = 'overall';
-    }
-
-    pills.forEach(p => {
-        if (p.getAttribute('data-period') === matchKey) {
-            p.classList.add('active');
+function updateLastFmActivePresets(periodKey) {
+    document.querySelectorAll('.lastfm-preset-item').forEach(btn => {
+        if (btn.getAttribute('data-period') === periodKey) {
+            btn.classList.add('active');
         } else {
-            p.classList.remove('active');
+            btn.classList.remove('active');
+        }
+    });
+
+    document.querySelectorAll('.lastfm-pill-chip').forEach(btn => {
+        if (btn.getAttribute('data-period') === periodKey) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
         }
     });
 }
-window.updateQuickFilterPills = updateQuickFilterPills;
 
-function toggleAdvancedFilterToolbar() {
-    const toolbar = document.querySelector('.filter-toolbar');
-    const toggleBtn = document.getElementById('btn-toggle-advanced-filters');
-    if (!toolbar) return;
-    const isHidden = toolbar.classList.contains('d-none');
-    if (isHidden) {
-        toolbar.classList.remove('d-none');
-        if (toggleBtn) {
-            toggleBtn.innerHTML = '<i class="fa-solid fa-sliders me-1 text-primary"></i>Filtros Avanzados <i class="fa-solid fa-chevron-up ms-1" style="font-size: 0.65rem;"></i>';
-            toggleBtn.classList.add('active');
+function renderLastFmYearMonthChips() {
+    const yearsContainer = document.getElementById('lastfm-years-chips');
+    const monthsContainer = document.getElementById('lastfm-months-chips');
+    if (!yearsContainer) return;
+
+    const now = new Date();
+    const curYear = now.getFullYear();
+    const curMonth = now.getMonth() + 1;
+    const years = ['2026', '2025', '2024', '2023', '2022', '2021', '2020', '2019'];
+
+    let selectedYear = curYear;
+    if (currentRange && currentRange.startsWith('year-')) {
+        selectedYear = parseInt(currentRange.replace('year-', ''), 10);
+    } else if (currentRange && currentRange.startsWith('month-')) {
+        selectedYear = parseInt(currentRange.split('-')[1], 10);
+    }
+
+    yearsContainer.innerHTML = years.map(yr => {
+        const isYearActive = (currentRange === `year-${yr}`) || (selectedYear === parseInt(yr, 10) && currentRange.startsWith('month-'));
+        return `<button type="button" class="lastfm-pill-chip ${isYearActive ? 'active' : ''}" data-period="year-${yr}" onclick="selectLastFmDatePreset('year-${yr}')">${yr}</button>`;
+    }).join('');
+
+    if (monthsContainer) {
+        const monthNamesShort = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        let maxM = 12;
+        let minM = 1;
+        if (selectedYear === curYear) {
+            maxM = curMonth;
+        } else if (selectedYear === 2019) {
+            minM = 5;
         }
-    } else {
-        toolbar.classList.add('d-none');
-        if (toggleBtn) {
-            toggleBtn.innerHTML = '<i class="fa-solid fa-sliders me-1"></i>Filtros Avanzados <i class="fa-solid fa-chevron-down ms-1" style="font-size: 0.65rem;"></i>';
-            toggleBtn.classList.remove('active');
+
+        const monthsHtml = [];
+        for (let m = minM; m <= maxM; m++) {
+            const mKey = `month-${selectedYear}-${m}`;
+            const isMonthActive = (currentRange === mKey) || (currentRange === 'current-month' && selectedYear === curYear && m === curMonth);
+            monthsHtml.push(`<button type="button" class="lastfm-pill-chip ${isMonthActive ? 'active' : ''}" data-period="${mKey}" onclick="selectLastFmDatePreset('${mKey}')">${monthNamesShort[m - 1]}</button>`);
         }
+        monthsContainer.innerHTML = monthsHtml.join('');
     }
 }
-window.toggleAdvancedFilterToolbar = toggleAdvancedFilterToolbar;
+window.renderLastFmYearMonthChips = renderLastFmYearMonthChips;
+
+function applyCustomDateRange() {
+    const fromInput = document.getElementById('input-date-from');
+    const toInput = document.getElementById('input-date-to');
+    const from = fromInput?.value || '2019-05-01';
+    const to = toInput?.value || '2026-11-05';
+
+    currentRange = `dates_${from}_to_${to}`;
+    updateLastFmDateLabel(`${from} → ${to}`);
+    closeLastFmDateMenu();
+
+    updateStatStrip();
+    loadStats();
+}
+window.applyCustomDateRange = applyCustomDateRange;
 
 function renderCatalogActivityChart(periodRange, db) {
     const container = document.getElementById('catalog-activity-chart-container');
@@ -2405,7 +2485,7 @@ function renderCatalogActivityChart(periodRange, db) {
                     <i class="fa-solid fa-chart-column me-1 text-danger"></i>Actividad de Escucha · <span class="text-white">${periodTitle}</span>
                 </span>
                 <span class="badge rounded-pill bg-dark border border-white border-opacity-15 text-white" style="font-size: 0.70rem;">
-                    <i class="fa-solid fa-headphones me-1 text-primary"></i>${formatNumber(totalPlays)} streams
+                    <i class="fa-solid fa-headphones me-1 text-danger"></i>${formatNumber(totalPlays)} streams
                 </span>
             </div>
             <div class="lastfm-bars-wrap">
@@ -4358,58 +4438,41 @@ function buildPodiumCardHtml(type, index, name, subtitle, playcount, imgId, init
 
 function renderTracks(tracks) {
     statsList.innerHTML = '';
-    const isSearching = !!(filterSearchInput && filterSearchInput.value.trim());
-    const showPodium = !isSearching && tracks.length >= 3;
+    if (!tracks || tracks.length === 0) {
+        statsList.innerHTML = '<div class="text-center text-muted py-5"><i class="fa-solid fa-music fa-2x mb-3 d-block opacity-50"></i>No se encontraron canciones en este periodo</div>';
+        return;
+    }
     const maxPlays = Math.max(1, Number(tracks[0]?.playcount) || 1);
 
-    if (showPodium) {
-        const podiumRow = document.createElement('div');
-        podiumRow.className = 'catalog-podium-grid';
-        podiumRow.innerHTML = tracks.slice(0, 3).map((track, idx) => {
-            const artistName = track.artist ? (track.artist.name || track.artist['#text'] || track.artist) : '';
-            const playcount = formatNumber(track.playcount);
-            const rawPlays = Number(track.playcount) || 0;
-            const pct = Math.min(100, Math.max(3, Math.round((rawPlays / maxPlays) * 100)));
-            const imgId = `art-track-${idx}`;
-            const initialImg = getInitialImage(track, track.name, artistName, 'track');
-            return buildPodiumCardHtml('track', idx, track.name, artistName, playcount, imgId, initialImg, false, pct);
-        }).join('');
-        statsList.appendChild(podiumRow);
-
-        tracks.slice(0, 3).forEach((track, idx) => {
-            const artistName = track.artist ? (track.artist.name || track.artist['#text'] || track.artist) : '';
-            const key = `track::${normalizeKey(track.name)}::${normalizeKey(artistName)}`;
-            if (!artCache[key]) resolveSpotifyArtwork(track.name, artistName, 'track', `art-track-${idx}`);
-        });
-    }
-
     tracks.forEach((track, index) => {
-        if (showPodium && index < 3) return;
         const item = document.createElement('div');
-        item.className = 'card-uniform';
+        item.className = 'lastfm-chartlist-row';
         const artistName = track.artist ? (track.artist.name || track.artist['#text'] || track.artist) : '';
         const playcount = formatNumber(track.playcount);
         const rawPlays = Number(track.playcount) || 0;
-        const pct = Math.min(100, Math.max(3, Math.round((rawPlays / maxPlays) * 100)));
+        const pct = Math.min(100, Math.max(2, Math.round((rawPlays / maxPlays) * 100)));
         const imgId = `art-track-${index}`;
         const initialImg = getInitialImage(track, track.name, artistName, 'track');
         const spotifySearch = `https://open.spotify.com/search/${encodeURIComponent(track.name + ' ' + artistName)}`;
+        const rankClass = index === 0 ? 'top-1' : (index === 1 ? 'top-2' : (index === 2 ? 'top-3' : ''));
 
         item.innerHTML = `
-            <div class="chartlist-row-bar" style="width: ${pct}%;"></div>
-            <span class="card-rank ${index === 0 ? 'top-1' : (index === 1 ? 'top-2' : (index === 2 ? 'top-3' : ''))}" style="position: relative; z-index: 1;">#${String(index + 1).padStart(2, '0')}</span>
-            <img id="${imgId}" src="${initialImg}" class="img-thumb" alt="Cover" onerror="safeImgError(this)" style="position: relative; z-index: 1;">
-            <div class="overflow-hidden flex-grow-1" style="min-width: 0; position: relative; z-index: 1;">
-                <div class="fw-bold text-truncate text-white" style="font-size: 0.84rem;" title="${escapeHtml(track.name)}">${escapeHtml(track.name)}</div>
-                <small class="text-secondary text-truncate d-block" style="font-size: 0.72rem;">${escapeHtml(artistName)}</small>
+            <div class="lastfm-chartlist-row-bar" style="width: ${pct}%;"></div>
+            <span class="lastfm-chartlist-index ${rankClass}">#${String(index + 1).padStart(2, '0')}</span>
+            <img id="${imgId}" src="${initialImg}" class="lastfm-chartlist-image" alt="Cover" onerror="safeImgError(this)">
+            <div class="lastfm-chartlist-info">
+                <div class="lastfm-chartlist-name" title="${escapeHtml(track.name)}">${escapeHtml(track.name)}</div>
+                <div class="lastfm-chartlist-artist" title="${escapeHtml(artistName)}">${escapeHtml(artistName)}</div>
             </div>
-            <div class="chartlist-bar-meter align-self-center mx-2" title="${pct}% del #1" style="position: relative; z-index: 1;">
-                <div class="chartlist-bar-fill" style="width: ${pct}%;"></div>
+            <div class="lastfm-chartlist-bar-meter" title="${pct}% del #1">
+                <div class="lastfm-chartlist-bar-fill" style="width: ${pct}%;"></div>
             </div>
-            <span class="badge-scrobble" style="position: relative; z-index: 1;"><i class="fa-solid fa-headphones"></i>${playcount}</span>
-            <a href="${spotifySearch}" target="_blank" rel="noopener noreferrer" class="btn-card-action" style="position: relative; z-index: 1;" title="Escuchar en Spotify">
-                <i class="fa-brands fa-spotify" style="color: #1ed760; font-size: 0.85rem;"></i>
-            </a>
+            <span class="lastfm-chartlist-count"><i class="fa-solid fa-headphones me-1 text-danger"></i>${playcount}</span>
+            <div class="lastfm-chartlist-actions">
+                <a href="${spotifySearch}" target="_blank" rel="noopener noreferrer" class="btn-card-action" title="Escuchar en Spotify">
+                    <i class="fa-brands fa-spotify" style="color: #1ed760; font-size: 0.85rem;"></i>
+                </a>
+            </div>
         `;
 
         item.addEventListener('click', () => {
@@ -4428,58 +4491,41 @@ function renderTracks(tracks) {
 
 function renderArtists(artists) {
     statsList.innerHTML = '';
-    const isSearching = !!(filterSearchInput && filterSearchInput.value.trim());
-    const showPodium = !isSearching && artists.length >= 3;
+    if (!artists || artists.length === 0) {
+        statsList.innerHTML = '<div class="text-center text-muted py-5"><i class="fa-solid fa-users fa-2x mb-3 d-block opacity-50"></i>No se encontraron artistas en este periodo</div>';
+        return;
+    }
     const maxPlays = Math.max(1, Number(artists[0]?.playcount || artists[0]?.plays) || 1);
 
-    if (showPodium) {
-        const podiumRow = document.createElement('div');
-        podiumRow.className = 'catalog-podium-grid';
-        podiumRow.innerHTML = artists.slice(0, 3).map((artist, idx) => {
-            const artistName = artist.name || '';
-            const playcount = formatNumber(artist.playcount || artist.plays);
-            const rawPlays = Number(artist.playcount || artist.plays) || 0;
-            const pct = Math.min(100, Math.max(3, Math.round((rawPlays / maxPlays) * 100)));
-            const imgId = `art-artist-${idx}`;
-            const initialImg = getInitialImage(artist, artistName, '', 'artist');
-            return buildPodiumCardHtml('artist', idx, artistName, 'Artista Top', playcount, imgId, initialImg, true, pct);
-        }).join('');
-        statsList.appendChild(podiumRow);
-
-        artists.slice(0, 3).forEach((artist, idx) => {
-            const artistName = artist.name || '';
-            const key = `artist::${normalizeKey(artistName)}::`;
-            if (!artCache[key]) resolveSpotifyArtwork(artistName, '', 'artist', `art-artist-${idx}`);
-        });
-    }
-
     artists.forEach((artist, index) => {
-        if (showPodium && index < 3) return;
         const item = document.createElement('div');
-        item.className = 'card-uniform';
+        item.className = 'lastfm-chartlist-row';
         const artistName = artist.name || '';
         const playcount = formatNumber(artist.playcount || artist.plays);
         const rawPlays = Number(artist.playcount || artist.plays) || 0;
-        const pct = Math.min(100, Math.max(3, Math.round((rawPlays / maxPlays) * 100)));
+        const pct = Math.min(100, Math.max(2, Math.round((rawPlays / maxPlays) * 100)));
         const imgId = `art-artist-${index}`;
         const initialImg = getInitialImage(artist, artistName, '', 'artist');
         const spotifySearch = `https://open.spotify.com/search/${encodeURIComponent(artistName)}`;
+        const rankClass = index === 0 ? 'top-1' : (index === 1 ? 'top-2' : (index === 2 ? 'top-3' : ''));
 
         item.innerHTML = `
-            <div class="chartlist-row-bar" style="width: ${pct}%;"></div>
-            <span class="card-rank ${index === 0 ? 'top-1' : (index === 1 ? 'top-2' : (index === 2 ? 'top-3' : ''))}" style="position: relative; z-index: 1;">#${String(index + 1).padStart(2, '0')}</span>
-            <img id="${imgId}" src="${initialImg}" class="img-thumb rounded-circle" alt="Artist" onerror="safeImgError(this)" style="position: relative; z-index: 1;">
-            <div class="overflow-hidden flex-grow-1" style="min-width: 0; position: relative; z-index: 1;">
-                <div class="fw-bold text-truncate text-white" style="font-size: 0.84rem;" title="${escapeHtml(artistName)}">${escapeHtml(artistName)}</div>
-                <small class="text-secondary text-truncate d-block" style="font-size: 0.72rem;">Artista</small>
+            <div class="lastfm-chartlist-row-bar" style="width: ${pct}%;"></div>
+            <span class="lastfm-chartlist-index ${rankClass}">#${String(index + 1).padStart(2, '0')}</span>
+            <img id="${imgId}" src="${initialImg}" class="lastfm-chartlist-image rounded-circle" alt="Artist" onerror="safeImgError(this)">
+            <div class="lastfm-chartlist-info">
+                <div class="lastfm-chartlist-name" title="${escapeHtml(artistName)}">${escapeHtml(artistName)}</div>
+                <div class="lastfm-chartlist-artist">Artista</div>
             </div>
-            <div class="chartlist-bar-meter align-self-center mx-2" title="${pct}% del #1" style="position: relative; z-index: 1;">
-                <div class="chartlist-bar-fill" style="width: ${pct}%;"></div>
+            <div class="lastfm-chartlist-bar-meter" title="${pct}% del #1">
+                <div class="lastfm-chartlist-bar-fill" style="width: ${pct}%;"></div>
             </div>
-            <span class="badge-scrobble" style="position: relative; z-index: 1;"><i class="fa-solid fa-headphones"></i>${playcount}</span>
-            <a href="${spotifySearch}" target="_blank" rel="noopener noreferrer" class="btn-card-action" style="position: relative; z-index: 1;" title="Ver en Spotify">
-                <i class="fa-brands fa-spotify" style="color: #1ed760; font-size: 0.85rem;"></i>
-            </a>
+            <span class="lastfm-chartlist-count"><i class="fa-solid fa-headphones me-1 text-danger"></i>${playcount}</span>
+            <div class="lastfm-chartlist-actions">
+                <a href="${spotifySearch}" target="_blank" rel="noopener noreferrer" class="btn-card-action" title="Ver en Spotify">
+                    <i class="fa-brands fa-spotify" style="color: #1ed760; font-size: 0.85rem;"></i>
+                </a>
+            </div>
         `;
 
         item.addEventListener('click', () => {
@@ -4498,58 +4544,41 @@ function renderArtists(artists) {
 
 function renderAlbums(albums) {
     statsList.innerHTML = '';
-    const isSearching = !!(filterSearchInput && filterSearchInput.value.trim());
-    const showPodium = !isSearching && albums.length >= 3;
+    if (!albums || albums.length === 0) {
+        statsList.innerHTML = '<div class="text-center text-muted py-5"><i class="fa-solid fa-compact-disc fa-2x mb-3 d-block opacity-50"></i>No se encontraron álbumes en este periodo</div>';
+        return;
+    }
     const maxPlays = Math.max(1, Number(albums[0]?.playcount || albums[0]?.plays) || 1);
 
-    if (showPodium) {
-        const podiumRow = document.createElement('div');
-        podiumRow.className = 'catalog-podium-grid';
-        podiumRow.innerHTML = albums.slice(0, 3).map((album, idx) => {
-            const artistName = album.artist ? (album.artist.name || album.artist['#text'] || album.artist) : '';
-            const playcount = formatNumber(album.playcount || album.plays);
-            const rawPlays = Number(album.playcount || album.plays) || 0;
-            const pct = Math.min(100, Math.max(3, Math.round((rawPlays / maxPlays) * 100)));
-            const imgId = `art-album-${idx}`;
-            const initialImg = getInitialImage(album, album.name, artistName, 'album');
-            return buildPodiumCardHtml('album', idx, album.name, artistName, playcount, imgId, initialImg, false, pct);
-        }).join('');
-        statsList.appendChild(podiumRow);
-
-        albums.slice(0, 3).forEach((album, idx) => {
-            const artistName = album.artist ? (album.artist.name || album.artist['#text'] || album.artist) : '';
-            const key = `album::${normalizeKey(album.name)}::${normalizeKey(artistName)}`;
-            if (!artCache[key]) resolveSpotifyArtwork(album.name, artistName, 'album', `art-album-${idx}`);
-        });
-    }
-
     albums.forEach((album, index) => {
-        if (showPodium && index < 3) return;
         const item = document.createElement('div');
-        item.className = 'card-uniform';
+        item.className = 'lastfm-chartlist-row';
         const artistName = album.artist ? (album.artist.name || album.artist['#text'] || album.artist) : '';
         const playcount = formatNumber(album.playcount || album.plays);
         const rawPlays = Number(album.playcount || album.plays) || 0;
-        const pct = Math.min(100, Math.max(3, Math.round((rawPlays / maxPlays) * 100)));
+        const pct = Math.min(100, Math.max(2, Math.round((rawPlays / maxPlays) * 100)));
         const imgId = `art-album-${index}`;
         const initialImg = getInitialImage(album, album.name, artistName, 'album');
         const spotifySearch = `https://open.spotify.com/search/${encodeURIComponent(album.name + ' ' + artistName)}`;
+        const rankClass = index === 0 ? 'top-1' : (index === 1 ? 'top-2' : (index === 2 ? 'top-3' : ''));
 
         item.innerHTML = `
-            <div class="chartlist-row-bar" style="width: ${pct}%;"></div>
-            <span class="card-rank ${index === 0 ? 'top-1' : (index === 1 ? 'top-2' : (index === 2 ? 'top-3' : ''))}" style="position: relative; z-index: 1;">#${String(index + 1).padStart(2, '0')}</span>
-            <img id="${imgId}" src="${initialImg}" class="img-thumb" alt="Album" onerror="safeImgError(this)" style="position: relative; z-index: 1;">
-            <div class="overflow-hidden flex-grow-1" style="min-width: 0; position: relative; z-index: 1;">
-                <div class="fw-bold text-truncate text-white" style="font-size: 0.84rem;" title="${escapeHtml(album.name)}">${escapeHtml(album.name)}</div>
-                <small class="text-secondary text-truncate d-block" style="font-size: 0.72rem;">${escapeHtml(artistName)}</small>
+            <div class="lastfm-chartlist-row-bar" style="width: ${pct}%;"></div>
+            <span class="lastfm-chartlist-index ${rankClass}">#${String(index + 1).padStart(2, '0')}</span>
+            <img id="${imgId}" src="${initialImg}" class="lastfm-chartlist-image" alt="Album" onerror="safeImgError(this)">
+            <div class="lastfm-chartlist-info">
+                <div class="lastfm-chartlist-name" title="${escapeHtml(album.name)}">${escapeHtml(album.name)}</div>
+                <div class="lastfm-chartlist-artist" title="${escapeHtml(artistName)}">${escapeHtml(artistName)}</div>
             </div>
-            <div class="chartlist-bar-meter align-self-center mx-2" title="${pct}% del #1" style="position: relative; z-index: 1;">
-                <div class="chartlist-bar-fill" style="width: ${pct}%;"></div>
+            <div class="lastfm-chartlist-bar-meter" title="${pct}% del #1">
+                <div class="lastfm-chartlist-bar-fill" style="width: ${pct}%;"></div>
             </div>
-            <span class="badge-scrobble" style="position: relative; z-index: 1;"><i class="fa-solid fa-headphones"></i>${playcount}</span>
-            <a href="${spotifySearch}" target="_blank" rel="noopener noreferrer" class="btn-card-action" style="position: relative; z-index: 1;" title="Escuchar en Spotify">
-                <i class="fa-brands fa-spotify" style="color: #1ed760; font-size: 0.85rem;"></i>
-            </a>
+            <span class="lastfm-chartlist-count"><i class="fa-solid fa-headphones me-1 text-danger"></i>${playcount}</span>
+            <div class="lastfm-chartlist-actions">
+                <a href="${spotifySearch}" target="_blank" rel="noopener noreferrer" class="btn-card-action" title="Escuchar en Spotify">
+                    <i class="fa-brands fa-spotify" style="color: #1ed760; font-size: 0.85rem;"></i>
+                </a>
+            </div>
         `;
 
         item.addEventListener('click', () => {
@@ -4568,9 +4597,13 @@ function renderAlbums(albums) {
 
 function renderRecent(tracks) {
     statsList.innerHTML = '';
+    if (!tracks || tracks.length === 0) {
+        statsList.innerHTML = '<div class="text-center text-muted py-5"><i class="fa-solid fa-clock-rotate-left fa-2x mb-3 d-block opacity-50"></i>No hay scrobbles recientes</div>';
+        return;
+    }
     tracks.forEach((track, index) => {
         const item = document.createElement('div');
-        item.className = 'card-uniform';
+        item.className = 'lastfm-chartlist-row';
         const artistName = track.artist ? (track.artist['#text'] || track.artist.name || track.artist) : '';
         const isNowPlaying = track['@attr']?.nowplaying === 'true';
         const playedAtStr = isNowPlaying ? 'En vivo' : formatDate(track.date?.uts);
@@ -4579,18 +4612,20 @@ function renderRecent(tracks) {
         const spotifySearch = `https://open.spotify.com/search/${encodeURIComponent(track.name + ' ' + artistName)}`;
 
         item.innerHTML = `
-            <span class="card-rank">#${String(index + 1).padStart(2, '0')}</span>
-            <img id="${imgId}" src="${initialImg}" class="img-thumb" alt="Cover" onerror="safeImgError(this)">
-            <div class="overflow-hidden flex-grow-1" style="min-width: 0;">
-                <div class="fw-bold text-truncate text-white" style="font-size: 0.84rem;" title="${track.name}">${track.name}</div>
-                <small class="text-secondary text-truncate d-block" style="font-size: 0.72rem;">${artistName}</small>
+            <span class="lastfm-chartlist-index"><i class="fa-solid ${isNowPlaying ? 'fa-volume-high text-danger' : 'fa-play text-muted'}" style="font-size: 0.75rem;"></i></span>
+            <img id="${imgId}" src="${initialImg}" class="lastfm-chartlist-image" alt="Cover" onerror="safeImgError(this)">
+            <div class="lastfm-chartlist-info">
+                <div class="lastfm-chartlist-name" title="${escapeHtml(track.name)}">${escapeHtml(track.name)}</div>
+                <div class="lastfm-chartlist-artist" title="${escapeHtml(artistName)}">${escapeHtml(artistName)}</div>
             </div>
-            <span class="${isNowPlaying ? 'badge bg-primary bg-opacity-25 text-white border border-primary border-opacity-30' : 'badge-scrobble'}" style="${isNowPlaying ? 'font-size: 0.65rem;' : ''}">
-                ${isNowPlaying ? '<i class="fa-solid fa-volume-high me-1 text-primary"></i>En vivo' : `<i class="fa-regular fa-clock me-1"></i>${playedAtStr}`}
+            <span class="${isNowPlaying ? 'badge bg-danger bg-opacity-25 text-white border border-danger border-opacity-30' : 'lastfm-chartlist-count'}" style="${isNowPlaying ? 'font-size: 0.70rem; padding: 4px 8px;' : ''}">
+                ${isNowPlaying ? '<i class="fa-solid fa-signal me-1 text-danger"></i>En vivo' : `<i class="fa-regular fa-clock me-1 text-muted"></i>${playedAtStr}`}
             </span>
-            <a href="${spotifySearch}" target="_blank" rel="noopener noreferrer" class="btn-card-action" title="Escuchar en Spotify">
-                <i class="fa-brands fa-spotify" style="color: #1ed760; font-size: 0.85rem;"></i>
-            </a>
+            <div class="lastfm-chartlist-actions">
+                <a href="${spotifySearch}" target="_blank" rel="noopener noreferrer" class="btn-card-action" title="Escuchar en Spotify">
+                    <i class="fa-brands fa-spotify" style="color: #1ed760; font-size: 0.85rem;"></i>
+                </a>
+            </div>
         `;
 
         item.addEventListener('click', () => {
