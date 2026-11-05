@@ -935,7 +935,16 @@ let unifiedDb = null;
 let isUnifiedDbLoading = false;
 let spotifyDb = null;
 let isSpotifyDbLoading = false;
-let lastFmRecentDelta = [];
+let lastFmRecentDelta = (() => {
+    try {
+        const raw = localStorage.getItem('tunetracker_delta_cache');
+        if (raw) {
+            const arr = JSON.parse(raw);
+            if (Array.isArray(arr)) return arr;
+        }
+    } catch (e) {}
+    return [];
+})();
 let hasFetchedLastFmDelta = false;
 let currentRange = 'overall'; // 'overall', 'year-YYYY', 'month-YYYY-M' o Last.fm periods
 let currentType = 'tracks';  // tracks, artists, albums, recent
@@ -1373,9 +1382,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const authLoadingView = document.getElementById('auth-loading-view');
     const isLoggedOut = localStorage.getItem('spoti_logged_out') === 'true';
 
-    // Breve pausa en la pantalla de verificación para identificar si hay sesión previa
-    await new Promise(r => setTimeout(r, 420));
-
     const hasLastFm = !!(localStorage.getItem('lastfm_user') && localStorage.getItem('lastfm_user').trim());
     const hasOwner = localStorage.getItem('tunetracker_owner_mode') === 'true';
     const isAuthenticated = !isLoggedOut && (hasLastFm || hasOwner);
@@ -1765,7 +1771,49 @@ function setupEventListeners() {
 // ----------------------------------------------------
 // GESTIÓN DE FUENTES DE DATOS: UNIFICADO / SPOTIFY / LAST.FM
 // ----------------------------------------------------
-async function loadUnifiedDatabase() {
+let fullDbPromise = null;
+
+function triggerBackgroundFullDbLoad() {
+    if (fullDbPromise) return fullDbPromise;
+    fullDbPromise = (async () => {
+        isUnifiedDbLoading = true;
+        try {
+            const res = await fetch('/data/unified_history.json');
+            if (res.ok) {
+                const full = await res.json();
+                full._isFastCache = false;
+                unifiedDb = full;
+                await loadTidalEstimates();
+                console.log('Base de datos Unificada completa cargada:', full.summary);
+
+                // Guardar snapshot ultraligero (~40 KB) para que Inicio cargue en 0ms
+                try {
+                    const fastSnapshot = {
+                        summary: full.summary,
+                        yearlyTops: {
+                            '2026': full.yearlyTops?.['2026'] || {},
+                            overall: {
+                                plays: full.yearlyTops?.overall?.plays,
+                                hours: full.yearlyTops?.overall?.hours,
+                                tracks: (full.yearlyTops?.overall?.tracks || []).slice(0, 30),
+                                artists: (full.yearlyTops?.overall?.artists || []).slice(0, 30)
+                            }
+                        }
+                    };
+                    localStorage.setItem('tunetracker_fast_home_cache', JSON.stringify(fastSnapshot));
+                } catch (e) {}
+            }
+        } catch (e) {
+            console.warn('Error al cargar unified_history.json:', e);
+        } finally {
+            isUnifiedDbLoading = false;
+        }
+        return unifiedDb;
+    })();
+    return fullDbPromise;
+}
+
+async function loadUnifiedDatabase(requireFull = false) {
     // Si estamos en Modo Demo o el usuario no es el dueño, NUNCA cargar los datos personales del creador
     if (isDemoMode() || !isAppOwner()) {
         if (!unifiedDb || !unifiedDb._isDemoDb) {
@@ -1775,61 +1823,88 @@ async function loadUnifiedDatabase() {
         return unifiedDb;
     }
 
-    if (unifiedDb && !unifiedDb._isDemoDb) return unifiedDb;
-    if (isUnifiedDbLoading) {
-        while (isUnifiedDbLoading) {
-            await new Promise(r => setTimeout(r, 100));
-        }
+    if (unifiedDb && !unifiedDb._isFastCache && !unifiedDb._isDemoDb) return unifiedDb;
+
+    if (!requireFull && unifiedDb && unifiedDb._isFastCache) {
         return unifiedDb;
     }
-    isUnifiedDbLoading = true;
-    try {
-        const res = await fetch('/data/unified_history.json');
-        if (res.ok) {
-            unifiedDb = await res.json();
-            await loadTidalEstimates();
-            console.log('Base de datos Unificada (Spotify + Last.fm) cargada:', unifiedDb.summary);
-        }
-    } catch (e) {
-        console.warn('Error al cargar unified_history.json:', e);
-    } finally {
-        isUnifiedDbLoading = false;
+
+    if (!requireFull) {
+        try {
+            const rawFast = localStorage.getItem('tunetracker_fast_home_cache');
+            if (rawFast) {
+                const parsed = JSON.parse(rawFast);
+                if (parsed && parsed.summary && parsed.yearlyTops) {
+                    parsed._isFastCache = true;
+                    unifiedDb = parsed;
+                    // Cargar la base de datos completa en segundo plano sin congelar la UI
+                    setTimeout(() => triggerBackgroundFullDbLoad(), 50);
+                    return unifiedDb;
+                }
+            }
+        } catch (e) {}
     }
-    return unifiedDb;
+
+    return await triggerBackgroundFullDbLoad();
 }
 
-async function loadSpotifyDatabase() {
-    return await loadUnifiedDatabase();
+async function loadSpotifyDatabase(requireFull = false) {
+    return await loadUnifiedDatabase(requireFull);
 }
 
-async function getActiveDatabase() {
-    return await loadUnifiedDatabase();
+async function getActiveDatabase(requireFull = false) {
+    return await loadUnifiedDatabase(requireFull);
 }
 
 async function fetchLastFmDelta(force = false) {
     if (hasFetchedLastFmDelta && !force) return lastFmRecentDelta;
     const { user, key } = getLastFmCredentials();
-    if (!user || !key) return [];
+    if (!user || !key) return lastFmRecentDelta;
+
     try {
-        const cutoffUTS = Math.floor(new Date('2026-10-14T21:59:34Z').getTime() / 1000);
-        const all = [];
+        let maxUTS = 0;
+        if (!force && Array.isArray(lastFmRecentDelta) && lastFmRecentDelta.length > 0) {
+            lastFmRecentDelta.forEach(t => {
+                const u = parseInt(t.date?.uts, 10);
+                if (u > maxUTS) maxUTS = u;
+            });
+        }
+
+        const cutoffUTS = (maxUTS > 0) ? (maxUTS + 1) : Math.floor(new Date('2026-10-14T21:59:34Z').getTime() / 1000);
+        const newTracks = [];
         let page = 1;
         let totalPages = 1;
         let ok = true;
-        // Paginado: con el paso de los días el delta supera los 200 scrobbles
-        while (page <= totalPages && page <= 25) {
+        const maxPages = (maxUTS > 0) ? 3 : 25;
+
+        while (page <= totalPages && page <= maxPages) {
             const res = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${encodeURIComponent(user)}&from=${cutoffUTS}&api_key=${encodeURIComponent(key)}&limit=200&page=${page}&format=json`);
             if (!res.ok) { ok = false; break; }
             const data = await res.json();
             const raw = data?.recenttracks?.track || [];
             const list = Array.isArray(raw) ? raw : (raw ? [raw] : []);
-            list.forEach(t => { if (t && t.date && t.date.uts) all.push(t); });
+            list.forEach(t => { if (t && t.date && t.date.uts) newTracks.push(t); });
             totalPages = parseInt(data?.recenttracks?.['@attr']?.totalPages || '1', 10) || 1;
             page++;
         }
+
         if (ok) {
-            lastFmRecentDelta = all;
+            if (maxUTS > 0 && newTracks.length > 0) {
+                const existingKeys = new Set(lastFmRecentDelta.map(t => `${t.date?.uts}:::${t.name}`));
+                newTracks.forEach(t => {
+                    const k = `${t.date?.uts}:::${t.name}`;
+                    if (!existingKeys.has(k)) {
+                        lastFmRecentDelta.unshift(t);
+                        existingKeys.add(k);
+                    }
+                });
+            } else if (maxUTS === 0) {
+                lastFmRecentDelta = newTracks;
+            }
             hasFetchedLastFmDelta = true;
+            try {
+                localStorage.setItem('tunetracker_delta_cache', JSON.stringify(lastFmRecentDelta));
+            } catch (e) {}
         }
     } catch (e) {
         console.warn('Error al consultar delta de Last.fm:', e);
@@ -2931,7 +3006,7 @@ async function showDashboard() {
 
     try {
         if (currentSource === 'unified') {
-            const db = await loadUnifiedDatabase();
+            const db = await loadUnifiedDatabase(false);
             if (db) {
                 initEngagement(db);
                 updateStatStrip();
@@ -2940,7 +3015,6 @@ async function showDashboard() {
             fetchLastFmDelta().then(() => {
                 updateStatStrip();
                 refreshHomeView();
-                loadStats();
             });
         } else if (currentSource === 'spotify') {
             const db = await loadSpotifyDatabase();
@@ -3712,7 +3786,7 @@ async function loadStats(silent = false) {
     // MODO HISTORIAL EXTENDIDO SPOTIFY (2019 - 2026) / UNIFICADO
     // ====================================================
     if (currentSource === 'spotify' || currentSource === 'unified') {
-        const activeDb = await getActiveDatabase();
+        const activeDb = await getActiveDatabase(true);
         if (currentSource === 'unified' && !hasFetchedLastFmDelta) {
             await fetchLastFmDelta();
         }
