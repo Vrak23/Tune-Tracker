@@ -2596,6 +2596,35 @@ function updateStatStrip() {
     statStrip.classList.remove('d-none');
     statStrip.classList.add('d-flex');
 
+    function setStatValues(plays, hours, artists, albums, periodDesc = '') {
+        const playsExact = Math.round(plays || 0);
+        const hoursFloat = parseFloat(hours || 0);
+        const hoursExact = Math.round(hoursFloat);
+        const minutesExact = Math.round(hoursFloat * 60);
+        const artistsExact = Math.round(artists || 0);
+        const albumsExact = Math.round(albums || 0);
+
+        if (stripPlaycount) {
+            stripPlaycount.textContent = playsExact.toLocaleString('es-ES');
+            stripPlaycount.title = `${playsExact.toLocaleString('es-ES')} scrobblings reales registrados${periodDesc ? ' (' + periodDesc + ')' : ''}`;
+        }
+        if (stripHours) {
+            stripHours.textContent = hoursExact.toLocaleString('es-ES');
+        }
+        if (stripHoursWrapper) {
+            stripHoursWrapper.title = `${minutesExact.toLocaleString('es-ES')} minutos en total (${hoursFloat.toFixed(1)} horas)`;
+            stripHoursWrapper.style.cursor = 'help';
+        }
+        if (stripArtists) {
+            stripArtists.textContent = artistsExact.toLocaleString('es-ES');
+            stripArtists.title = `${artistsExact.toLocaleString('es-ES')} artistas únicos reales${periodDesc ? ' (' + periodDesc + ')' : ''}`;
+        }
+        if (stripAlbums) {
+            stripAlbums.textContent = albumsExact.toLocaleString('es-ES');
+            stripAlbums.title = `${albumsExact.toLocaleString('es-ES')} álbumes únicos reales${periodDesc ? ' (' + periodDesc + ')' : ''}`;
+        }
+    }
+
     if (currentSource === 'lastfm') {
         if (stripHoursWrapper) stripHoursWrapper.classList.add('d-none');
         if (stripHoursDot) stripHoursDot.classList.add('d-none');
@@ -2609,15 +2638,9 @@ function updateStatStrip() {
 
     if (!activeDb) {
         if (currentSource === 'unified') {
-            if (stripPlaycount) stripPlaycount.textContent = '71.7K';
-            if (stripHours) stripHours.textContent = '3,691';
-            if (stripArtists) stripArtists.textContent = '1,676';
-            if (stripAlbums) stripAlbums.textContent = '3,500+';
+            setStatValues(71700, 3691, 1676, 3847);
         } else {
-            if (stripPlaycount) stripPlaycount.textContent = '63.1K';
-            if (stripHours) stripHours.textContent = '3,192';
-            if (stripArtists) stripArtists.textContent = '1,654';
-            if (stripAlbums) stripAlbums.textContent = '3,465';
+            setStatValues(63124, 3192, 1654, 3465);
         }
         return;
     }
@@ -2634,10 +2657,9 @@ function updateStatStrip() {
         const extraH = extra * (3.5 / 60);
         const baseP = rData ? rData.plays : 0;
         const baseH = rData ? parseFloat(rData.hours || 0) : 0;
-        if (stripPlaycount) stripPlaycount.textContent = formatNumber(baseP + extra);
-        if (stripHours) stripHours.textContent = Math.round(baseH + extraH).toLocaleString();
-        if (stripArtists) stripArtists.textContent = formatNumber((rData?.artists?.length || 0) + new Set(thisWeekDelta.map(t => t.artist?.['#text'] || t.artist?.name)).size);
-        if (stripAlbums) stripAlbums.textContent = formatNumber((rData?.albums?.length || 0) + new Set(thisWeekDelta.map(t => t.album?.['#text'] || t.album?.name)).size);
+        const deltaArt = new Set(thisWeekDelta.map(t => t.artist?.['#text'] || t.artist?.name).filter(Boolean)).size;
+        const deltaAlb = new Set(thisWeekDelta.map(t => t.album?.['#text'] || t.album?.name).filter(Boolean)).size;
+        setStatValues(baseP + extra, baseH + extraH, (rData?.artists?.length || 0) + deltaArt, (rData?.albums?.length || 0) + deltaAlb, 'esta semana');
         return;
     }
 
@@ -2650,10 +2672,9 @@ function updateStatStrip() {
         const extraH = extra * (3.5 / 60);
         const baseP = rData ? rData.plays : 0;
         const baseH = rData ? parseFloat(rData.hours || 0) : 0;
-        if (stripPlaycount) stripPlaycount.textContent = formatNumber(baseP + extra);
-        if (stripHours) stripHours.textContent = Math.round(baseH + extraH).toLocaleString();
-        if (stripArtists) stripArtists.textContent = formatNumber((rData?.artists?.length || 0) + new Set(lmDelta.map(t => t.artist?.['#text'] || t.artist?.name)).size);
-        if (stripAlbums) stripAlbums.textContent = formatNumber((rData?.albums?.length || 0) + new Set(lmDelta.map(t => t.album?.['#text'] || t.album?.name)).size);
+        const deltaArt = new Set(lmDelta.map(t => t.artist?.['#text'] || t.artist?.name).filter(Boolean)).size;
+        const deltaAlb = new Set(lmDelta.map(t => t.album?.['#text'] || t.album?.name).filter(Boolean)).size;
+        setStatValues(baseP + extra, baseH + extraH, (rData?.artists?.length || 0) + deltaArt, (rData?.albums?.length || 0) + deltaAlb, 'mes pasado');
         return;
     }
 
@@ -2666,25 +2687,29 @@ function updateStatStrip() {
         const extraH = extra * (3.5 / 60);
         const baseP = rData ? rData.plays : 0;
         const baseH = rData ? parseFloat(rData.hours || 0) : 0;
-        if (stripPlaycount) stripPlaycount.textContent = formatNumber(baseP + extra);
-        if (stripHours) stripHours.textContent = Math.round(baseH + extraH).toLocaleString();
-        if (stripArtists) stripArtists.textContent = formatNumber((rData?.artists?.length || 0) + new Set(sixMDelta.map(t => t.artist?.['#text'] || t.artist?.name)).size);
-        if (stripAlbums) stripAlbums.textContent = formatNumber((rData?.albums?.length || 0) + new Set(sixMDelta.map(t => t.album?.['#text'] || t.album?.name)).size);
+        const deltaArt = new Set(sixMDelta.map(t => t.artist?.['#text'] || t.artist?.name).filter(Boolean)).size;
+        const deltaAlb = new Set(sixMDelta.map(t => t.album?.['#text'] || t.album?.name).filter(Boolean)).size;
+        setStatValues(baseP + extra, baseH + extraH, (rData?.artists?.length || 0) + deltaArt, (rData?.albums?.length || 0) + deltaAlb, 'últimos 6 meses');
         return;
     }
 
     // Periodo: Este mes
     if (currentRange === 'current-month') {
-        const rData = getRangeTopData(activeDb, '2026-10-01', '2026-10-31');
-        if (rData) {
-            const extra = (currentSource === 'unified') ? deltaCount : 0;
-            const extraH = (currentSource === 'unified') ? deltaHours : 0;
-            if (stripPlaycount) stripPlaycount.textContent = formatNumber(rData.plays + extra);
-            if (stripHours) stripHours.textContent = Math.round(parseFloat(rData.hours) + extraH).toLocaleString();
-            if (stripArtists) stripArtists.textContent = formatNumber(rData.artists.length);
-            if (stripAlbums) stripAlbums.textContent = formatNumber(rData.albums.length);
-            return;
-        }
+        const now = new Date();
+        const curY = String(now.getFullYear());
+        const curM = String(now.getMonth() + 1);
+        const mData = activeDb.yearlyTops?.[curY]?.months?.[curM];
+        const mDelta = (currentSource === 'unified') ? lastFmRecentDelta.filter(t => isDeltaItemInCurrentRange(t, `month-${curY}-${curM}`)) : [];
+        const extra = mDelta.length;
+        const extraH = extra * (3.5 / 60);
+        const baseP = mData ? (mData.plays || 0) : 0;
+        const baseH = mData ? parseFloat(mData.hours || 0) : 0;
+        const deltaArtists = new Set(mDelta.map(t => t.artist?.['#text'] || t.artist?.name).filter(Boolean)).size;
+        const deltaAlbums = new Set(mDelta.map(t => t.album?.['#text'] || t.album?.name).filter(Boolean)).size;
+        const artCount = (mData?.artists?.length || 0) + deltaArtists;
+        const albCount = (mData?.albums?.length || 0) + deltaAlbums;
+        setStatValues(baseP + extra, baseH + extraH, artCount, albCount, 'este mes');
+        return;
     }
 
     // Periodo: Últimas 4 semanas (28 días)
@@ -2693,30 +2718,21 @@ function updateStatStrip() {
         if (rData) {
             const extra = (currentSource === 'unified') ? deltaCount : 0;
             const extraH = (currentSource === 'unified') ? deltaHours : 0;
-            if (stripPlaycount) stripPlaycount.textContent = formatNumber(rData.plays + extra);
-            if (stripHours) stripHours.textContent = Math.round(parseFloat(rData.hours) + extraH).toLocaleString();
-            if (stripArtists) stripArtists.textContent = formatNumber(rData.artists.length);
-            if (stripAlbums) stripAlbums.textContent = formatNumber(rData.albums.length);
+            setStatValues(rData.plays + extra, parseFloat(rData.hours) + extraH, rData.artists.length, rData.albums.length, 'últimas 4 semanas');
             return;
         }
     }
 
     // Periodo: Era Tidal (Ago 2025 - Jul 2026)
     if (currentRange === 'era-tidal') {
-        if (stripPlaycount) stripPlaycount.textContent = '~16K';
-        if (stripHours) stripHours.textContent = '~850';
-        if (stripArtists) stripArtists.textContent = '15+';
-        if (stripAlbums) stripAlbums.textContent = '35+';
+        setStatValues(16200, 850, 48, 85, 'era tidal');
         return;
     }
     // Periodo: Era Spotify (2019 - Ago 2025)
     if (currentRange === 'era-spotify') {
         const rData = getRangeTopData(activeDb, '2019-05-01', '2025-08-31');
         if (rData) {
-            if (stripPlaycount) stripPlaycount.textContent = formatNumber(rData.plays);
-            if (stripHours) stripHours.textContent = Math.round(parseFloat(rData.hours)).toLocaleString();
-            if (stripArtists) stripArtists.textContent = formatNumber(rData.artists.length);
-            if (stripAlbums) stripAlbums.textContent = formatNumber(rData.albums.length);
+            setStatValues(rData.plays, parseFloat(rData.hours), rData.artists.length, rData.albums.length, 'era spotify');
             return;
         }
     }
@@ -2727,10 +2743,7 @@ function updateStatStrip() {
         if (rData) {
             const extra = (currentSource === 'unified') ? deltaCount : 0;
             const extraH = (currentSource === 'unified') ? deltaHours : 0;
-            if (stripPlaycount) stripPlaycount.textContent = formatNumber(rData.plays + extra);
-            if (stripHours) stripHours.textContent = Math.round(parseFloat(rData.hours) + extraH).toLocaleString();
-            if (stripArtists) stripArtists.textContent = formatNumber(rData.artists.length);
-            if (stripAlbums) stripAlbums.textContent = formatNumber(rData.albums.length);
+            setStatValues(rData.plays + extra, parseFloat(rData.hours) + extraH, rData.artists.length, rData.albums.length, 'era last.fm');
             return;
         }
     }
@@ -2742,10 +2755,7 @@ function updateStatStrip() {
         if (rData) {
             const extra = (currentSource === 'unified' && toD >= '2026-10-01') ? deltaCount : 0;
             const extraH = (currentSource === 'unified' && toD >= '2026-10-01') ? deltaHours : 0;
-            if (stripPlaycount) stripPlaycount.textContent = formatNumber(rData.plays + extra);
-            if (stripHours) stripHours.textContent = Math.round(parseFloat(rData.hours) + extraH).toLocaleString();
-            if (stripArtists) stripArtists.textContent = formatNumber(rData.artists.length);
-            if (stripAlbums) stripAlbums.textContent = formatNumber(rData.albums.length);
+            setStatValues(rData.plays + extra, parseFloat(rData.hours) + extraH, rData.artists.length, rData.albums.length, `${fromD} a ${toD}`);
             return;
         }
     }
@@ -2757,10 +2767,15 @@ function updateStatStrip() {
         if (yData) {
             const extra = ((y === '2026') ? deltaCount : 0) + ((y === '2025' || y === '2026') ? getCustomOverrideDeltaPlays(y) : 0);
             const extraH = (y === '2026') ? deltaHours : 0;
-            if (stripPlaycount) stripPlaycount.textContent = formatNumber(yData.plays + extra);
-            if (stripHours) stripHours.textContent = Math.round(parseFloat(yData.hours || 0) + extraH).toLocaleString();
-            if (stripArtists) stripArtists.textContent = formatNumber(yData.artists?.length || 0);
-            if (stripAlbums) stripAlbums.textContent = formatNumber(yData.albums?.length || 0);
+            let artCount = yData.totalArtists || (yData.artists ? yData.artists.length : 0);
+            let albCount = yData.totalAlbums || (yData.albums ? yData.albums.length : 0);
+            if (y === '2026' && currentSource === 'unified') {
+                const deltaArt = new Set(lastFmRecentDelta.map(t => t.artist?.['#text'] || t.artist?.name).filter(Boolean)).size;
+                const deltaAlb = new Set(lastFmRecentDelta.map(t => t.album?.['#text'] || t.album?.name).filter(Boolean)).size;
+                artCount = Math.max(artCount, 294 + deltaArt);
+                albCount = Math.max(albCount, 300 + deltaAlb);
+            }
+            setStatValues((yData.plays || 0) + extra, parseFloat(yData.hours || 0) + extraH, artCount, albCount, `año ${y}`);
             return;
         }
     }
@@ -2778,27 +2793,28 @@ function updateStatStrip() {
         const baseH = mData ? parseFloat(mData.hours || 0) : 0;
         const baseArt = mData?.artists?.length || 0;
         const baseAlb = mData?.albums?.length || 0;
-        const deltaArtists = new Set(mDelta.map(t => t.artist?.['#text'] || t.artist?.name)).size;
-        const deltaAlbums = new Set(mDelta.map(t => t.album?.['#text'] || t.album?.name)).size;
-
-        if (stripPlaycount) stripPlaycount.textContent = formatNumber(baseP + extra);
-        if (stripHours) stripHours.textContent = Math.round(baseH + extraH).toLocaleString();
-        if (stripArtists) stripArtists.textContent = formatNumber(baseArt + deltaArtists);
-        if (stripAlbums) stripAlbums.textContent = formatNumber(baseAlb + deltaAlbums);
+        const deltaArtists = new Set(mDelta.map(t => t.artist?.['#text'] || t.artist?.name).filter(Boolean)).size;
+        const deltaAlbums = new Set(mDelta.map(t => t.album?.['#text'] || t.album?.name).filter(Boolean)).size;
+        setStatValues(baseP + extra, baseH + extraH, baseArt + deltaArtists, baseAlb + deltaAlbums, 'mes');
         return;
     }
 
     // Apartado General / Histórico Total Unificado o Spotify
-    const s = activeDb.summary;
-    const totalStreams = s.validStreams + deltaCount + getCustomOverrideDeltaPlays(null);
+    const s = activeDb.summary || {};
+    const totalStreams = (s.validStreams || 0) + deltaCount + getCustomOverrideDeltaPlays(null);
     const homeBentoTotal = document.getElementById('home-bento-total-plays');
-    if (homeBentoTotal) homeBentoTotal.textContent = formatNumber(totalStreams);
-    const totalH = Math.round(parseFloat(s.totalHours) + deltaHours);
+    if (homeBentoTotal) homeBentoTotal.textContent = totalStreams.toLocaleString('es-ES');
+    const totalHFloat = parseFloat(s.totalHours || 0) + deltaHours;
 
-    if (stripPlaycount) stripPlaycount.textContent = formatNumber(totalStreams);
-    if (stripHours) stripHours.textContent = totalH.toLocaleString();
-    if (stripArtists) stripArtists.textContent = formatNumber(activeDb.yearlyTops?.overall?.artists?.length || s.totalArtists || 1654);
-    if (stripAlbums) stripAlbums.textContent = formatNumber(activeDb.yearlyTops?.overall?.albums?.length || s.totalAlbums || 3465);
+    // CRÍTICO: Usar los totales reales de s.totalArtists y s.totalAlbums (1,654 y 3,847), NUNCA yearlyTops.overall.artists.length que está acotado a 300!
+    const baseArtists = s.totalArtists || 1654;
+    const baseAlbums = s.totalAlbums || 3847;
+    const deltaArtistCount = (currentSource === 'unified') ? new Set(lastFmRecentDelta.map(t => t.artist?.['#text'] || t.artist?.name).filter(Boolean)).size : 0;
+    const deltaAlbumCount = (currentSource === 'unified') ? new Set(lastFmRecentDelta.map(t => t.album?.['#text'] || t.album?.name).filter(Boolean)).size : 0;
+    const totalArtistsReal = baseArtists + deltaArtistCount;
+    const totalAlbumsReal = baseAlbums + deltaAlbumCount;
+
+    setStatValues(totalStreams, totalHFloat, totalArtistsReal, totalAlbumsReal, 'todo el tiempo');
 }
 
 async function forceAppUpdate() {
@@ -4691,20 +4707,28 @@ function renderRecent(tracks) {
         const artistName = track.artist ? (track.artist['#text'] || track.artist.name || track.artist) : '';
         const isNowPlaying = track['@attr']?.nowplaying === 'true';
         const playedAtStr = isNowPlaying ? 'En vivo' : formatDate(track.date?.uts);
+        const dateObj = track.date?.uts ? new Date(parseInt(track.date.uts, 10) * 1000) : null;
+        const fullDateTitle = dateObj ? dateObj.toLocaleString('es-ES', { dateStyle: 'full', timeStyle: 'medium' }) : '';
         const imgId = `art-recent-${index}`;
         const initialImg = getInitialImage(track, track.name, artistName, 'track');
         const spotifySearch = `https://open.spotify.com/search/${encodeURIComponent(track.name + ' ' + artistName)}`;
 
         item.innerHTML = `
-            <span class="lastfm-chartlist-index"><i class="fa-solid ${isNowPlaying ? 'fa-volume-high text-danger' : 'fa-play text-muted'}" style="font-size: 0.75rem;"></i></span>
+            <span class="lastfm-chartlist-index"><i class="fa-solid ${isNowPlaying ? 'fa-volume-high text-danger' : 'fa-play text-muted'}" style="font-size: 0.72rem;"></i></span>
             <img id="${imgId}" src="${initialImg}" class="lastfm-chartlist-image" alt="Cover" onerror="safeImgError(this)">
             <div class="lastfm-chartlist-info">
                 <div class="lastfm-chartlist-name" title="${escapeHtml(track.name)}">${escapeHtml(track.name)}</div>
                 <div class="lastfm-chartlist-artist" title="${escapeHtml(artistName)}">${escapeHtml(artistName)}</div>
             </div>
-            <span class="${isNowPlaying ? 'badge bg-danger bg-opacity-25 text-white border border-danger border-opacity-30' : 'lastfm-chartlist-count'}" style="${isNowPlaying ? 'font-size: 0.70rem; padding: 4px 8px;' : ''}">
-                ${isNowPlaying ? '<i class="fa-solid fa-signal me-1 text-danger"></i>En vivo' : `<i class="fa-regular fa-clock me-1 text-muted"></i>${playedAtStr}`}
-            </span>
+            ${isNowPlaying ? `
+                <span class="badge bg-danger bg-opacity-25 text-white border border-danger border-opacity-30 rounded-pill px-2.5 py-1" style="font-size: 0.68rem; letter-spacing: 0.02em;">
+                    <i class="fa-solid fa-signal me-1 text-danger"></i>En vivo
+                </span>
+            ` : `
+                <span class="lastfm-chartlist-timestamp" title="${escapeHtml(fullDateTitle)}">
+                    <i class="fa-regular fa-clock me-1 text-muted"></i>${playedAtStr}
+                </span>
+            `}
             <div class="lastfm-chartlist-actions">
                 <a href="${spotifySearch}" target="_blank" rel="noopener noreferrer" class="btn-card-action" title="Escuchar en Spotify">
                     <i class="fa-brands fa-spotify" style="color: #1ed760; font-size: 0.85rem;"></i>

@@ -729,6 +729,38 @@
             font-size: 0.82rem;
             color: #f43f5e;
         }
+        /* Last.fm Scrobble Timestamp (Hora / Hoy discreto) */
+        .lastfm-chartlist-timestamp {
+            position: relative;
+            z-index: 1;
+            flex-shrink: 0;
+            font-size: 0.73rem;
+            color: #94a3b8;
+            font-weight: 500;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -0.01em;
+            padding: 2px 7px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.035);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            transition: all 0.2s ease;
+        }
+        .lastfm-chartlist-timestamp i {
+            font-size: 0.68rem;
+            color: #64748b;
+        }
+        .lastfm-chartlist-row:hover .lastfm-chartlist-timestamp {
+            color: #f1f5f9;
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+        .lastfm-chartlist-row:hover .lastfm-chartlist-timestamp i {
+            color: #e11d48;
+        }
         .lastfm-chartlist-actions {
             position: relative;
             z-index: 1;
@@ -2177,22 +2209,22 @@
                         <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
                             <!-- Metricas Rápidas Estilo Last.fm -->
                             <div id="stat-strip" class="d-flex align-items-baseline gap-4 flex-wrap">
-                                <div class="me-3">
+                                <div class="me-3" title="Total de scrobblings reales registrados">
                                     <span class="text-secondary text-uppercase fw-bold d-block" style="font-size: 0.68rem; letter-spacing: 0.08em; margin-bottom: 2px;">SCROBBLINGS</span>
-                                    <span class="text-white fw-bolder fs-3" id="strip-playcount">63.1K</span>
+                                    <span class="text-white fw-bolder fs-3" id="strip-playcount">70,050</span>
                                 </div>
-                                <div id="strip-hours-wrapper" class="me-3">
+                                <div id="strip-hours-wrapper" class="me-3" style="cursor: help;" title="Pasa el mouse para ver los minutos en total">
                                     <span class="text-secondary text-uppercase fw-bold d-block" style="font-size: 0.68rem; letter-spacing: 0.08em; margin-bottom: 2px;">TIEMPO TOTAL</span>
-                                    <span class="text-white fw-bolder fs-3"><span id="strip-hours">3,192</span> <small class="text-secondary" style="font-size: 0.85rem;">h</small></span>
+                                    <span class="text-white fw-bolder fs-3"><span id="strip-hours">3,538</span> <small class="text-secondary" style="font-size: 0.85rem;">h</small></span>
                                 </div>
                                 <span class="d-none" id="strip-hours-dot"></span>
-                                <div class="d-none d-sm-block me-3">
+                                <div class="d-none d-sm-block me-3" title="Total de artistas únicos reales">
                                     <span class="text-secondary text-uppercase fw-bold d-block" style="font-size: 0.68rem; letter-spacing: 0.08em; margin-bottom: 2px;">ARTISTAS</span>
-                                    <span class="text-white fw-bolder fs-3" id="strip-artists">1,654</span>
+                                    <span class="text-white fw-bolder fs-3" id="strip-artists">1,676</span>
                                 </div>
-                                <div class="d-none d-md-block">
+                                <div class="d-none d-md-block" title="Total de álbumes únicos reales">
                                     <span class="text-secondary text-uppercase fw-bold d-block" style="font-size: 0.68rem; letter-spacing: 0.08em; margin-bottom: 2px;">ÁLBUMES</span>
-                                    <span class="text-white fw-bolder fs-3" id="strip-albums">3,465</span>
+                                    <span class="text-white fw-bolder fs-3" id="strip-albums">3,847</span>
                                 </div>
                             </div>
 
@@ -3426,7 +3458,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
         <!-- App Logic -->
-    <script src="/app.js?v=69"></script>
+    <script src="/app.js?v=70"></script>
 
     <!-- Barra de Navegación Inferior Móvil (Bottom Navigation Bar) -->
     <nav id="bottom-nav-bar" class="bottom-nav-bar d-none">
