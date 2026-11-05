@@ -2290,6 +2290,11 @@ function updateLastFmActivePresets(periodKey) {
     });
 }
 
+function updateQuickFilterPills(periodKey) {
+    updateLastFmActivePresets(periodKey);
+}
+window.updateQuickFilterPills = updateQuickFilterPills;
+
 function renderLastFmYearMonthChips() {
     const yearsContainer = document.getElementById('lastfm-years-chips');
     const monthsContainer = document.getElementById('lastfm-months-chips');
@@ -2352,7 +2357,7 @@ function renderCatalogActivityChart(periodRange, db) {
     const container = document.getElementById('catalog-activity-chart-container');
     if (!container) return;
     if (!db || !db.yearlyTops) {
-        container.classList.add('d-none');
+        container.innerHTML = '';
         return;
     }
 
@@ -2362,7 +2367,7 @@ function renderCatalogActivityChart(periodRange, db) {
     let dataPoints = [];
     let periodTitle = 'Histórico';
 
-    if (periodRange === 'overall') {
+    if (periodRange === 'overall' || !periodRange) {
         periodTitle = 'Histórico Total (2019 - 2026)';
         const years = ['2019', '2020', '2021', '2022', '2023', '2024', '2025', '2026'];
         dataPoints = years.map(yr => {
@@ -2469,9 +2474,53 @@ function renderCatalogActivityChart(periodRange, db) {
             plays: weekMap[idx],
             isActive: idx === todayIdx
         }));
+    } else if (periodRange === 'last-month') {
+        const lm = getLastMonthInfo();
+        const mNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        periodTitle = `Mes Pasado (${mNames[lm.prevM - 1]})`;
+        const daysInMonth = new Date(lm.prevY, lm.prevM, 0).getDate();
+        const mPlays = db.yearlyTops[String(lm.prevY)]?.months?.[String(lm.prevM)]?.plays || 0;
+        dataPoints = Array.from({ length: daysInMonth }, (_, i) => {
+            const dayNum = i + 1;
+            return {
+                label: (dayNum === 1 || dayNum % 5 === 0 || dayNum === daysInMonth) ? String(dayNum) : '',
+                fullLabel: `${dayNum} ${mNames[lm.prevM - 1]}`,
+                plays: Math.round(mPlays / daysInMonth),
+                isActive: false
+            };
+        });
+    } else if (periodRange === 'last-6-months') {
+        periodTitle = 'Últimos 6 Meses';
+        const mNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        dataPoints = [];
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(curYear, (curMonth - 1) - i, 1);
+            const y = d.getFullYear();
+            const m = d.getMonth() + 1;
+            let p = db.yearlyTops[String(y)]?.months?.[String(m)]?.plays || 0;
+            if (y === curYear && m === curMonth && Array.isArray(lastFmRecentDelta)) {
+                p += lastFmRecentDelta.filter(dt => {
+                    if (!dt.date?.uts) return false;
+                    const dtDate = new Date(parseInt(dt.date.uts, 10) * 1000);
+                    return dtDate.getFullYear() === curYear && (dtDate.getMonth() + 1) === curMonth;
+                }).length;
+            }
+            dataPoints.push({
+                label: mNames[m - 1],
+                fullLabel: `${mNames[m - 1]} ${y}`,
+                plays: p,
+                isActive: (y === curYear && m === curMonth)
+            });
+        }
     } else {
-        container.classList.add('d-none');
-        return;
+        periodTitle = 'Actividad Histórica';
+        const years = ['2019', '2020', '2021', '2022', '2023', '2024', '2025', '2026'];
+        dataPoints = years.map(yr => ({
+            label: "'" + yr.slice(2),
+            fullLabel: yr,
+            plays: db.yearlyTops[yr]?.plays || 0,
+            isActive: yr === String(curYear)
+        }));
     }
 
     const totalPlays = dataPoints.reduce((sum, pt) => sum + pt.plays, 0);
@@ -2479,18 +2528,18 @@ function renderCatalogActivityChart(periodRange, db) {
 
     container.classList.remove('d-none');
     container.innerHTML = `
-        <div class="lastfm-chart-card mb-2">
+        <div class="lastfm-chart-card">
             <div class="d-flex align-items-center justify-content-between mb-1.5">
-                <span class="fw-semibold text-secondary" style="font-size: 0.74rem;">
-                    <i class="fa-solid fa-chart-column me-1 text-danger"></i>Actividad de Escucha · <span class="text-white">${periodTitle}</span>
+                <span class="fw-semibold text-secondary" style="font-size: 0.72rem;">
+                    <i class="fa-solid fa-chart-column me-1 text-danger"></i>${periodTitle}
                 </span>
-                <span class="badge rounded-pill bg-dark border border-white border-opacity-15 text-white" style="font-size: 0.70rem;">
-                    <i class="fa-solid fa-headphones me-1 text-danger"></i>${formatNumber(totalPlays)} streams
+                <span class="badge rounded-pill bg-dark border border-white border-opacity-15 text-white" style="font-size: 0.68rem;">
+                    <i class="fa-solid fa-headphones me-1 text-danger"></i>${formatNumber(totalPlays)}
                 </span>
             </div>
             <div class="lastfm-bars-wrap">
                 ${dataPoints.map(pt => {
-                    const hPct = Math.max(5, Math.round((pt.plays / maxPlays) * 100));
+                    const hPct = Math.max(6, Math.round((pt.plays / maxPlays) * 100));
                     return `
                         <div class="lastfm-bar-col" title="${pt.fullLabel}: ${formatNumber(pt.plays)} streams">
                             <div class="lastfm-bar-fill ${pt.isActive ? 'is-active' : ''}" style="height: ${hPct}%;"></div>

@@ -379,6 +379,45 @@
             box-shadow: 0 0 10px rgba(225, 29, 72, 0.6);
         }
 
+        /* Last.fm 2-Column Library Grid Layout (Canciones Izquierda, Gráficos y Fechas Derecha) */
+        .lastfm-library-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 340px;
+            gap: 24px;
+            align-items: start;
+            width: 100%;
+        }
+        @media (max-width: 991px) {
+            .lastfm-library-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            .lastfm-library-sidebar {
+                order: -1;
+            }
+        }
+        .lastfm-library-main {
+            min-width: 0;
+            width: 100%;
+        }
+        .lastfm-library-sidebar {
+            min-width: 0;
+            width: 100%;
+            position: sticky;
+            top: 72px;
+            z-index: 15;
+        }
+        .lastfm-sidebar-card {
+            background: rgba(22, 22, 26, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 14px 16px;
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            margin-bottom: 16px;
+            overflow: visible;
+        }
+
         /* Controls Header (Search + Date Selector) */
         .lastfm-controls-bar {
             display: flex;
@@ -1993,17 +2032,6 @@
             <!-- VISTA 2: TOPS & CATÁLOGO (ESTILO LAST.FM)      -->
             <!-- ============================================== -->
             <div id="section-catalog" class="dashboard-section d-none">
-                <!-- Sleek Minimalist Stat Strip -->
-                <div id="stat-strip" class="d-flex align-items-center justify-content-center gap-2 py-1.5 px-3 mb-2.5 rounded-pill overflow-auto" style="background-color: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); backdrop-filter: saturate(180%) blur(16px); -webkit-backdrop-filter: saturate(180%) blur(16px); font-size: 0.74rem; scrollbar-width: none; box-shadow: 0 4px 20px rgba(0,0,0,0.35);">
-                    <span class="text-secondary flex-shrink-0"><strong id="strip-playcount" class="text-white">63.1K</strong> streams</span>
-                    <span class="text-muted opacity-50">•</span>
-                    <span class="text-secondary flex-shrink-0" id="strip-hours-wrapper"><strong id="strip-hours" class="text-white">3,192</strong> h</span>
-                    <span class="text-muted opacity-50" id="strip-hours-dot">•</span>
-                    <span class="text-secondary flex-shrink-0"><strong id="strip-artists" class="text-white">1,654</strong> artistas</span>
-                    <span class="text-muted opacity-50">•</span>
-                    <span class="text-secondary flex-shrink-0"><strong id="strip-albums" class="text-white">3,465</strong> álbumes</span>
-                </div>
-
                 <!-- Last.fm Secondary Navigation (Temas, Artistas, Álbumes, Scrobbles) -->
                 <div class="lastfm-secondary-nav" id="content-type-tabs">
                     <button type="button" class="lastfm-nav-tab active" data-type="tracks">
@@ -2020,148 +2048,179 @@
                     </button>
                 </div>
 
-                <!-- Last.fm Library Controls Bar -->
-                <div class="lastfm-controls-bar">
-                    <!-- Search Input (Buscador estilo Last.fm) -->
-                    <div class="lastfm-search-wrap">
-                        <i class="fa-solid fa-magnifying-glass lastfm-search-icon"></i>
-                        <input type="text" id="filter-search-input" class="lastfm-search-input" placeholder="Buscar canciones, artistas o álbumes..." autocomplete="off">
-                    </div>
+                <!-- Last.fm 2-Column Library Layout (Canciones Izquierda, Selector y Gráficos Derecha) -->
+                <div class="lastfm-library-grid">
+                    <!-- COLUMNA IZQUIERDA: Listado de Canciones y Controles -->
+                    <div class="lastfm-library-main">
+                        <!-- Stat Overview Strip & List Toolbar -->
+                        <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+                            <!-- Metricas Rápidas Estilo Last.fm -->
+                            <div id="stat-strip" class="d-flex align-items-baseline gap-3.5">
+                                <div>
+                                    <span class="text-secondary text-uppercase fw-bold d-block" style="font-size: 0.66rem; letter-spacing: 0.06em;">SCROBBLINGS</span>
+                                    <span class="text-white fw-bolder fs-4" id="strip-playcount">63.1K</span>
+                                </div>
+                                <div id="strip-hours-wrapper">
+                                    <span class="text-secondary text-uppercase fw-bold d-block" style="font-size: 0.66rem; letter-spacing: 0.06em;">TIEMPO TOTAL</span>
+                                    <span class="text-white fw-bolder fs-4"><span id="strip-hours">3,192</span> <small class="text-secondary" style="font-size: 0.75rem;">h</small></span>
+                                </div>
+                                <span class="d-none" id="strip-hours-dot"></span>
+                                <div class="d-none d-sm-block">
+                                    <span class="text-secondary text-uppercase fw-bold d-block" style="font-size: 0.66rem; letter-spacing: 0.06em;">ARTISTAS</span>
+                                    <span class="text-white fw-bolder fs-4" id="strip-artists">1,654</span>
+                                </div>
+                                <div class="d-none d-md-block">
+                                    <span class="text-secondary text-uppercase fw-bold d-block" style="font-size: 0.66rem; letter-spacing: 0.06em;">ÁLBUMES</span>
+                                    <span class="text-white fw-bolder fs-4" id="strip-albums">3,465</span>
+                                </div>
+                            </div>
 
-                    <!-- Right Controls: Data Source + Last.fm Date Selector + Page Size + Actions -->
-                    <div class="d-flex align-items-center gap-2 flex-wrap ms-auto">
-                        <!-- Data Source Quick Selector -->
-                        <div class="dropdown">
-                            <button class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1 text-white dropdown-toggle" type="button" id="dropdownDataSource" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.74rem; background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.1);">
-                                <i class="fa-solid fa-database me-1 text-info"></i><span id="data-source-label">Unificado</span>
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow" aria-labelledby="dropdownDataSource" style="font-size: 0.78rem;">
-                                <li><a class="dropdown-item active" href="javascript:void(0)" onclick="switchDataSource('unified')"><i class="fa-solid fa-check me-1"></i>Unificado (Total)</a></li>
-                                <li><a class="dropdown-item" href="javascript:void(0)" onclick="switchDataSource('lastfm')"><i class="fa-solid fa-tower-broadcast me-1 text-danger"></i>Last.fm (En Vivo)</a></li>
-                            </ul>
-                            <select id="select-data-source" class="d-none">
-                                <option value="unified" selected>Unificado (Total)</option>
-                                <option value="lastfm">Last.fm (En Vivo)</option>
-                            </select>
-                        </div>
-
-                        <!-- Last.fm Date Range Selector Dropdown -->
-                        <div class="lastfm-date-selector-wrapper">
-                            <button type="button" class="lastfm-date-picker-btn" id="lastfm-date-picker-btn" onclick="toggleLastFmDateMenu()">
-                                <i class="fa-regular fa-calendar-days text-danger"></i>
-                                <span id="lastfm-date-btn-label">Todo el tiempo</span>
-                                <i class="fa-solid fa-chevron-down small text-secondary"></i>
-                            </button>
-
-                            <!-- Last.fm Date Dropdown Popover Menu -->
-                            <div id="lastfm-date-dropdown-menu" class="lastfm-date-popover d-none">
-                                <!-- Predeterminados -->
-                                <div class="lastfm-popover-section">
-                                    <div class="lastfm-popover-title">
-                                        <i class="fa-solid fa-bolt text-warning me-1.5"></i>Predeterminados
-                                    </div>
-                                    <div class="lastfm-presets-list">
-                                        <button type="button" class="lastfm-preset-item active" data-period="overall" onclick="selectLastFmDatePreset('overall')">Todo el tiempo</button>
-                                        <button type="button" class="lastfm-preset-item" data-period="current-month" onclick="selectLastFmDatePreset('current-month')">Este mes</button>
-                                        <button type="button" class="lastfm-preset-item" data-period="this-week" onclick="selectLastFmDatePreset('this-week')">Últimos 7 días (Esta semana)</button>
-                                        <button type="button" class="lastfm-preset-item" data-period="last-month" onclick="selectLastFmDatePreset('last-month')">Últimos 30 días (Mes pasado)</button>
-                                        <button type="button" class="lastfm-preset-item" data-period="last-6-months" onclick="selectLastFmDatePreset('last-6-months')">Últimos 180 días (Hace 6 meses)</button>
-                                        <button type="button" class="lastfm-preset-item" data-period="year-2026" onclick="selectLastFmDatePreset('year-2026')">Últimos 365 días (Año 2026)</button>
-                                    </div>
+                            <!-- Controles Rápidos: Origen de datos + Límite + Comparar -->
+                            <div class="d-flex align-items-center gap-2 flex-wrap ms-auto">
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1 text-white dropdown-toggle" type="button" id="dropdownDataSource" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.74rem; background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.1);">
+                                        <i class="fa-solid fa-database me-1 text-info"></i><span id="data-source-label">Unificado</span>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow" aria-labelledby="dropdownDataSource" style="font-size: 0.78rem;">
+                                        <li><a class="dropdown-item active" href="javascript:void(0)" onclick="switchDataSource('unified')"><i class="fa-solid fa-check me-1"></i>Unificado (Total)</a></li>
+                                        <li><a class="dropdown-item" href="javascript:void(0)" onclick="switchDataSource('lastfm')"><i class="fa-solid fa-tower-broadcast me-1 text-danger"></i>Last.fm (En Vivo)</a></li>
+                                    </ul>
+                                    <select id="select-data-source" class="d-none">
+                                        <option value="unified" selected>Unificado (Total)</option>
+                                        <option value="lastfm">Last.fm (En Vivo)</option>
+                                    </select>
                                 </div>
 
-                                <!-- Años y Meses -->
-                                <div class="lastfm-popover-section">
-                                    <div class="lastfm-popover-title">
-                                        <i class="fa-solid fa-calendar text-info me-1.5"></i>Por Año / Mes
-                                    </div>
-                                    <div class="d-flex flex-wrap gap-1 mb-2" id="lastfm-years-chips">
-                                        <!-- Chips generados por JS: 2026, 2025, 2024, etc. -->
-                                    </div>
-                                    <div class="d-flex flex-wrap gap-1" id="lastfm-months-chips">
-                                        <!-- Meses disponibles del año seleccionado -->
-                                    </div>
+                                <select id="select-page-size" class="form-select form-select-sm filter-select rounded-pill px-2.5 py-1 text-white" style="width: auto; font-size: 0.74rem; background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.1);">
+                                    <option value="25">Top 25</option>
+                                    <option value="50" selected>Top 50</option>
+                                    <option value="100">Top 100</option>
+                                    <option value="200">Top 200</option>
+                                    <option value="all">Ver Todos</option>
+                                </select>
 
-                                    <!-- Eras de escucha (solo admin) -->
-                                    <div class="owner-only-element d-none mt-2 pt-2 border-top border-white border-opacity-10">
-                                        <div class="text-secondary small mb-1" style="font-size: 0.68rem;">Eras de escucha:</div>
-                                        <div class="d-flex flex-wrap gap-1">
-                                            <button type="button" class="lastfm-pill-chip" onclick="selectLastFmDatePreset('era-spotify')">Era Spotify (2019-2025)</button>
-                                            <button type="button" class="lastfm-pill-chip" onclick="selectLastFmDatePreset('era-tidal')">Era Tidal (2025-2026)</button>
-                                            <button type="button" class="lastfm-pill-chip" onclick="selectLastFmDatePreset('era-lastfm')">Era Last.fm (2025-Hoy)</button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Rango Personalizado -->
-                                <div class="lastfm-popover-section border-0 mb-0 pb-0">
-                                    <div class="lastfm-popover-title">
-                                        <i class="fa-solid fa-sliders text-danger me-1.5"></i>Rango Personalizado
-                                    </div>
-                                    <div class="d-flex flex-column gap-2">
-                                        <div class="d-flex align-items-center gap-2">
-                                            <div class="flex-grow-1">
-                                                <label class="lastfm-date-label">Desde</label>
-                                                <input type="date" id="input-date-from" class="form-control form-control-sm lastfm-date-input text-white" min="2019-05-01" max="2026-12-31" value="2019-05-01">
-                                            </div>
-                                            <div class="flex-grow-1">
-                                                <label class="lastfm-date-label">Hasta</label>
-                                                <input type="date" id="input-date-to" class="form-control form-control-sm lastfm-date-input text-white" min="2019-05-01" max="2026-12-31" value="2026-11-05">
-                                            </div>
-                                        </div>
-                                        <button type="button" id="btn-apply-custom-dates" class="btn btn-sm btn-danger w-100 rounded-pill fw-semibold py-1" style="font-size: 0.74rem;" onclick="applyCustomDateRange()">
-                                            Aplicar Rango
-                                        </button>
-                                    </div>
-                                </div>
+                                <button id="btn-open-compare" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1 text-white" style="font-size: 0.74rem; background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.1);" onclick="openPeriodComparisonModal()" title="Comparar Periodos">
+                                    <i class="fa-solid fa-code-compare text-info"></i>
+                                </button>
                             </div>
                         </div>
 
-                        <!-- Selector de Límite (Top 50) -->
-                        <select id="select-page-size" class="form-select form-select-sm filter-select rounded-pill px-2.5 py-1 text-white" style="width: auto; font-size: 0.74rem; background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.1);">
-                            <option value="25">Top 25</option>
-                            <option value="50" selected>Top 50</option>
-                            <option value="100">Top 100</option>
-                            <option value="200">Top 200</option>
-                            <option value="all">Ver Todos</option>
-                        </select>
+                        <!-- Buscador estilo Last.fm a lo largo de la columna de canciones -->
+                        <div class="lastfm-search-wrap mb-3 w-100" style="max-width: 100%;">
+                            <i class="fa-solid fa-magnifying-glass lastfm-search-icon"></i>
+                            <input type="text" id="filter-search-input" class="lastfm-search-input" placeholder="Buscar canciones, artistas o álbumes en este listado..." autocomplete="off">
+                        </div>
 
-                        <!-- Botón Comparar Periodos -->
-                        <button id="btn-open-compare" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1 text-white" style="font-size: 0.74rem; background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.1);" onclick="openPeriodComparisonModal()" title="Comparar Periodos">
-                            <i class="fa-solid fa-code-compare text-info"></i>
-                        </button>
+                        <!-- Loader -->
+                        <div id="loader" class="text-center py-5 d-none">
+                            <div class="spinner-border text-danger" role="status">
+                                <span class="visually-hidden">Cargando...</span>
+                            </div>
+                        </div>
+
+                        <!-- Stats List / Chartlist Container -->
+                        <div id="stats-list" class="lastfm-chartlist mb-4"></div>
+
+                        <!-- Footer: Exportar CSV / JSON -->
+                        <div class="d-flex align-items-center justify-content-between p-2 rounded-3 mt-2" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); font-size: 0.72rem;">
+                            <span class="text-secondary"><i class="fa-solid fa-chart-line me-1 text-danger"></i>Catálogo Last.fm Pro</span>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="text-secondary">Exportar:</span>
+                                <button id="btn-export-csv" class="btn btn-sm btn-link text-success p-0 text-decoration-none" onclick="exportCurrentTop('csv')">
+                                    <i class="fa-solid fa-file-csv me-1"></i>CSV
+                                </button>
+                                <span class="text-muted">|</span>
+                                <button id="btn-export-json" class="btn btn-sm btn-link text-info p-0 text-decoration-none" onclick="exportCurrentTop('json')">
+                                    <i class="fa-solid fa-file-code me-1"></i>JSON
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Hidden legacy controls for perfect JS compatibility -->
-                    <select id="select-time-period" class="d-none"></select>
-                    <select id="select-month" class="d-none"></select>
-                </div>
+                    <!-- COLUMNA DERECHA: Sidebar Last.fm (Selector de fechas + Gráficos) -->
+                    <div class="lastfm-library-sidebar">
+                        <div class="lastfm-sidebar-card">
+                            <!-- Header Intervalo de fechas -->
+                            <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom border-white border-opacity-10">
+                                <span class="text-secondary text-uppercase fw-bold" style="font-size: 0.70rem; letter-spacing: 0.05em;">
+                                    <i class="fa-regular fa-calendar text-danger me-1"></i>Intervalo de fechas
+                                </span>
 
-                <!-- Last.fm Inspired Scrobble Activity Bar Chart Container -->
-                <div id="catalog-activity-chart-container" class="mb-3 d-none"></div>
+                                <!-- Last.fm Date Range Selector Dropdown -->
+                                <div class="lastfm-date-selector-wrapper">
+                                    <button type="button" class="lastfm-date-picker-btn" id="lastfm-date-picker-btn" onclick="toggleLastFmDateMenu()">
+                                        <span id="lastfm-date-btn-label">Todo el tiempo</span>
+                                        <i class="fa-solid fa-chevron-down small text-secondary"></i>
+                                    </button>
 
-                <!-- Loader -->
-                <div id="loader" class="text-center py-5 d-none">
-                    <div class="spinner-border text-danger" role="status">
-                        <span class="visually-hidden">Cargando...</span>
-                    </div>
-                </div>
+                                    <!-- Last.fm Date Dropdown Popover Menu -->
+                                    <div id="lastfm-date-dropdown-menu" class="lastfm-date-popover d-none">
+                                        <!-- Predeterminados -->
+                                        <div class="lastfm-popover-section">
+                                            <div class="lastfm-popover-title">
+                                                <i class="fa-solid fa-bolt text-warning me-1.5"></i>Predeterminados
+                                            </div>
+                                            <div class="lastfm-presets-list">
+                                                <button type="button" class="lastfm-preset-item active" data-period="overall" onclick="selectLastFmDatePreset('overall')">Todo el tiempo</button>
+                                                <button type="button" class="lastfm-preset-item" data-period="current-month" onclick="selectLastFmDatePreset('current-month')">Este mes</button>
+                                                <button type="button" class="lastfm-preset-item" data-period="this-week" onclick="selectLastFmDatePreset('this-week')">Últimos 7 días (Esta semana)</button>
+                                                <button type="button" class="lastfm-preset-item" data-period="last-month" onclick="selectLastFmDatePreset('last-month')">Últimos 30 días (Mes pasado)</button>
+                                                <button type="button" class="lastfm-preset-item" data-period="last-6-months" onclick="selectLastFmDatePreset('last-6-months')">Últimos 180 días (Hace 6 meses)</button>
+                                                <button type="button" class="lastfm-preset-item" data-period="year-2026" onclick="selectLastFmDatePreset('year-2026')">Últimos 365 días (Año 2026)</button>
+                                            </div>
+                                        </div>
 
-                <!-- Stats List / Chartlist Container -->
-                <div id="stats-list" class="lastfm-chartlist mb-4"></div>
+                                        <!-- Años y Meses -->
+                                        <div class="lastfm-popover-section">
+                                            <div class="lastfm-popover-title">
+                                                <i class="fa-solid fa-calendar text-info me-1.5"></i>Por Año / Mes
+                                            </div>
+                                            <div class="d-flex flex-wrap gap-1 mb-2" id="lastfm-years-chips"></div>
+                                            <div class="d-flex flex-wrap gap-1" id="lastfm-months-chips"></div>
 
-                <!-- Footer: Exportar CSV / JSON -->
-                <div class="d-flex align-items-center justify-content-between p-2 rounded-3 mt-2" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); font-size: 0.72rem;">
-                    <span class="text-secondary"><i class="fa-solid fa-chart-line me-1 text-danger"></i>Catálogo Last.fm Pro</span>
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="text-secondary">Exportar:</span>
-                        <button id="btn-export-csv" class="btn btn-sm btn-link text-success p-0 text-decoration-none" onclick="exportCurrentTop('csv')">
-                            <i class="fa-solid fa-file-csv me-1"></i>CSV
-                        </button>
-                        <span class="text-muted">|</span>
-                        <button id="btn-export-json" class="btn btn-sm btn-link text-info p-0 text-decoration-none" onclick="exportCurrentTop('json')">
-                            <i class="fa-solid fa-file-code me-1"></i>JSON
-                        </button>
+                                            <!-- Eras de escucha (solo admin) -->
+                                            <div class="owner-only-element d-none mt-2 pt-2 border-top border-white border-opacity-10">
+                                                <div class="text-secondary small mb-1" style="font-size: 0.68rem;">Eras de escucha:</div>
+                                                <div class="d-flex flex-wrap gap-1">
+                                                    <button type="button" class="lastfm-pill-chip" onclick="selectLastFmDatePreset('era-spotify')">Era Spotify (2019-2025)</button>
+                                                    <button type="button" class="lastfm-pill-chip" onclick="selectLastFmDatePreset('era-tidal')">Era Tidal (2025-2026)</button>
+                                                    <button type="button" class="lastfm-pill-chip" onclick="selectLastFmDatePreset('era-lastfm')">Era Last.fm (2025-Hoy)</button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Rango Personalizado -->
+                                        <div class="lastfm-popover-section border-0 mb-0 pb-0">
+                                            <div class="lastfm-popover-title">
+                                                <i class="fa-solid fa-sliders text-danger me-1.5"></i>Rango Personalizado
+                                            </div>
+                                            <div class="d-flex flex-column gap-2">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <div class="flex-grow-1">
+                                                        <label class="lastfm-date-label">Desde</label>
+                                                        <input type="date" id="input-date-from" class="form-control form-control-sm lastfm-date-input text-white" min="2019-05-01" max="2026-12-31" value="2019-05-01">
+                                                    </div>
+                                                    <div class="flex-grow-1">
+                                                        <label class="lastfm-date-label">Hasta</label>
+                                                        <input type="date" id="input-date-to" class="form-control form-control-sm lastfm-date-input text-white" min="2019-05-01" max="2026-12-31" value="2026-11-05">
+                                                    </div>
+                                                </div>
+                                                <button type="button" id="btn-apply-custom-dates" class="btn btn-sm btn-danger w-100 rounded-pill fw-semibold py-1" style="font-size: 0.74rem;" onclick="applyCustomDateRange()">
+                                                    Aplicar Rango
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Last.fm Inspired Scrobble Activity Bar Chart Container -->
+                            <div id="catalog-activity-chart-container"></div>
+                        </div>
+
+                        <!-- Hidden legacy controls for perfect JS compatibility -->
+                        <select id="select-time-period" class="d-none"></select>
+                        <select id="select-month" class="d-none"></select>
                     </div>
                 </div>
             </div>
@@ -3246,7 +3305,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
         <!-- App Logic -->
-    <script src="/app.js?v=67"></script>
+    <script src="/app.js?v=68"></script>
 
     <!-- Barra de Navegación Inferior Móvil (Bottom Navigation Bar) -->
     <nav id="bottom-nav-bar" class="bottom-nav-bar d-none">
