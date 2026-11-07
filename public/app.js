@@ -953,7 +953,20 @@ let lastFmRecentDelta = (() => {
         const raw = localStorage.getItem('tunetracker_delta_cache');
         if (raw) {
             const arr = JSON.parse(raw);
-            if (Array.isArray(arr)) return arr;
+            if (Array.isArray(arr)) {
+                const map = new Map();
+                arr.forEach(t => {
+                    const u = t?.date?.uts || t?.uts;
+                    if (u) map.set(`${u}:::${t.name}`, t);
+                });
+                const sorted = Array.from(map.values()).sort((a, b) => {
+                    const ub = parseInt(b.date?.uts || b.uts, 10) || 0;
+                    const ua = parseInt(a.date?.uts || a.uts, 10) || 0;
+                    return ub - ua;
+                });
+                try { localStorage.setItem('tunetracker_delta_cache', JSON.stringify(sorted)); } catch (_) {}
+                return sorted;
+            }
         }
     } catch (e) {}
     return [];
@@ -1923,18 +1936,20 @@ async function fetchLastFmDelta(force = false) {
         }
 
         if (ok) {
-            if (maxUTS > 0 && newTracks.length > 0) {
-                const existingKeys = new Set(lastFmRecentDelta.map(t => `${t.date?.uts}:::${t.name}`));
-                newTracks.forEach(t => {
-                    const k = `${t.date?.uts}:::${t.name}`;
-                    if (!existingKeys.has(k)) {
-                        lastFmRecentDelta.unshift(t);
-                        existingKeys.add(k);
-                    }
-                });
-            } else if (maxUTS === 0) {
-                lastFmRecentDelta = newTracks;
-            }
+            const map = new Map();
+            (lastFmRecentDelta || []).forEach(t => {
+                const u = t?.date?.uts || t?.uts;
+                if (u) map.set(`${u}:::${t.name}`, t);
+            });
+            newTracks.forEach(t => {
+                const u = t?.date?.uts || t?.uts;
+                if (u) map.set(`${u}:::${t.name}`, t);
+            });
+            lastFmRecentDelta = Array.from(map.values()).sort((a, b) => {
+                const utsb = parseInt(b.date?.uts || b.uts, 10) || 0;
+                const utsa = parseInt(a.date?.uts || a.uts, 10) || 0;
+                return utsb - utsa;
+            });
             hasFetchedLastFmDelta = true;
             try {
                 localStorage.setItem('tunetracker_delta_cache', JSON.stringify(lastFmRecentDelta));
@@ -4223,6 +4238,16 @@ async function loadStats(silent = false) {
             }));
 
             const combinedRecent = [...deltaFormatted, ...spotifyFormatted];
+            combinedRecent.sort((a, b) => {
+                const aNow = a['@attr']?.nowplaying === 'true';
+                const bNow = b['@attr']?.nowplaying === 'true';
+                if (aNow && !bNow) return -1;
+                if (!aNow && bNow) return 1;
+                const utsb = parseInt(b.date?.uts, 10) || 0;
+                const utsa = parseInt(a.date?.uts, 10) || 0;
+                return utsb - utsa;
+            });
+
             if (combinedRecent.length === 0) {
                 statsList.innerHTML = '<div class="text-center text-secondary py-5">No se encontraron reproducciones registradas.</div>';
                 return;
@@ -4334,11 +4359,21 @@ async function loadStats(silent = false) {
             const res = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.getRecentTracks&user=${encodeURIComponent(user)}&limit=${currentLimit}&api_key=${encodeURIComponent(key)}&format=json`);
             const data = await res.json();
             loader.classList.add('d-none');
-            const tracks = data?.recenttracks?.track || [];
+            const rawTracks = data?.recenttracks?.track || [];
+            const tracks = Array.isArray(rawTracks) ? rawTracks : (rawTracks ? [rawTracks] : []);
             if (tracks.length === 0) {
                 statsList.innerHTML = '<div class="text-center text-secondary py-5">No se encontraron reproducciones recientes.</div>';
                 return;
             }
+            tracks.sort((a, b) => {
+                const aNow = a['@attr']?.nowplaying === 'true';
+                const bNow = b['@attr']?.nowplaying === 'true';
+                if (aNow && !bNow) return -1;
+                if (!aNow && bNow) return 1;
+                const utsb = parseInt(b.date?.uts || b.uts, 10) || 0;
+                const utsa = parseInt(a.date?.uts || a.uts, 10) || 0;
+                return utsb - utsa;
+            });
             currentLoadedItems = tracks;
             renderRecent(tracks);
             return;
@@ -4504,11 +4539,21 @@ async function loadTimestampRangeStats(user, key, fromUTS, toUTS, emptyLabel) {
             const res = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${encodeURIComponent(user)}&from=${fromUTS}&to=${toUTS}&limit=${currentLimit}&api_key=${encodeURIComponent(key)}&format=json`);
             const data = await res.json();
             loader.classList.add('d-none');
-            const tracks = data?.recenttracks?.track || [];
+            const rawTracks = data?.recenttracks?.track || [];
+            const tracks = Array.isArray(rawTracks) ? rawTracks : (rawTracks ? [rawTracks] : []);
             if (tracks.length === 0) {
                 statsList.innerHTML = `<div class="text-center text-secondary py-5">No se encontraron reproducciones registradas en ${emptyLabel}.</div>`;
                 return;
             }
+            tracks.sort((a, b) => {
+                const aNow = a['@attr']?.nowplaying === 'true';
+                const bNow = b['@attr']?.nowplaying === 'true';
+                if (aNow && !bNow) return -1;
+                if (!aNow && bNow) return 1;
+                const utsb = parseInt(b.date?.uts, 10) || 0;
+                const utsa = parseInt(a.date?.uts, 10) || 0;
+                return utsb - utsa;
+            });
             currentLoadedItems = tracks;
             renderRecent(tracks);
             return;
@@ -4809,7 +4854,18 @@ function renderRecent(tracks) {
         statsList.innerHTML = '<div class="text-center text-muted py-5"><i class="fa-solid fa-clock-rotate-left fa-2x mb-3 d-block opacity-50"></i>No hay scrobbles recientes</div>';
         return;
     }
-    tracks.forEach((track, index) => {
+    // Salvaguarda: garantizar orden cronológico inverso estricto (más reciente primero arriba de todo)
+    const sortedTracks = [...tracks].sort((a, b) => {
+        const aNow = a['@attr']?.nowplaying === 'true';
+        const bNow = b['@attr']?.nowplaying === 'true';
+        if (aNow && !bNow) return -1;
+        if (!aNow && bNow) return 1;
+        const utsb = parseInt(b.date?.uts || b.uts, 10) || 0;
+        const utsa = parseInt(a.date?.uts || a.uts, 10) || 0;
+        return utsb - utsa;
+    });
+
+    sortedTracks.forEach((track, index) => {
         const item = document.createElement('div');
         item.className = 'lastfm-chartlist-row';
         const artistName = track.artist ? (track.artist['#text'] || track.artist.name || track.artist) : '';
