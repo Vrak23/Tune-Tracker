@@ -207,6 +207,13 @@
         "2025": 25,
         "2026": 40
       }
+    },
+    "Trivium": {
+      "plays": 35,
+      "years": {
+        "2025": 0,
+        "2026": 35
+      }
     }
   },
   "tracks": {
@@ -797,6 +804,21 @@
         "2025-11": 5,
         "2026-02": 10,
         "2026-03": 11
+      }
+    },
+    "burymewithmyscreams:::trivium": {
+      "name": "Bury Me With My Screams",
+      "artist": "Trivium",
+      "album": "Struck Dead",
+      "plays": 35,
+      "years": {
+        "2025": 0,
+        "2026": 35
+      },
+      "months": {
+        "2026-01": 10,
+        "2026-02": 10,
+        "2026-03": 15
       }
     }
   }

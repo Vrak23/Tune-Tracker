@@ -43,6 +43,19 @@ initFirebase();
 const DEFAULT_LASTFM_USER = 'Vrak_23';
 const DEFAULT_LASTFM_KEY = '82a251af624ca33e3d59215313af74c2';
 
+// Supabase Configuration (Central-de-estudio)
+const SUPABASE_PROJECT_URL = 'https://znbihwazambtwjwizmsn.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_C7JjbD4TMFzBGysYO835GQ_s1rRzvm-';
+const SUPABASE_REST_URL = `${SUPABASE_PROJECT_URL}/rest/v1/spotitracker_curator`;
+const CLOUD_AUTOSYNC_KEY = 'spotitracker_cloud_autosync';
+const CLOUD_LAST_SYNC_KEY = 'spotitracker_cloud_last_sync';
+
+// Global Legacy Filter Elements (Safe declarations to prevent TDZ/ReferenceError)
+let yearsFilterContainer = null;
+let yearsPillList = null;
+let monthsFilterContainer = null;
+let monthsPillList = null;
+
 let isDemoSession = false;
 
 function isDemoMode() {
@@ -1837,12 +1850,33 @@ async function loadUnifiedDatabase(requireFull = false) {
                 if (parsed && parsed.summary && parsed.yearlyTops) {
                     parsed._isFastCache = true;
                     unifiedDb = parsed;
+                    loadTidalEstimates().catch(() => {});
                     // Cargar la base de datos completa en segundo plano sin congelar la UI
-                    setTimeout(() => triggerBackgroundFullDbLoad(), 50);
+                    setTimeout(() => triggerBackgroundFullDbLoad(), 80);
                     return unifiedDb;
                 }
             }
         } catch (e) {}
+
+        // Fallback ultrarrápido para móviles y arranque en frío: fast_home.json (85 KB vs 8.42 MB)
+        try {
+            const fastRes = await fetch('/data/fast_home.json');
+            if (fastRes.ok) {
+                const fastData = await fastRes.json();
+                if (fastData && fastData.summary && fastData.yearlyTops) {
+                    fastData._isFastCache = true;
+                    unifiedDb = fastData;
+                    try {
+                        localStorage.setItem('tunetracker_fast_home_cache', JSON.stringify(fastData));
+                    } catch (_) {}
+                    loadTidalEstimates().catch(() => {});
+                    setTimeout(() => triggerBackgroundFullDbLoad(), 120);
+                    return unifiedDb;
+                }
+            }
+        } catch (e) {
+            console.warn('Fallback fast_home.json fetch failed:', e);
+        }
     }
 
     return await triggerBackgroundFullDbLoad();
@@ -7446,12 +7480,8 @@ window.exportCuratorYouTubeMusic = exportCuratorYouTubeMusic;
 
 // ====================================================
 // PERSISTENCIA EN LA NUBE: SUPABASE (Central-de-estudio)
+// (Constantes SUPABASE inicializadas en cabecera para prevenir TDZ)
 // ====================================================
-const SUPABASE_PROJECT_URL = 'https://znbihwazambtwjwizmsn.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_C7JjbD4TMFzBGysYO835GQ_s1rRzvm-';
-const SUPABASE_REST_URL = `${SUPABASE_PROJECT_URL}/rest/v1/spotitracker_curator`;
-const CLOUD_AUTOSYNC_KEY = 'spotitracker_cloud_autosync';
-const CLOUD_LAST_SYNC_KEY = 'spotitracker_cloud_last_sync';
 
 let cloudAutoSync = localStorage.getItem(CLOUD_AUTOSYNC_KEY) !== 'false';
 let cloudDebounceTimer = null;
@@ -10020,6 +10050,81 @@ window.renderWrappedTeaser = renderWrappedTeaser;
 
 
 // ----------------------------------------------------
+// RESOLUCIÓN INTELIGENTE DE PISTAS & FUZZY MATCHING
+// ----------------------------------------------------
+function resolveCanonicalTrack(inputName, inputArtist, db) {
+    const targetName = (inputName || '').trim();
+    const targetArtist = (inputArtist || '').trim();
+    if (!targetName) return { name: targetName, artist: targetArtist };
+
+    const normN = normalizeKey(targetName);
+    const normA = normalizeKey(targetArtist);
+
+    // 1. Coincidencia directa por clave lowercase en tracksLookup
+    if (db && db.tracksLookup) {
+        const exact = db.tracksLookup[`${targetName.toLowerCase()}:::${targetArtist.toLowerCase()}`];
+        if (exact) return { name: exact.name, artist: exact.artist };
+    }
+
+    // 2. Coincidencia normalizada
+    if (db && db.tracksLookup) {
+        const foundNorm = Object.values(db.tracksLookup).find(t => {
+            const tN = normalizeKey(t.name);
+            const tA = normalizeKey(t.artist || '');
+            if (tN === normN) {
+                if (!normA || tA === normA || tA.includes(normA) || normA.includes(tA)) return true;
+            }
+            return false;
+        });
+        if (foundNorm) return { name: foundNorm.name, artist: foundNorm.artist };
+    }
+
+    // 3. Coincidencia en Tidal Estimates
+    if (tidalEstimates && tidalEstimates.tracks) {
+        const foundTidal = Object.values(tidalEstimates.tracks).find(t => {
+            const tN = normalizeKey(t.name);
+            const tA = normalizeKey(t.artist || '');
+            return (tN === normN || tN.includes(normN) || normN.includes(tN)) && (!normA || tA === normA || tA.includes(normA) || normA.includes(tA));
+        });
+        if (foundTidal) return { name: foundTidal.name, artist: foundTidal.artist };
+    }
+
+    // 4. Fuzzy / Omisión de palabras menores (ej: "bury with my screams" -> "Bury Me With My Screams")
+    const words = targetName.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 2);
+    if (words.length >= 2) {
+        if (db && db.tracksLookup) {
+            const candidate = Object.values(db.tracksLookup).find(t => {
+                const tWords = t.name.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/);
+                const allWords = words.every(w => tWords.includes(w));
+                if (allWords) {
+                    if (!normA || normalizeKey(t.artist || '').includes(normA) || normA.includes(normalizeKey(t.artist || ''))) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+            if (candidate) return { name: candidate.name, artist: candidate.artist };
+        }
+        if (tidalEstimates && tidalEstimates.tracks) {
+            const candidate = Object.values(tidalEstimates.tracks).find(t => {
+                const tWords = t.name.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/);
+                const allWords = words.every(w => tWords.includes(w));
+                if (allWords) {
+                    if (!normA || normalizeKey(t.artist || '').includes(normA) || normA.includes(normalizeKey(t.artist || ''))) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+            if (candidate) return { name: candidate.name, artist: candidate.artist };
+        }
+    }
+
+    return { name: targetName, artist: targetArtist };
+}
+window.resolveCanonicalTrack = resolveCanonicalTrack;
+
+// ----------------------------------------------------
 // MODAL DE AJUSTE MANUAL DE STREAMS (TIDAL / PERSONALIZADO)
 // ----------------------------------------------------
 let currentAdjustingItem = null;
@@ -10027,6 +10132,12 @@ let currentAdjustingItem = null;
 async function openStreamAdjustmentModal(type, name, artist) {
     const activeDb = await getActiveDatabase();
     await loadTidalEstimates();
+
+    if (type === 'track') {
+        const resolved = resolveCanonicalTrack(name, artist, activeDb);
+        name = resolved.name;
+        if (!artist && resolved.artist) artist = resolved.artist;
+    }
 
     const normN = normalizeKey(name);
     const normA = normalizeKey(artist || '');
@@ -10523,16 +10634,80 @@ function resetAllStreamOverrides() {
 }
 window.resetAllStreamOverrides = resetAllStreamOverrides;
 
+async function populateNewOverrideAutocomplete() {
+    const datalist = document.getElementById('new-override-tracks-datalist');
+    if (!datalist || datalist.dataset.loaded) return;
+    try {
+        const db = await getActiveDatabase();
+        if (!db) return;
+        const frag = document.createDocumentFragment();
+        const seen = new Set();
+
+        if (db.tracksLookup) {
+            Object.values(db.tracksLookup).forEach(t => {
+                const val = `${t.name} - ${t.artist}`;
+                if (!seen.has(val.toLowerCase())) {
+                    seen.add(val.toLowerCase());
+                    const opt = document.createElement('option');
+                    opt.value = t.name;
+                    opt.label = `${t.artist} (${t.plays} streams)`;
+                    frag.appendChild(opt);
+                }
+            });
+        }
+        if (tidalEstimates && tidalEstimates.tracks) {
+            Object.values(tidalEstimates.tracks).forEach(t => {
+                const val = `${t.name} - ${t.artist}`;
+                if (!seen.has(val.toLowerCase())) {
+                    seen.add(val.toLowerCase());
+                    const opt = document.createElement('option');
+                    opt.value = t.name;
+                    opt.label = `${t.artist} (+${t.plays} Tidal)`;
+                    frag.appendChild(opt);
+                }
+            });
+        }
+        datalist.appendChild(frag);
+        datalist.dataset.loaded = 'true';
+    } catch (_) {}
+}
+
+function onNewOverrideNameInput(val) {
+    const artistInp = document.getElementById('new-override-artist');
+    if (!artistInp || (artistInp.value || '').trim() !== '') return;
+    const norm = normalizeKey(val);
+    if (!norm) return;
+
+    if (unifiedDb && unifiedDb.tracksLookup) {
+        const found = Object.values(unifiedDb.tracksLookup).find(t => normalizeKey(t.name) === norm);
+        if (found && found.artist) {
+            artistInp.value = found.artist;
+            return;
+        }
+    }
+    if (tidalEstimates && tidalEstimates.tracks) {
+        const found = Object.values(tidalEstimates.tracks).find(t => normalizeKey(t.name) === norm);
+        if (found && found.artist) {
+            artistInp.value = found.artist;
+            return;
+        }
+    }
+}
+window.onNewOverrideNameInput = onNewOverrideNameInput;
+
 function openNewStreamOverrideModal() {
     const modalEl = document.getElementById('newStreamOverrideModal');
     const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
     const nameInp = document.getElementById('new-override-name');
     const artistInp = document.getElementById('new-override-artist');
     const playsInp = document.getElementById('new-override-plays');
+    const yearSel = document.getElementById('new-override-year');
     if (nameInp) nameInp.value = '';
     if (artistInp) artistInp.value = '';
     if (playsInp) playsInp.value = '';
+    if (yearSel) yearSel.value = '2026';
     modal.show();
+    populateNewOverrideAutocomplete();
 }
 window.openNewStreamOverrideModal = openNewStreamOverrideModal;
 
@@ -10548,21 +10723,50 @@ function onNewOverrideTypeChange(val) {
 }
 window.onNewOverrideTypeChange = onNewOverrideTypeChange;
 
-function handleCreateNewStreamOverrideSubmit() {
+async function handleCreateNewStreamOverrideSubmit() {
     const type = document.getElementById('new-override-type')?.value || 'track';
-    const name = document.getElementById('new-override-name')?.value.trim();
-    const artist = document.getElementById('new-override-artist')?.value.trim() || '';
+    let name = (document.getElementById('new-override-name')?.value || '').trim();
+    let artist = (document.getElementById('new-override-artist')?.value || '').trim();
     const plays = parseInt(document.getElementById('new-override-plays')?.value, 10) || 0;
+    const yearChoice = document.getElementById('new-override-year')?.value || '2026';
 
     if (!name) {
         alert('Por favor escribe el nombre de la canción o artista.');
         return;
     }
+
+    const activeDb = await getActiveDatabase();
+    if (type === 'track') {
+        const resolved = resolveCanonicalTrack(name, artist, activeDb);
+        name = resolved.name;
+        if (!artist && resolved.artist) artist = resolved.artist;
+    } else if (type === 'artist') {
+        const normA = normalizeKey(name);
+        const foundA = Object.keys(activeDb?.artistsLookup || {}).find(k => k === normA || k.includes(normA) || normA.includes(k));
+        if (foundA && activeDb?.artistsLookup?.[foundA]) {
+            name = activeDb.artistsLookup[foundA].name;
+        }
+    }
+
     const modalEl = document.getElementById('newStreamOverrideModal');
     bootstrap.Modal.getInstance(modalEl)?.hide();
 
+    let y25 = 0;
+    let y26 = plays;
+    if (yearChoice === '2025') {
+        y25 = plays;
+        y26 = 0;
+    } else if (yearChoice === 'split') {
+        y25 = Math.round(plays * 0.35);
+        y26 = plays - y25;
+    } else {
+        // Año 2026 (100% de streams)
+        y25 = 0;
+        y26 = plays;
+    }
+
     if (plays > 0) {
-        setCustomStreamOverride(type, name, artist, plays);
+        setCustomStreamOverride(type, name, artist, plays, y25, y26);
     }
     openStreamAdjustmentModal(type, name, artist);
 }

@@ -22,6 +22,7 @@
 
     <!-- PWA & Mobile Meta Tags -->
     <meta name="theme-color" content="#a855f7">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Tune Tracker">
@@ -3465,7 +3466,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
         <!-- App Logic -->
-    <script src="/app.js?v=71"></script>
+    <script src="/app.js?v=73"></script>
 
     <!-- Barra de Navegación Inferior Móvil (Bottom Navigation Bar) -->
     <nav id="bottom-nav-bar" class="bottom-nav-bar d-none">
@@ -3603,7 +3604,7 @@
                             </label>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text bg-dark border-secondary border-opacity-25 text-info fw-bold">+</span>
-                                <input type="number" id="adjust-added-input" class="form-control bg-dark border-secondary border-opacity-25 text-white" min="0" placeholder="Ej: 142" oninput="onAdjustAddedInputChanged()">
+                                <input type="number" id="adjust-added-input" class="form-control bg-dark border-secondary border-opacity-25 text-white" min="0" placeholder="Ej: 142" onfocus="this.select()" oninput="onAdjustAddedInputChanged()">
                             </div>
                             <small class="text-secondary d-block mt-1" style="font-size: 0.68rem;">Cantidad que se sumará sobre tu historial oficial.</small>
                         </div>
@@ -3614,7 +3615,7 @@
                             </label>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text bg-dark border-secondary border-opacity-25 text-success fw-bold">=</span>
-                                <input type="number" id="adjust-total-input" class="form-control bg-dark border-secondary border-opacity-25 text-white" min="0" placeholder="Ej: 250" oninput="onAdjustTotalInputChanged()">
+                                <input type="number" id="adjust-total-input" class="form-control bg-dark border-secondary border-opacity-25 text-white" min="0" placeholder="Ej: 250" onfocus="this.select()" oninput="onAdjustTotalInputChanged()">
                             </div>
                             <small class="text-secondary d-block mt-1" style="font-size: 0.68rem;">Calcula automáticamente los streams añadidos necesarios para alcanzar esta meta exacta.</small>
                         </div>
@@ -3632,11 +3633,11 @@
                         <div class="row g-2">
                             <div class="col-6">
                                 <label class="text-secondary mb-1" style="font-size: 0.68rem;">Año 2025:</label>
-                                <input type="number" id="adjust-year-2025-input" class="form-control form-control-sm bg-dark border-secondary border-opacity-25 text-white" min="0" disabled oninput="onAdjustYearsInputChanged()">
+                                <input type="number" id="adjust-year-2025-input" class="form-control form-control-sm bg-dark border-secondary border-opacity-25 text-white" min="0" disabled onfocus="this.select()" oninput="onAdjustYearsInputChanged()">
                             </div>
                             <div class="col-6">
                                 <label class="text-secondary mb-1" style="font-size: 0.68rem;">Año 2026:</label>
-                                <input type="number" id="adjust-year-2026-input" class="form-control form-control-sm bg-dark border-secondary border-opacity-25 text-white" min="0" disabled oninput="onAdjustYearsInputChanged()">
+                                <input type="number" id="adjust-year-2026-input" class="form-control form-control-sm bg-dark border-secondary border-opacity-25 text-white" min="0" disabled onfocus="this.select()" oninput="onAdjustYearsInputChanged()">
                             </div>
                         </div>
                     </div>
@@ -3735,15 +3736,24 @@
                     </div>
                     <div class="mb-2.5">
                         <label class="filter-label" id="new-override-name-label">Nombre de la Canción</label>
-                        <input type="text" id="new-override-name" class="form-control form-control-sm bg-dark border-secondary border-opacity-25 text-white" placeholder="Ej: Tipping Point">
+                        <input type="text" id="new-override-name" class="form-control form-control-sm bg-dark border-secondary border-opacity-25 text-white" placeholder="Ej: Bury Me With My Screams" list="new-override-tracks-datalist" autocomplete="off" oninput="onNewOverrideNameInput(this.value)">
+                        <datalist id="new-override-tracks-datalist"></datalist>
                     </div>
                     <div class="mb-2.5" id="new-override-artist-group">
                         <label class="filter-label">Nombre del Artista</label>
-                        <input type="text" id="new-override-artist" class="form-control form-control-sm bg-dark border-secondary border-opacity-25 text-white" placeholder="Ej: Megadeth">
+                        <input type="text" id="new-override-artist" class="form-control form-control-sm bg-dark border-secondary border-opacity-25 text-white" placeholder="Ej: Trivium" autocomplete="off">
                     </div>
                     <div class="mb-2.5">
                         <label class="filter-label">Reproducciones a Añadir (+)</label>
-                        <input type="number" id="new-override-plays" class="form-control form-control-sm bg-dark border-secondary border-opacity-25 text-white" min="1" placeholder="Ej: 50">
+                        <input type="number" id="new-override-plays" class="form-control form-control-sm bg-dark border-secondary border-opacity-25 text-white" min="1" placeholder="Ej: 35" onfocus="this.select()">
+                    </div>
+                    <div class="mb-2.5">
+                        <label class="filter-label">Asignar a Año</label>
+                        <select id="new-override-year" class="form-select form-select-sm filter-select">
+                            <option value="2026" selected>Año 2026 (100% de streams)</option>
+                            <option value="2025">Año 2025 (100% de streams)</option>
+                            <option value="split">Automático (35% en 2025, 65% en 2026)</option>
+                        </select>
                     </div>
                 </div>
                 <div class="modal-footer border-top border-secondary border-opacity-10 py-2.5 px-3">

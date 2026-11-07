@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tunetracker-v71';
+const CACHE_NAME = 'tunetracker-v73';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -7,7 +7,8 @@ const STATIC_ASSETS = [
   '/logo-192.png',
   '/apple-touch-icon.png',
   '/favicon.png',
-  '/manifest.json'
+  '/manifest.json',
+  '/data/fast_home.json'
 ];
 
 self.addEventListener('install', (event) => {
