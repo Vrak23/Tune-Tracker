@@ -2681,21 +2681,23 @@ function renderCatalogActivityChart(periodRange, db) {
         }));
     }
 
+    const isDayLevel = dataPoints.some(pt => pt.label && pt.label.startsWith('Día '));
+    const listMaxHeight = isDayLevel ? '195px' : '280px';
     const totalPlays = dataPoints.reduce((sum, pt) => sum + pt.plays, 0);
     const maxPlays = Math.max(1, ...dataPoints.map(pt => pt.plays));
 
     container.classList.remove('d-none');
     container.innerHTML = `
-        <div class="lastfm-h-chart">
+        <div class="lastfm-h-chart ${isDayLevel ? 'is-day-level' : ''}">
             <div class="d-flex align-items-center justify-content-between mb-2">
-                <span class="text-secondary fw-semibold" style="font-size: 0.72rem;">
+                <span class="text-secondary fw-semibold text-truncate me-2" style="font-size: 0.72rem;">
                     <i class="fa-solid fa-chart-simple text-danger me-1"></i>${periodTitle}
                 </span>
-                <span class="badge rounded-pill bg-dark border border-white border-opacity-15 text-white" style="font-size: 0.68rem;">
+                <span class="badge rounded-pill bg-dark border border-white border-opacity-15 text-white flex-shrink-0" style="font-size: 0.68rem;">
                     <i class="fa-solid fa-headphones text-danger me-1"></i>${formatNumber(totalPlays)}
                 </span>
             </div>
-            <div class="lastfm-h-bars-list" style="max-height: 420px; overflow-y: auto; padding-right: 4px;">
+            <div class="lastfm-h-bars-list ${isDayLevel ? 'is-days-scroll' : ''}" style="max-height: ${listMaxHeight}; overflow-y: auto; padding-right: 4px;">
                 ${dataPoints.map(pt => {
                     const pct = Math.min(100, Math.max(pt.plays > 0 ? 3 : 0, Math.round((pt.plays / maxPlays) * 100)));
                     const clickAttr = pt.filterKey ? `onclick="selectLastFmDatePreset('${pt.filterKey}')" style="cursor: pointer;"` : '';
@@ -2712,6 +2714,18 @@ function renderCatalogActivityChart(periodRange, db) {
             </div>
         </div>
     `;
+
+    if (isDayLevel) {
+        setTimeout(() => {
+            const activeEl = container.querySelector('.lastfm-h-bar-fill.is-active, .lastfm-h-bar-label.is-active');
+            if (activeEl) {
+                const row = activeEl.closest('.lastfm-h-bar-row');
+                if (row) {
+                    row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                }
+            }
+        }, 50);
+    }
 }
 window.renderCatalogActivityChart = renderCatalogActivityChart;
 
@@ -9320,6 +9334,48 @@ async function renderHomeHighlights(db) {
                 });
             }
         }
+
+        // 3. Mini Top 5 Canciones en rotación del mes (Bento 4)
+        const tracksMiniListEl = document.getElementById('home-top-tracks-mini-list');
+        if (tracksMiniListEl) {
+            if (sorted.length === 0) {
+                tracksMiniListEl.innerHTML = `
+                    <div class="text-center py-3 text-secondary" style="font-size: 0.74rem;">
+                        <i class="fa-regular fa-clock me-1 text-muted"></i>Aún sin canciones en rotación para ${currentMonthName}. Se irá llenando a medida que avances en el mes.
+                    </div>
+                `;
+            } else {
+                const top5Tracks = sorted.slice(0, 5);
+                tracksMiniListEl.innerHTML = top5Tracks.map((t, idx) => {
+                    const tKey = `track::${normalizeKey(t.name)}::${normalizeKey(t.artist)}`;
+                    const tCover = artCache[tKey] || FALLBACK_ART_SVG;
+                    const imgElementId = `home-mini-track-${idx}`;
+
+                    return `
+                        <div class="d-flex align-items-center justify-content-between p-2 rounded-2" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); cursor: pointer;" onclick="showItemStats('track', '${escapeJsStr(t.name)}', '${escapeJsStr(t.artist)}')">
+                            <div class="d-flex align-items-center gap-2.5 overflow-hidden" style="min-width: 0;">
+                                <span class="fw-bold text-secondary text-center flex-shrink-0" style="width: 18px; font-size: 0.78rem;">#${idx + 1}</span>
+                                <img id="${imgElementId}" src="${tCover}" class="rounded-2 flex-shrink-0" style="width: 36px; height: 36px; object-fit: cover; border: 1px solid rgba(255, 255, 255, 0.1);" alt="${escapeHtml(t.name)}" onerror="safeImgError(this)">
+                                <div class="overflow-hidden" style="min-width: 0;">
+                                    <div class="fw-semibold text-white text-truncate" style="font-size: 0.82rem;" title="${escapeHtml(t.name)}">${escapeHtml(t.name)}</div>
+                                    <div class="text-secondary text-truncate" style="font-size: 0.70rem;" title="${escapeHtml(t.artist)}">${escapeHtml(t.artist)}</div>
+                                </div>
+                            </div>
+                            <span class="badge bg-secondary bg-opacity-25 text-white flex-shrink-0 ms-2" style="font-size: 0.68rem;">${formatNumber(t.plays)} ${t.plays === 1 ? 'stream' : 'streams'}</span>
+                        </div>
+                    `;
+                }).join('');
+
+                // Resolver fotos de los tracks de forma asíncrona
+                top5Tracks.forEach((t, idx) => {
+                    const tKey = `track::${normalizeKey(t.name)}::${normalizeKey(t.artist)}`;
+                    const imgElementId = `home-mini-track-${idx}`;
+                    if (!artCache[tKey]) {
+                        resolveSpotifyArtwork(t.name, t.artist, 'track', imgElementId);
+                    }
+                });
+            }
+        }
     } catch (err) {
         console.error('Error renderizando highlights del home:', err);
     }
@@ -9771,7 +9827,7 @@ async function generateHomeHookGame(db) {
                 </div>
                 <small class="text-secondary" style="font-size: 0.72rem;">Elige una opción para comprobar tus números:</small>
             </div>
-            <div class="d-flex flex-column gap-1.5" id="hook-options-container">
+            <div class="hook-options-grid" id="hook-options-container">
                 ${options.map((opt, i) => {
                     const optId = opt.name + ':::' + (opt.artist?.name || opt.artist || '');
                     const optArtist = opt.artist?.name || opt.artist || '';
@@ -9814,7 +9870,7 @@ async function generateHomeHookGame(db) {
                 </div>
                 <small class="text-secondary" style="font-size: 0.72rem;">Selecciona el artista correcto:</small>
             </div>
-            <div class="d-flex flex-column gap-1.5" id="hook-options-container">
+            <div class="hook-options-grid" id="hook-options-container">
                 ${options.map(art => {
                     return `
                         <button type="button" class="btn btn-sm btn-dark text-start p-2 rounded-2 d-flex align-items-center justify-content-between border border-secondary border-opacity-25" style="font-size: 0.78rem; transition: all 0.2s;" onclick="handleHomeHookAnswer('${escapeHtml(art)}', 0)">
@@ -9847,7 +9903,7 @@ async function generateHomeHookGame(db) {
                 </div>
                 <small class="text-secondary" style="font-size: 0.72rem;">Elige a tu rey o reina de streams:</small>
             </div>
-            <div class="d-flex flex-column gap-1.5" id="hook-options-container">
+            <div class="hook-options-grid" id="hook-options-container">
                 ${options.map(opt => {
                     const name = opt.name || opt['#text'] || opt;
                     const plays = opt.plays || opt.playcount || 0;

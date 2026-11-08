@@ -806,16 +806,37 @@
             color: #ffffff;
             font-weight: 700;
         }
+        .lastfm-h-bars-list {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(225, 29, 72, 0.45) rgba(255, 255, 255, 0.04);
+            -webkit-overflow-scrolling: touch;
+        }
+        .lastfm-h-bars-list.is-days-scroll {
+            max-height: 195px !important;
+        }
         .lastfm-h-bars-list::-webkit-scrollbar {
-            width: 4px;
+            width: 5px;
         }
         .lastfm-h-bars-list::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.02);
+            background: rgba(255, 255, 255, 0.03);
             border-radius: 999px;
         }
         .lastfm-h-bars-list::-webkit-scrollbar-thumb {
-            background: rgba(225, 29, 72, 0.4);
+            background: rgba(225, 29, 72, 0.5);
             border-radius: 999px;
+        }
+        .lastfm-h-bars-list::-webkit-scrollbar-thumb:hover {
+            background: rgba(225, 29, 72, 0.8);
+        }
+        .hook-options-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+        @media (min-width: 768px) {
+            .hook-options-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
         }
         .lastfm-h-bar-track {
             flex-grow: 1;
@@ -2051,29 +2072,7 @@
                         </div>
                     </div>
 
-                    <!-- Bento 3 (6 cols): Mini Reto Interactivo -->
-                    <div id="home-interactive-hook" class="apple-bento-card bento-span-6 d-flex flex-column justify-content-between">
-                        <div class="d-flex align-items-center justify-content-between mb-2">
-                            <span class="apple-eyebrow" style="color: #c084fc;">
-                                <i class="fa-solid fa-gamepad"></i> DESAFÍO RÁPIDO
-                            </span>
-                            <button type="button" class="btn btn-sm btn-link text-secondary p-0 text-decoration-none" style="font-size: 0.74rem;" onclick="generateHomeHookGame()">
-                                <i class="fa-solid fa-rotate-right me-1"></i> Otra
-                            </button>
-                        </div>
-                        <div id="home-hook-body" class="my-auto">
-                            <div class="d-flex flex-column gap-2 py-1">
-                                <div class="apple-skeleton-shimmer" style="width: 82%; height: 16px; border-radius: 6px;"></div>
-                                <div class="apple-skeleton-shimmer" style="width: 58%; height: 13px; border-radius: 6px;"></div>
-                                <div class="d-flex flex-column gap-1.5 mt-2">
-                                    <div class="apple-skeleton-shimmer rounded-3" style="width: 100%; height: 32px;"></div>
-                                    <div class="apple-skeleton-shimmer rounded-3" style="width: 100%; height: 32px;"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Bento 4 (6 cols): Top 5 en Rotación (Artistas) -->
+                    <!-- Bento 3 (6 cols): Top 5 en Rotación (Artistas) -->
                     <div class="apple-bento-card bento-span-6">
                         <div class="d-flex align-items-center justify-content-between mb-2.5">
                             <span class="apple-eyebrow text-danger">
@@ -2120,71 +2119,74 @@
                         </div>
                     </div>
 
-                    <!-- Bento 5 (3 cols x 4): Apple Arcade / Experiencias Destacadas -->
-                    <div class="apple-bento-card interactive bento-span-3 p-3" style="cursor: pointer; background: radial-gradient(circle at top right, rgba(245, 158, 11, 0.16), rgba(20, 20, 24, 0.95));" onclick="openBracketModal()">
-                        <div class="d-flex align-items-center justify-content-between mb-2">
-                            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 34px; height: 34px; background: rgba(245, 158, 11, 0.18); color: #fbbf24;">
-                                <i class="fa-solid fa-trophy"></i>
-                            </div>
-                            <span class="badge rounded-pill" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; font-size: 0.60rem;">NUEVO</span>
+                    <!-- Bento 4 (6 cols): Top 5 en Rotación (Canciones) -->
+                    <div class="apple-bento-card bento-span-6">
+                        <div class="d-flex align-items-center justify-content-between mb-2.5">
+                            <span class="apple-eyebrow" style="color: #bf5af2;">
+                                <i class="fa-solid fa-music"></i> TOP 5 CANCIONES EN ROTACIÓN
+                            </span>
+                            <button class="btn btn-sm btn-link text-info p-0 text-decoration-none fw-semibold" style="font-size: 0.74rem;" onclick="navigateToCatalog('tracks', 'current-month')">
+                                Ver Top 50 →
+                            </button>
                         </div>
-                        <div class="fw-bold text-white" style="font-size: 0.86rem;">Torneo Mundial 16</div>
-                        <small class="text-secondary d-block" style="font-size: 0.70rem;">Duelos 1v1 hasta coronar tu canción campeona</small>
+                        <div id="home-top-tracks-mini-list" class="d-flex flex-column gap-1.5">
+                            <div class="d-flex align-items-center justify-content-between p-2 rounded-2" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05);">
+                                <div class="d-flex align-items-center gap-2.5 flex-grow-1">
+                                    <div class="apple-skeleton-shimmer" style="width: 18px; height: 14px;"></div>
+                                    <div class="apple-skeleton-shimmer rounded-2" style="width: 36px; height: 36px; flex-shrink: 0;"></div>
+                                    <div class="d-flex flex-column gap-1 flex-grow-1">
+                                        <div class="apple-skeleton-shimmer" style="width: 65%; height: 13px;"></div>
+                                        <div class="apple-skeleton-shimmer" style="width: 40%; height: 10px;"></div>
+                                    </div>
+                                </div>
+                                <div class="apple-skeleton-shimmer rounded-pill" style="width: 45px; height: 18px; flex-shrink: 0;"></div>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between p-2 rounded-2" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05);">
+                                <div class="d-flex align-items-center gap-2.5 flex-grow-1">
+                                    <div class="apple-skeleton-shimmer" style="width: 18px; height: 14px;"></div>
+                                    <div class="apple-skeleton-shimmer rounded-2" style="width: 36px; height: 36px; flex-shrink: 0;"></div>
+                                    <div class="d-flex flex-column gap-1 flex-grow-1">
+                                        <div class="apple-skeleton-shimmer" style="width: 50%; height: 13px;"></div>
+                                        <div class="apple-skeleton-shimmer" style="width: 35%; height: 10px;"></div>
+                                    </div>
+                                </div>
+                                <div class="apple-skeleton-shimmer rounded-pill" style="width: 45px; height: 18px; flex-shrink: 0;"></div>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between p-2 rounded-2" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05);">
+                                <div class="d-flex align-items-center gap-2.5 flex-grow-1">
+                                    <div class="apple-skeleton-shimmer" style="width: 18px; height: 14px;"></div>
+                                    <div class="apple-skeleton-shimmer rounded-2" style="width: 36px; height: 36px; flex-shrink: 0;"></div>
+                                    <div class="d-flex flex-column gap-1 flex-grow-1">
+                                        <div class="apple-skeleton-shimmer" style="width: 55%; height: 13px;"></div>
+                                        <div class="apple-skeleton-shimmer" style="width: 30%; height: 10px;"></div>
+                                    </div>
+                                </div>
+                                <div class="apple-skeleton-shimmer rounded-pill" style="width: 45px; height: 18px; flex-shrink: 0;"></div>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="apple-bento-card interactive bento-span-3 p-3" style="cursor: pointer; background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.16), rgba(20, 20, 24, 0.95));" onclick="openHigherLowerModal()">
+                    <!-- Bento 5 (12 cols): Mini Reto Interactivo -->
+                    <div id="home-interactive-hook" class="apple-bento-card bento-span-12 d-flex flex-column justify-content-between">
                         <div class="d-flex align-items-center justify-content-between mb-2">
-                            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 34px; height: 34px; background: rgba(56, 189, 248, 0.18); color: #38bdf8;">
-                                <i class="fa-solid fa-arrow-up-wide-short"></i>
-                            </div>
-                            <span class="badge rounded-pill" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; font-size: 0.60rem;">JUEGO</span>
+                            <span class="apple-eyebrow" style="color: #c084fc;">
+                                <i class="fa-solid fa-gamepad"></i> DESAFÍO RÁPIDO
+                            </span>
+                            <button type="button" class="btn btn-sm btn-link text-secondary p-0 text-decoration-none" style="font-size: 0.74rem;" onclick="generateHomeHookGame()">
+                                <i class="fa-solid fa-rotate-right me-1"></i> Otra
+                            </button>
                         </div>
-                        <div class="fw-bold text-white" style="font-size: 0.86rem;">Higher or Lower</div>
-                        <small class="text-secondary d-block" style="font-size: 0.70rem;">¿Cuál tiene más streams en tu cuenta?</small>
-                    </div>
-
-                    <div id="bento-card-curator" class="apple-bento-card interactive bento-span-3 p-3 demo-hide-element" style="cursor: pointer;" onclick="switchAppView('curator')">
-                        <div class="d-flex align-items-center justify-content-between mb-2">
-                            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 34px; height: 34px; background: rgba(191, 90, 242, 0.18); color: #c084fc;">
-                                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        <div id="home-hook-body" class="my-auto">
+                            <div class="d-flex flex-column gap-2 py-1">
+                                <div class="apple-skeleton-shimmer" style="width: 82%; height: 16px; border-radius: 6px;"></div>
+                                <div class="apple-skeleton-shimmer" style="width: 58%; height: 13px; border-radius: 6px;"></div>
+                                <div class="d-grid gap-2 hook-options-grid mt-2">
+                                    <div class="apple-skeleton-shimmer rounded-3" style="width: 100%; height: 38px;"></div>
+                                    <div class="apple-skeleton-shimmer rounded-3" style="width: 100%; height: 38px;"></div>
+                                    <div class="apple-skeleton-shimmer rounded-3" style="width: 100%; height: 38px;"></div>
+                                </div>
                             </div>
-                            <span id="bento-curator-badge" class="badge rounded-pill" style="background: rgba(255, 255, 255, 0.08); color: #a1a1aa; font-size: 0.60rem;">CURADOR</span>
                         </div>
-                        <div class="fw-bold text-white" style="font-size: 0.86rem;">Playlists Semestrales</div>
-                        <small class="text-secondary d-block" style="font-size: 0.70rem;">Selección inteligente de ~18 temas por ciclo</small>
-                    </div>
-
-                    <div class="apple-bento-card interactive bento-span-3 p-3 demo-only-element d-none" style="cursor: pointer;" onclick="openTrophiesModal()">
-                        <div class="d-flex align-items-center justify-content-between mb-2">
-                            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 34px; height: 34px; background: rgba(234, 179, 8, 0.18); color: #fbbf24;">
-                                <i class="fa-solid fa-medal"></i>
-                            </div>
-                            <span class="badge rounded-pill" style="background: rgba(234, 179, 8, 0.18); color: #fbbf24; font-size: 0.60rem;">HITOS</span>
-                        </div>
-                        <div class="fw-bold text-white" style="font-size: 0.86rem;">Trofeos & Medallas</div>
-                        <small class="text-secondary d-block" style="font-size: 0.70rem;">Artistas con +100 streams y logros desbloqueados</small>
-                    </div>
-
-                    <div class="apple-bento-card interactive bento-span-3 p-3 owner-only-element d-none" style="cursor: pointer;" onclick="openStreamManagerModal()">
-                        <div class="d-flex align-items-center justify-content-between mb-2">
-                            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 34px; height: 34px; background: rgba(48, 209, 88, 0.18); color: #30d158;">
-                                <i class="fa-solid fa-sliders"></i>
-                            </div>
-                            <span class="badge rounded-pill" style="background: rgba(48, 209, 88, 0.18); color: #30d158; font-size: 0.60rem;">TIDAL / PRO</span>
-                        </div>
-                        <div class="fw-bold text-white" style="font-size: 0.86rem;">Gestor de Streams</div>
-                        <small class="text-secondary d-block" style="font-size: 0.70rem;">Edita o añade streams personalizados en nube</small>
-                    </div>
-
-                    <div class="apple-bento-card interactive bento-span-3 p-3 non-owner-element" style="cursor: pointer;" onclick="openRecordsModal()">
-                        <div class="d-flex align-items-center justify-content-between mb-2">
-                            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 34px; height: 34px; background: rgba(236, 72, 153, 0.18); color: #f472b6;">
-                                <i class="fa-solid fa-ranking-star"></i>
-                            </div>
-                            <span class="badge rounded-pill" style="background: rgba(236, 72, 153, 0.18); color: #f472b6; font-size: 0.60rem;">RÉCORDS</span>
-                        </div>
-                        <div class="fw-bold text-white" style="font-size: 0.86rem;">Récords & Fidelidad</div>
-                        <small class="text-secondary d-block" style="font-size: 0.70rem;">Tus días récord, rachas y artistas más leales</small>
                     </div>
                 </div>
             </div>
