@@ -5735,6 +5735,7 @@ function renderShareCardContent() {
 }
 
 async function prepareShareCard() {
+    if (!shareCardModal) return;
     const modalEl = bootstrap.Modal.getOrCreateInstance(shareCardModal);
     modalEl.show();
     renderShareCardContent();
@@ -6060,10 +6061,12 @@ async function openHabitsModal() {
 // 3. SECCIÓN DE ARTISTAS OLVIDADOS
 // ----------------------------------------------------
 async function openForgottenModal() {
+    const modalEl = document.getElementById('forgottenModal');
+    if (!modalEl) return;
     const forgottenBody = document.getElementById('forgotten-body');
     if (!forgottenBody) return;
     forgottenBody.innerHTML = '<div class="text-center py-4 text-secondary"><span class="spinner-border spinner-border-sm text-warning me-2"></span>Buscando artistas olvidados...</div>';
-    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('forgottenModal'));
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
     modal.show();
 
     const insights = await loadInsightsData();
@@ -6113,7 +6116,9 @@ async function openForgottenModal() {
 // 4. COMPARADOR MUSICAL ("VERSUS")
 // ----------------------------------------------------
 async function openVersusModal() {
-    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('versusModal'));
+    const modalEl = document.getElementById('versusModal');
+    if (!modalEl) return;
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
     modal.show();
 
     const db = await getActiveDatabase();
@@ -9041,12 +9046,10 @@ let currentActiveView = 'home';
 function switchAppView(viewName) {
     if (!viewName) viewName = 'home';
 
-    // Control de acceso para Playlists Semestrales (Curador)
+    // Control de acceso para Playlists Semestrales (Curador) - Exclusivo Admin
     if (viewName === 'curator') {
-        if (isDemoMode()) {
-            viewName = 'home';
-        } else if (getUserFeatureStatus('curator') !== 'approved') {
-            openFeatureRequestModal('curator');
+        if (!isAppOwner()) {
+            switchAppView('home');
             return;
         }
     }

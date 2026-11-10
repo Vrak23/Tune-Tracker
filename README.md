@@ -19,7 +19,7 @@ Plataforma analítica e interactiva para visualizar, profundizar y descubrir est
 - Cálculo automático de variación porcentual en **streams** y **horas escuchadas**.
 - Mapeo de movimientos en el ranking: artistas que subieron de posición, nuevos ingresos y descensos.
 
-### 3. Curador de Playlists Semestrales (Apartado Nativo)
+### 3. Curador de Playlists Semestrales (Modo Administrador)
 - Selección guiada de ~18 temas equilibrados para ciclos semestrales:
   - **1ra Mitad**: 1 de Enero — 20 de Mayo.
   - **2da Mitad**: 1 de Junio — 20 de Noviembre.
@@ -33,24 +33,19 @@ Plataforma analítica e interactiva para visualizar, profundizar y descubrir est
 - **Reto Musical Diario**: Desafíos generados por día con opción de reroll diario.
 - **Hitos de Artistas (+100)**: Celebración visual con confetti y alertas cuando un artista supera el centenar de reproducciones.
 
-### 5. Experiencias & Juegos Musicales
-- **Trivia Musical**: Cuestionario interactivo basado en tus canciones y hábitos reales.
-- **Torneo de Canciones**: Duelos de eliminación directa para definir tu tema favorito.
-- **Cápsula del Tiempo**: Consulta qué escuchabas en este mismo mes en años anteriores (2019-2025).
-- **Iceberg Musical**: Clasificación de tu biblioteca desde lo más comercial hasta rarezas abisales.
-- **Carrera de Eras**: Bar chart race animado mes a mes.
-- **Hábitos y Horarios Pico**: Mapas de calor y momentos más activos del día y la semana.
+### 5. Análisis & Historial (Herramientas Analíticas)
+- **Cápsula del Tiempo**: Consulta qué escuchabas en este mismo mes a lo largo de los años registrados (2019-2026).
+- **Hábitos y Horarios Pico**: Momentos más activos del día, horas pico de reproducción y días de la semana con mayor volumen de escuchas.
 
 ### 6. Exportación y Utilidades
 - **Exportación en CSV y JSON**: Descarga tu top actual con metadatos completos y estructura adaptada al tipo de contenido.
-- **Tarjeta para Compartir**: Generación de tarjeta visual descargable en PNG mediante HTML5 Canvas.
 - **PWA (Progressive Web App)**: Instalable como app de escritorio o móvil con modo offline y Service Worker con detección de versiones.
 
 ---
 
 ## 🛠️ Tecnologías
 
-- **Frontend**: HTML5, Vanilla JavaScript (ES6+), CSS3 personalizado (tema Obsidian Dark), Bootstrap 5, FontAwesome 6, Canvas Confetti, html2canvas.
+- **Frontend**: HTML5, Vanilla JavaScript (ES6+), CSS3 personalizado (tema Obsidian Dark), Bootstrap 5, FontAwesome 6, Canvas Confetti.
 - **Backend / Servidor**: Node.js, Express 5.
 - **APIs & Datos**: Spotify Web API (OAuth PKCE), Last.fm AudioScrobbler API, Supabase REST API (PostgreSQL + RLS).
 

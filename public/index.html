@@ -35,8 +35,6 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- FontAwesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- html2canvas -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
         :root {
@@ -1988,10 +1986,10 @@
                     <span>Tops & Catálogo</span>
                 </button>
                 <button class="desktop-nav-btn" data-tab="hub">
-                    <i class="fa-solid fa-gamepad text-primary"></i>
-                    <span>Experiencias & Juegos</span>
+                    <i class="fa-solid fa-chart-pie text-primary"></i>
+                    <span>Análisis & Historial</span>
                 </button>
-                <button class="desktop-nav-btn demo-hide-element" data-tab="curator" id="desktop-tab-curator">
+                <button class="desktop-nav-btn owner-only-element d-none" data-tab="curator" id="desktop-tab-curator">
                     <i class="fa-solid fa-wand-magic-sparkles text-info"></i>
                     <span>Playlists Semestrales</span>
                 </button>
@@ -2394,160 +2392,61 @@
             <div id="section-hub" class="dashboard-section d-none">
                 <div class="d-flex align-items-end justify-content-between mb-3 flex-wrap gap-2">
                     <div>
-                        <div class="apple-eyebrow"><i class="fa-solid fa-gamepad text-primary"></i> Arcade & Análisis</div>
-                        <h4 class="apple-headline-gradient mb-0">Experiencias Musicales</h4>
+                        <div class="apple-eyebrow"><i class="fa-solid fa-chart-pie text-primary me-1"></i> Estadísticas Avanzadas</div>
+                        <h4 class="apple-headline-gradient mb-0">Análisis & Historial</h4>
                     </div>
-                    <button class="btn btn-sm btn-outline-info rounded-pill px-3 py-1" style="font-size: 0.75rem;" onclick="openStreamManagerModal()">
-                        <i class="fa-solid fa-sliders me-1"></i> Gestor de Streams (Era Tidal)
-                    </button>
                 </div>
 
                 <div class="row g-3">
-                    <!-- NUEVO 1: Torneo Mundial / Bracket 16 -->
-                    <div class="col-12 col-sm-6">
-                        <div class="apple-bento-card interactive h-100 d-flex flex-column justify-content-between" style="cursor: pointer; background: radial-gradient(circle at top right, rgba(245, 158, 11, 0.18), rgba(18, 18, 22, 0.96));" onclick="openBracketModal()">
+                    <!-- 1: Cápsula del Tiempo -->
+                    <div class="col-12 col-md-6">
+                        <div class="apple-bento-card interactive h-100 d-flex flex-column justify-content-between p-3.5" style="cursor: pointer; background: radial-gradient(circle at top right, rgba(6, 182, 212, 0.16), rgba(18, 18, 22, 0.96));" onclick="openCapsuleModal()">
                             <div>
-                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                <div class="d-flex align-items-center justify-content-between mb-2.5">
                                     <div class="d-flex align-items-center gap-2.5">
-                                        <div class="rounded-3 p-2.5" style="background: rgba(245,158,11,0.18); color: #fbbf24;">
-                                            <i class="fa-solid fa-trophy fs-5"></i>
+                                        <div class="rounded-3 p-2.5" style="background: rgba(6,182,212,0.18); color: #22d3ee;">
+                                            <i class="fa-solid fa-clock-rotate-left fs-4"></i>
                                         </div>
                                         <div>
-                                            <div class="fw-bold text-white" style="font-size: 0.96rem;">Torneo Mundial (Bracket 16)</div>
-                                            <small class="text-warning" style="font-size: 0.68rem; font-weight: 600;">ELIMINATORIA DIRECTA</small>
+                                            <div class="fw-bold text-white fs-6">Cápsula del Tiempo</div>
+                                            <small class="text-info" style="font-size: 0.70rem; font-weight: 600;">ESTE MES EN LA HISTORIA</small>
                                         </div>
                                     </div>
-                                    <span class="badge rounded-pill bg-warning text-dark fw-bold" style="font-size: 0.62rem;">NUEVO</span>
+                                    <span class="badge rounded-pill bg-info text-dark fw-bold" style="font-size: 0.64rem;">HISTÓRICO</span>
                                 </div>
-                                <p class="text-secondary mb-3" style="font-size: 0.76rem;">16 canciones o artistas de tu biblioteca se enfrentan en octavos, cuartos, semifinal y final. Tú decides quién avanza.</p>
+                                <p class="text-secondary mb-3" style="font-size: 0.80rem; line-height: 1.45;">
+                                    Revive exactamente qué canciones y artistas dominaban tu biblioteca en este mismo mes desde 2019 hasta hoy, año tras año.
+                                </p>
                             </div>
-                            <button class="btn btn-sm btn-brand rounded-pill w-100 py-1.5 fw-semibold" style="font-size: 0.78rem;">Iniciar Torneo</button>
+                            <button class="btn btn-sm btn-outline-info rounded-pill w-100 py-2 fw-semibold" style="font-size: 0.80rem;">
+                                <i class="fa-solid fa-clock-rotate-left me-1.5"></i> Abrir Cápsula del Tiempo
+                            </button>
                         </div>
                     </div>
 
-                    <!-- NUEVO 2: Higher or Lower Musical -->
-                    <div class="col-12 col-sm-6">
-                        <div class="apple-bento-card interactive h-100 d-flex flex-column justify-content-between" style="cursor: pointer; background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.18), rgba(18, 18, 22, 0.96));" onclick="openHigherLowerModal()">
+                    <!-- 2: Hábitos de Escucha -->
+                    <div class="col-12 col-md-6">
+                        <div class="apple-bento-card interactive h-100 d-flex flex-column justify-content-between p-3.5" style="cursor: pointer; background: radial-gradient(circle at top right, rgba(234, 179, 8, 0.16), rgba(18, 18, 22, 0.96));" onclick="openHabitsModal()">
                             <div>
-                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                <div class="d-flex align-items-center justify-content-between mb-2.5">
                                     <div class="d-flex align-items-center gap-2.5">
-                                        <div class="rounded-3 p-2.5" style="background: rgba(56,189,248,0.18); color: #38bdf8;">
-                                            <i class="fa-solid fa-arrow-up-wide-short fs-5"></i>
+                                        <div class="rounded-3 p-2.5" style="background: rgba(234,179,8,0.18); color: #fbbf24;">
+                                            <i class="fa-solid fa-chart-column fs-4"></i>
                                         </div>
                                         <div>
-                                            <div class="fw-bold text-white" style="font-size: 0.96rem;">¿Cuál tiene más streams?</div>
-                                            <small class="text-info" style="font-size: 0.68rem; font-weight: 600;">HIGHER OR LOWER</small>
+                                            <div class="fw-bold text-white fs-6">Hábitos y Horarios de Escucha</div>
+                                            <small class="text-warning" style="font-size: 0.70rem; font-weight: 600;">PATRONES MUSICALES</small>
                                         </div>
                                     </div>
-                                    <span class="badge rounded-pill bg-info text-dark fw-bold" style="font-size: 0.62rem;">ADICTIVO</span>
+                                    <span class="badge rounded-pill bg-warning text-dark fw-bold" style="font-size: 0.64rem;">PATRONES</span>
                                 </div>
-                                <p class="text-secondary mb-3" style="font-size: 0.76rem;">Pon a prueba tu intuición con tus propios datos: adivina si la siguiente canción o artista tiene más o menos reproducciones.</p>
+                                <p class="text-secondary mb-3" style="font-size: 0.80rem; line-height: 1.45;">
+                                    Analiza tus momentos más activos del día, tus horas pico de reproducción y qué días de la semana escuchas más música.
+                                </p>
                             </div>
-                            <button class="btn btn-sm btn-outline-info rounded-pill w-100 py-1.5 fw-semibold" style="font-size: 0.78rem;">Jugar Higher or Lower</button>
-                        </div>
-                    </div>
-
-                    <!-- 3: Trivia Musical -->
-                    <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="apple-bento-card interactive h-100 d-flex flex-column justify-content-between" style="cursor: pointer;" onclick="openTriviaModal()">
-                            <div>
-                                <div class="d-flex align-items-center gap-2.5 mb-2">
-                                    <div class="rounded-3 p-2" style="background: rgba(168,85,247,0.15); color: #c084fc;">
-                                        <i class="fa-solid fa-brain fs-5"></i>
-                                    </div>
-                                    <div class="fw-bold text-white" style="font-size: 0.90rem;">Trivia Musical Personal</div>
-                                </div>
-                                <p class="text-secondary mb-3" style="font-size: 0.74rem;">5 preguntas generadas en vivo sobre tus años, picos y artistas favoritos.</p>
-                            </div>
-                            <button class="btn btn-sm btn-outline-brand rounded-pill w-100 py-1" style="font-size: 0.76rem;">Jugar Trivia</button>
-                        </div>
-                    </div>
-
-                    <!-- 4: Cápsula del Tiempo -->
-                    <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="apple-bento-card interactive h-100 d-flex flex-column justify-content-between" style="cursor: pointer;" onclick="openCapsuleModal()">
-                            <div>
-                                <div class="d-flex align-items-center gap-2.5 mb-2">
-                                    <div class="rounded-3 p-2" style="background: rgba(6,182,212,0.15); color: #22d3ee;">
-                                        <i class="fa-solid fa-clock-rotate-left fs-5"></i>
-                                    </div>
-                                    <div class="fw-bold text-white" style="font-size: 0.90rem;">Cápsula del Tiempo</div>
-                                </div>
-                                <p class="text-secondary mb-3" style="font-size: 0.74rem;">Revive qué canciones dominaban este mismo mes desde 2019 hasta hoy.</p>
-                            </div>
-                            <button class="btn btn-sm btn-outline-info rounded-pill w-100 py-1" style="font-size: 0.76rem;">Abrir Cápsula</button>
-                        </div>
-                    </div>
-
-                    <!-- 5: Carrera de Eras -->
-                    <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="apple-bento-card interactive h-100 d-flex flex-column justify-content-between" style="cursor: pointer;" onclick="openErasModal()">
-                            <div>
-                                <div class="d-flex align-items-center gap-2.5 mb-2">
-                                    <div class="rounded-3 p-2" style="background: rgba(34,197,94,0.15); color: #4ade80;">
-                                        <i class="fa-solid fa-chart-line fs-5"></i>
-                                    </div>
-                                    <div class="fw-bold text-white" style="font-size: 0.90rem;">Carrera de Eras</div>
-                                </div>
-                                <p class="text-secondary mb-3" style="font-size: 0.74rem;">Animación año por año de cómo evolucionaron tus artistas más escuchados.</p>
-                            </div>
-                            <button class="btn btn-sm btn-outline-success rounded-pill w-100 py-1" style="font-size: 0.76rem;">Ver Carrera</button>
-                        </div>
-                    </div>
-
-                    <!-- 6: Iceberg Musical -->
-                    <div class="col-12 col-sm-6 col-lg-3">
-                        <div class="apple-bento-card interactive h-100 d-flex flex-column justify-content-between" style="cursor: pointer;" onclick="openIcebergModal()">
-                            <div>
-                                <div class="d-flex align-items-center gap-2 mb-2">
-                                    <i class="fa-solid fa-mountain text-info"></i>
-                                    <div class="fw-bold text-white" style="font-size: 0.86rem;">Iceberg Musical</div>
-                                </div>
-                                <p class="text-secondary mb-2" style="font-size: 0.72rem;">De la élite (+400 reps) a las fosas abisales.</p>
-                            </div>
-                            <button class="btn btn-sm btn-outline-secondary rounded-pill w-100 py-1 text-white" style="font-size: 0.74rem;">Explorar</button>
-                        </div>
-                    </div>
-
-                    <!-- 7: Comparador Versus 1v1 -->
-                    <div class="col-12 col-sm-6 col-lg-3">
-                        <div class="apple-bento-card interactive h-100 d-flex flex-column justify-content-between" style="cursor: pointer;" onclick="openVersusModal()">
-                            <div>
-                                <div class="d-flex align-items-center gap-2 mb-2">
-                                    <i class="fa-solid fa-scale-balanced text-primary"></i>
-                                    <div class="fw-bold text-white" style="font-size: 0.86rem;">Duelo Versus 1v1</div>
-                                </div>
-                                <p class="text-secondary mb-2" style="font-size: 0.72rem;">Compara cara a cara las cifras de 2 artistas.</p>
-                            </div>
-                            <button class="btn btn-sm btn-outline-secondary rounded-pill w-100 py-1 text-white" style="font-size: 0.74rem;">Comparar</button>
-                        </div>
-                    </div>
-
-                    <!-- 8: Hábitos de Escucha -->
-                    <div class="col-12 col-sm-6 col-lg-3">
-                        <div class="apple-bento-card interactive h-100 d-flex flex-column justify-content-between" style="cursor: pointer;" onclick="openHabitsModal()">
-                            <div>
-                                <div class="d-flex align-items-center gap-2 mb-2">
-                                    <i class="fa-solid fa-chart-column text-warning"></i>
-                                    <div class="fw-bold text-white" style="font-size: 0.86rem;">Hábitos y Horarios</div>
-                                </div>
-                                <p class="text-secondary mb-2" style="font-size: 0.72rem;">Tus horas pico del día y días más activos.</p>
-                            </div>
-                            <button class="btn btn-sm btn-outline-secondary rounded-pill w-100 py-1 text-white" style="font-size: 0.74rem;">Ver Hábitos</button>
-                        </div>
-                    </div>
-
-                    <!-- 9: Artistas Olvidados -->
-                    <div class="col-12 col-sm-6 col-lg-3">
-                        <div class="apple-bento-card interactive h-100 d-flex flex-column justify-content-between" style="cursor: pointer;" onclick="openForgottenModal()">
-                            <div>
-                                <div class="d-flex align-items-center gap-2 mb-2">
-                                    <i class="fa-solid fa-ghost text-danger"></i>
-                                    <div class="fw-bold text-white" style="font-size: 0.86rem;">Artistas Olvidados</div>
-                                </div>
-                                <p class="text-secondary mb-2" style="font-size: 0.72rem;">Joyas que amabas y llevas meses sin poner.</p>
-                            </div>
-                            <button class="btn btn-sm btn-outline-secondary rounded-pill w-100 py-1 text-white" style="font-size: 0.74rem;">Descubrir</button>
+                            <button class="btn btn-sm btn-outline-warning rounded-pill w-100 py-2 fw-semibold" style="font-size: 0.80rem;">
+                                <i class="fa-solid fa-chart-column me-1.5"></i> Ver Hábitos y Horarios
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -2779,12 +2678,12 @@
                         </div>
                     </button>
 
-                    <button class="offcanvas-menu-item demo-hide-element" id="menu-open-curator" data-bs-dismiss="offcanvas">
+                    <button class="offcanvas-menu-item owner-only-element d-none" id="menu-open-curator" data-bs-dismiss="offcanvas">
                         <i class="fa-solid fa-wand-magic-sparkles text-primary fs-5"></i>
                         <div class="flex-grow-1">
                             <div class="d-flex align-items-center justify-content-between gap-2">
                                 <span class="fw-semibold">Curador de Playlists</span>
-                                <span id="badge-access-curator" class="badge rounded-pill bg-secondary bg-opacity-25 text-secondary" style="font-size: 0.62rem;">🔒 Solicitar</span>
+                                <span class="badge rounded-pill bg-warning text-dark fw-bold" style="font-size: 0.62rem;">Admin</span>
                             </div>
                             <small class="text-secondary d-block" style="font-size: 0.73rem;">Selección guiada de temas semestrales</small>
                         </div>
@@ -2798,14 +2697,6 @@
                                 <span id="badge-access-wrapped" class="badge rounded-pill bg-secondary bg-opacity-25 text-secondary" style="font-size: 0.62rem;">🔒 Solicitar</span>
                             </div>
                             <small class="text-secondary d-block" style="font-size: 0.73rem;">Tu resumen quincenal y adivinanza</small>
-                        </div>
-                    </button>
-
-                    <button class="offcanvas-menu-item" id="menu-open-share" data-bs-dismiss="offcanvas">
-                        <i class="fa-solid fa-share-nodes text-info fs-5"></i>
-                        <div>
-                            <div class="fw-semibold">Compartir Tarjeta</div>
-                            <small class="text-secondary d-block" style="font-size: 0.73rem;">Descargar imagen de tu Top actual</small>
                         </div>
                     </button>
 
@@ -2978,56 +2869,6 @@
         </div>
     </div>
 
-    <!-- Modal: Share Card -->
-    <div class="modal fade" id="shareCardModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-secondary border-opacity-25" style="background-color: var(--bg-surface);">
-                <div class="modal-header border-bottom border-secondary border-opacity-10 py-2">
-                    <h6 class="modal-title fw-bold"><i class="fa-solid fa-image me-2" style="color: var(--brand-primary);"></i>Tarjeta para Compartir</h6>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-3 text-center">
-                    <div class="d-flex justify-content-center gap-1.5 mb-3">
-                        <button type="button" class="btn btn-sm btn-brand rounded-pill px-3 py-1 share-theme-btn active" data-theme="apple" style="font-size: 0.72rem;" onclick="setShareCardTheme('apple', this)">
-                            <i class="fa-brands fa-apple me-1"></i>Apple Replay
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1 text-white share-theme-btn" data-theme="receipt" style="font-size: 0.72rem;" onclick="setShareCardTheme('receipt', this)">
-                            <i class="fa-solid fa-receipt me-1"></i>Receiptify
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1 text-white share-theme-btn" data-theme="neon" style="font-size: 0.72rem;" onclick="setShareCardTheme('neon', this)">
-                            <i class="fa-solid fa-wand-magic-sparkles me-1"></i>Clásico
-                        </button>
-                    </div>
-                    <div id="share-card-canvas-wrapper" class="theme-apple">
-                        <div class="d-flex align-items-center justify-content-between mb-3 border-bottom border-secondary border-opacity-25 pb-2">
-                            <div class="d-flex align-items-center gap-2">
-                                <img src="/logo.png" style="width: 30px; height: 30px; object-fit: contain;">
-                                <div class="text-start leading-tight">
-                                    <div class="fw-bold small" style="color: var(--brand-primary);">Tune Tracker</div>
-                                    <small id="card-period-label" class="text-secondary" style="font-size: 0.68rem;">Últimas 4 Semanas</small>
-                                </div>
-                            </div>
-                            <div class="text-end">
-                                <div id="card-user-name" class="fw-bold small text-truncate" style="max-width: 120px;">Usuario</div>
-                                <small id="card-date" class="text-secondary" style="font-size: 0.65rem;"></small>
-                            </div>
-                        </div>
-                        <div id="card-items-list" class="text-start d-flex flex-column gap-2 mb-3"></div>
-                        <div class="border-top border-secondary border-opacity-25 pt-2 d-flex justify-content-between align-items-center text-secondary" style="font-size: 0.7rem;">
-                            <span>tune-tracker-pro.vercel.app</span>
-                            <span class="badge" style="background: var(--brand-primary);">Top 5</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer border-top border-secondary border-opacity-10 py-2 justify-content-between">
-                    <small class="text-secondary" style="font-size: 0.75rem;">Lista para historias o estados</small>
-                    <button id="btn-download-card" class="btn btn-sm btn-brand">
-                        <i class="fa-solid fa-download me-1"></i> Descargar Imagen
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Floating Corner Download Button (Always visible inside dashboard) -->
     <button id="btn-install-fab" class="btn-floating-corner d-none" title="Descargar / Instalar App Web">
@@ -3111,58 +2952,6 @@
         </div>
     </div>
 
-    <!-- Modal: Artistas Olvidados -->
-    <div class="modal fade" id="forgottenModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-stats-dialog">
-            <div class="modal-content border" style="background-color: var(--bg-surface); border-color: var(--border-subtle) !important; color: #f8fafc; border-radius: 12px;">
-                <div class="modal-header border-bottom border-secondary border-opacity-10 py-2.5 px-3">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="fa-solid fa-ghost text-warning fs-6"></i>
-                        <h6 class="modal-title fw-bold mb-0 text-white" style="font-size: 0.90rem;">Tus Artistas Olvidados</h6>
-                    </div>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-3" id="forgotten-body" style="font-size: 0.82rem;">
-                    <!-- Injected dynamically -->
-                </div>
-                <div class="modal-footer border-top border-secondary border-opacity-10 py-2 px-3">
-                    <button type="button" class="btn btn-sm btn-outline-brand rounded-pill px-3 ms-auto" data-bs-dismiss="modal" style="font-size: 0.76rem;">Cerrar</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal: Comparador Versus -->
-    <div class="modal fade" id="versusModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-stats-dialog">
-            <div class="modal-content border" style="background-color: var(--bg-surface); border-color: var(--border-subtle) !important; color: #f8fafc; border-radius: 12px;">
-                <div class="modal-header border-bottom border-secondary border-opacity-10 py-2.5 px-3">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="fa-solid fa-scale-balanced text-primary fs-6"></i>
-                        <h6 class="modal-title fw-bold mb-0 text-white" style="font-size: 0.90rem;">Comparador Musical (Versus)</h6>
-                    </div>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-3" id="versus-body" style="font-size: 0.82rem;">
-                    <!-- Selectores de Artistas -->
-                    <div class="row g-2 mb-3">
-                        <div class="col-6">
-                            <label class="filter-label">Artista 1</label>
-                            <select id="versus-select-a" class="form-select form-select-sm filter-select"></select>
-                        </div>
-                        <div class="col-6">
-                            <label class="filter-label">Artista 2</label>
-                            <select id="versus-select-b" class="form-select form-select-sm filter-select"></select>
-                        </div>
-                    </div>
-                    <div id="versus-comparison-results"></div>
-                </div>
-                <div class="modal-footer border-top border-secondary border-opacity-10 py-2 px-3">
-                    <button type="button" class="btn btn-sm btn-outline-brand rounded-pill px-3 ms-auto" data-bs-dismiss="modal" style="font-size: 0.76rem;">Cerrar</button>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Modal: Récords y Logros Personales -->
     <div class="modal fade" id="recordsModal" tabindex="-1" aria-hidden="true">
@@ -3340,59 +3129,6 @@
         </div>
     </div>
 
-    <!-- Modal: Trivia Musical Personal -->
-    <div class="modal fade" id="triviaModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered" style="max-width: 520px;">
-            <div class="modal-content bg-dark text-white border-0 shadow-lg" style="background: radial-gradient(circle at top, #18122b 0%, #0c0c12 100%) !important; border: 1px solid rgba(168, 85, 247, 0.35) !important; border-radius: 18px;">
-                <div class="modal-header border-bottom border-secondary border-opacity-15 py-2.5 px-3">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="fa-solid fa-brain text-primary fs-5"></i>
-                        <h6 class="modal-title fw-bold text-white mb-0" style="font-size: 0.95rem;">Trivia Musical Personal</h6>
-                    </div>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-3.5" id="trivia-modal-body">
-                    <!-- Vista previa / Quiz dinámico -->
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal: Iceberg Musical -->
-    <div class="modal fade" id="icebergModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 650px;">
-            <div class="modal-content bg-dark text-white border-0 shadow-lg" style="background: #090d16 !important; border: 1px solid rgba(6, 182, 212, 0.35) !important; border-radius: 18px;">
-                <div class="modal-header border-bottom border-secondary border-opacity-15 py-2.5 px-3">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="fa-solid fa-mountain text-info fs-5"></i>
-                        <h6 class="modal-title fw-bold text-white mb-0" style="font-size: 0.95rem;">Tu Iceberg Musical</h6>
-                    </div>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-3" id="iceberg-modal-body">
-                    <!-- Capas del Iceberg dinámicas -->
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal: Carrera de Eras (Bar Chart Race) -->
-    <div class="modal fade" id="erasModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 650px;">
-            <div class="modal-content bg-dark text-white border-0 shadow-lg" style="background: #0d0f18 !important; border: 1px solid rgba(34, 197, 94, 0.35) !important; border-radius: 18px;">
-                <div class="modal-header border-bottom border-secondary border-opacity-15 py-2.5 px-3">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="fa-solid fa-chart-line text-success fs-5"></i>
-                        <h6 class="modal-title fw-bold text-white mb-0" style="font-size: 0.95rem;">Carrera de Eras (Bar Chart Race)</h6>
-                    </div>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-3" id="eras-modal-body">
-                    <!-- Controles y animación de barras -->
-                </div>
-            </div>
-        </div>
-    </div>
 
         <!-- Modal progressModal migrado a apartado de navegación #section-profile -->
 
@@ -3468,7 +3204,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
         <!-- App Logic -->
-    <script src="/app.js?v=74"></script>
+    <script src="/app.js?v=75"></script>
 
     <!-- Barra de Navegación Inferior Móvil (Bottom Navigation Bar) -->
     <nav id="bottom-nav-bar" class="bottom-nav-bar d-none">
@@ -3481,10 +3217,10 @@
             <span>Tops</span>
         </button>
         <button class="bottom-nav-item" data-tab="hub" onclick="switchAppView('hub')">
-            <i class="fa-solid fa-gamepad"></i>
-            <span>Juegos</span>
+            <i class="fa-solid fa-chart-pie"></i>
+            <span>Análisis</span>
         </button>
-        <button class="bottom-nav-item demo-hide-element" data-tab="curator" id="bottom-tab-curator" onclick="switchAppView('curator')">
+        <button class="bottom-nav-item owner-only-element d-none" data-tab="curator" id="bottom-tab-curator" onclick="switchAppView('curator')">
             <i class="fa-solid fa-wand-magic-sparkles"></i>
             <span>Curador</span>
         </button>
@@ -3769,67 +3505,6 @@
     </div>
 
 
-    <!-- Modal: Torneo Mundial / Bracket 16 -->
-    <div class="modal fade" id="bracketModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
-            <div class="modal-content border" style="background-color: var(--bg-surface); border-color: var(--border-subtle) !important; color: #f8fafc;">
-                <div class="modal-header border-bottom border-secondary border-opacity-10 py-2.5 px-3">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="fa-solid fa-trophy text-warning fs-5"></i>
-                        <div>
-                            <h6 class="modal-title fw-bold mb-0 text-white" style="font-size: 0.95rem;">Torneo Mundial (Bracket 16)</h6>
-                            <small class="text-secondary" style="font-size: 0.70rem;">Elige tu favorita en cada duelo hasta coronar a tu campeona absoluta</small>
-                        </div>
-                    </div>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-3">
-                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 pb-2 border-bottom border-secondary border-opacity-15">
-                        <div class="d-flex align-items-center gap-1.5 flex-wrap">
-                            <button type="button" class="btn btn-sm btn-brand rounded-pill px-3 py-1 bracket-mode-btn active" style="font-size: 0.73rem;" onclick="initBracketTournament('tracks-overall', this)">
-                                <i class="fa-solid fa-music me-1"></i>Top 16 Canciones
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1 text-white bracket-mode-btn owner-only-element d-none" style="font-size: 0.73rem;" onclick="initBracketTournament('tracks-tidal', this)">
-                                <i class="fa-solid fa-water me-1 text-info"></i>Era Tidal / Recientes
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1 text-white bracket-mode-btn" style="font-size: 0.73rem;" onclick="initBracketTournament('artists', this)">
-                                <i class="fa-solid fa-users me-1 text-warning"></i>Top 16 Artistas
-                            </button>
-                        </div>
-                        <span id="bracket-round-badge" class="badge rounded-pill px-3 py-1.5" style="background: rgba(245, 158, 11, 0.16); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); font-size: 0.72rem;">Octavos de Final (1/8)</span>
-                    </div>
-                    <div id="bracket-arena-body" class="py-2"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal: Minijuego Higher or Lower Musical -->
-    <div class="modal fade" id="higherLowerModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content border" style="background-color: var(--bg-surface); border-color: var(--border-subtle) !important; color: #f8fafc;">
-                <div class="modal-header border-bottom border-secondary border-opacity-10 py-2.5 px-3">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="fa-solid fa-arrow-up-wide-short text-info fs-5"></i>
-                        <div>
-                            <h6 class="modal-title fw-bold mb-0 text-white" style="font-size: 0.95rem;">Higher or Lower · Tus Streams</h6>
-                            <small class="text-secondary" style="font-size: 0.70rem;">¿Tiene más o menos reproducciones en tu historial unificado?</small>
-                        </div>
-                    </div>
-                    <div class="d-flex align-items-center gap-2 ms-auto me-2">
-                        <span class="badge rounded-pill px-2.5 py-1" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); font-size: 0.72rem;">
-                            Racha: <strong id="hl-current-streak">0</strong>
-                        </span>
-                        <span class="badge rounded-pill px-2.5 py-1" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 0.72rem;">
-                            Récord: <strong id="hl-best-streak">0</strong>
-                        </span>
-                    </div>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-3" id="higher-lower-body"></div>
-            </div>
-        </div>
-    </div>
 
 </body>
 </html>
