@@ -5743,7 +5743,7 @@ function renderShareCardContent() {
             </div>
             <div class="text-center mt-3 pt-1" style="font-size: 0.62rem;">
                 <div style="letter-spacing: 3px; font-weight: 900; font-size: 0.95rem;">||| |||| || ||||| ||| ||||</div>
-                <div>spotify-tracker-delta.vercel.app</div>
+                <div>tune-tracker-pro.vercel.app</div>
             </div>
         `;
         return;
@@ -5783,7 +5783,7 @@ function renderShareCardContent() {
             }).join('')}
         </div>
         <div class="border-top border-secondary border-opacity-25 pt-2 d-flex justify-content-between align-items-center text-secondary" style="font-size: 0.68rem;">
-            <span>spotify-tracker-delta.vercel.app</span>
+            <span>tune-tracker-pro.vercel.app</span>
             <span class="badge rounded-pill" style="background: rgba(191,90,242,0.25); color: #e9d5ff;">Top 5 Pro</span>
         </div>
     `;
