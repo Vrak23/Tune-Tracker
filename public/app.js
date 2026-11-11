@@ -4585,23 +4585,9 @@ async function loadTimestampRangeStats(user, key, fromUTS, toUTS, emptyLabel) {
 }
 
 // ----------------------------------------------------
-// RESOLUCIÓN DE IMÁGENES (PRIORIDAD LAST.FM / DEEZER / ITUNES)
+// RESOLUCIÓN DE IMÁGENES (SPOTIFY SIN LOGIN + LAST.FM + FALLBACKS)
 // ----------------------------------------------------
 const artCache = JSON.parse(localStorage.getItem('spoti_art_cache') || '{}');
-
-// Purgar carátulas previamente cacheadas desde Spotify para priorizar Last.fm
-try {
-    let cacheModified = false;
-    Object.keys(artCache).forEach(k => {
-        if (typeof artCache[k] === 'string' && (artCache[k].includes('scdn.co') || artCache[k].includes('spotify'))) {
-            delete artCache[k];
-            cacheModified = true;
-        }
-    });
-    if (cacheModified) {
-        localStorage.setItem('spoti_art_cache', JSON.stringify(artCache));
-    }
-} catch (e) {}
 
 function saveArtCache() {
     try {
@@ -4632,10 +4618,24 @@ async function resolveSpotifyArtwork(name, artist, type = 'track', elementId) {
         return artCache[key];
     }
 
+    // 1. PRIORIDAD: Consultar el endpoint serverless unificado /api/artwork (Spotify HD sin login + Last.fm + CDN cache)
+    try {
+        const apiRes = await fetch(`/api/artwork?type=${encodeURIComponent(type)}&name=${encodeURIComponent(name)}&artist=${encodeURIComponent(artist || '')}`);
+        if (apiRes.ok) {
+            const apiData = await apiRes.json();
+            if (apiData && apiData.url) {
+                artCache[key] = apiData.url;
+                saveArtCache();
+                const el = document.getElementById(elementId);
+                if (el) el.src = apiData.url;
+                return apiData.url;
+            }
+        }
+    } catch (e) {}
+
+    // 2. Fallback Last.fm API directa en cliente
     const { key: lfKeyFromCreds } = (typeof getLastFmCredentials === 'function') ? getLastFmCredentials() : { key: null };
     const lfKey = lfKeyFromCreds || DEFAULT_LASTFM_KEY;
-
-    // 1. PRIORIDAD: Last.fm API directa
     if (lfKey) {
         try {
             let lfUrl = null;
@@ -4680,21 +4680,6 @@ async function resolveSpotifyArtwork(name, artist, type = 'track', elementId) {
         } catch (e) {}
     }
 
-    // 2. Consultar el endpoint serverless unificado /api/artwork (con prioridad Last.fm + Deezer + Apple Music)
-    try {
-        const apiRes = await fetch(`/api/artwork?type=${encodeURIComponent(type)}&name=${encodeURIComponent(name)}&artist=${encodeURIComponent(artist || '')}`);
-        if (apiRes.ok) {
-            const apiData = await apiRes.json();
-            if (apiData && apiData.url) {
-                artCache[key] = apiData.url;
-                saveArtCache();
-                const el = document.getElementById(elementId);
-                if (el) el.src = apiData.url;
-                return apiData.url;
-            }
-        }
-    } catch (e) {}
-
     // 3. Fallback directo en cliente (Apple / iTunes)
     try {
         const itunesEntity = type === 'artist' ? 'album' : (type === 'album' ? 'album' : 'song');
@@ -4723,8 +4708,6 @@ function getInitialImage(item, name, artist, type) {
     if (item && item.image) {
         const candidate = extractLastFmImg(item.image);
         if (candidate) {
-            artCache[key] = candidate;
-            saveArtCache();
             return candidate;
         }
     }
