@@ -20,16 +20,40 @@ app.get('/api/firebase-config', (req, res) => {
     });
 });
 
-// Endpoint universal de carátulas y fotos de artistas (Deezer HD + Apple Music + CDN cache)
+// Endpoint universal de carátulas y fotos de artistas (Prioridad Last.fm + Deezer HD + Apple Music + CDN cache)
 app.get('/api/artwork', async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Cache-Control', 's-maxage=604800, stale-while-revalidate=86400');
     const { type, name, artist } = req.query;
     if (!name) return res.status(400).json({ url: null });
 
+    const LASTFM_KEY = process.env.LASTFM_API_KEY || '82a251af624ca33e3d59215313af74c2';
+
+    const extractLastFmImg = (images) => {
+        if (!Array.isArray(images) || images.length === 0) return null;
+        const rev = [...images].reverse();
+        for (const img of rev) {
+            const url = img?.['#text'];
+            if (url && typeof url === 'string' && url.startsWith('http') && !url.includes('2a96cbd8b46e442fc41c2b86b821562f.png')) {
+                return url;
+            }
+        }
+        return null;
+    };
+
     try {
         if (type === 'artist') {
-            // 1. Deezer para fotos de artistas (alta calidad 500x500 / 250x250)
+            // 1. Last.fm para fotos de artistas (si tiene imagen válida sin placeholder de estrella)
+            try {
+                const lfRes = await fetch(`https://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=${encodeURIComponent(name)}&api_key=${LASTFM_KEY}&format=json`);
+                if (lfRes.ok) {
+                    const lfData = await lfRes.json();
+                    const lfImg = extractLastFmImg(lfData?.artist?.image);
+                    if (lfImg) return res.json({ url: lfImg });
+                }
+            } catch (e) {}
+
+            // 2. Deezer para fotos de artistas (alta calidad 500x500 / 250x250)
             const dzRes = await fetch(`https://api.deezer.com/search/artist?q=${encodeURIComponent(name)}&limit=1`);
             if (dzRes.ok) {
                 const dzData = await dzRes.json();
@@ -38,7 +62,7 @@ app.get('/api/artwork', async (req, res) => {
                     return res.json({ url: pic });
                 }
             }
-            // 2. Fallback a iTunes buscando álbum representativo del artista
+            // 3. Fallback a iTunes buscando álbum representativo del artista
             const itRes = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(name)}&entity=album&limit=1`);
             if (itRes.ok) {
                 const itData = await itRes.json();
@@ -49,10 +73,40 @@ app.get('/api/artwork', async (req, res) => {
             }
         } else {
             // Canción o Álbum
+            // 1. PRIORIDAD: Last.fm
+            try {
+                if (type === 'album') {
+                    if (artist) {
+                        const lfRes = await fetch(`https://ws.audioscrobbler.com/2.0/?method=album.getinfo&artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(name)}&api_key=${LASTFM_KEY}&format=json`);
+                        if (lfRes.ok) {
+                            const lfData = await lfRes.json();
+                            const lfImg = extractLastFmImg(lfData?.album?.image);
+                            if (lfImg) return res.json({ url: lfImg });
+                        }
+                    }
+                    const lfSearch = await fetch(`https://ws.audioscrobbler.com/2.0/?method=album.search&album=${encodeURIComponent(name)}&api_key=${LASTFM_KEY}&limit=1&format=json`);
+                    if (lfSearch.ok) {
+                        const lfData = await lfSearch.json();
+                        const lfImg = extractLastFmImg(lfData?.results?.albummatches?.album?.[0]?.image);
+                        if (lfImg) return res.json({ url: lfImg });
+                    }
+                } else {
+                    // Track / canción
+                    if (artist) {
+                        const lfRes = await fetch(`https://ws.audioscrobbler.com/2.0/?method=track.getinfo&artist=${encodeURIComponent(artist)}&track=${encodeURIComponent(name)}&api_key=${LASTFM_KEY}&format=json`);
+                        if (lfRes.ok) {
+                            const lfData = await lfRes.json();
+                            const lfImg = extractLastFmImg(lfData?.track?.album?.image);
+                            if (lfImg) return res.json({ url: lfImg });
+                        }
+                    }
+                }
+            } catch (e) {}
+
             const q = `${name} ${artist || ''}`.trim();
             const entity = type === 'album' ? 'album' : 'song';
 
-            // 1. iTunes (rápido y con carátulas oficiales en HD)
+            // 2. Fallback iTunes (rápido y con carátulas oficiales en HD)
             const itRes = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=${entity}&limit=1`);
             if (itRes.ok) {
                 const itData = await itRes.json();
@@ -62,7 +116,7 @@ app.get('/api/artwork', async (req, res) => {
                 }
             }
 
-            // 2. Fallback a Deezer
+            // 3. Fallback a Deezer
             const dzRes = await fetch(`https://api.deezer.com/search?q=${encodeURIComponent(q)}&limit=1`);
             if (dzRes.ok) {
                 const dzData = await dzRes.json();

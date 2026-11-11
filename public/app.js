@@ -3437,7 +3437,12 @@ async function fetchCurrentlyPlaying() {
                 lastPlayingTrackKey = trackKey;
 
                 const artKey = `track::${normalizeKey(trackName)}::${normalizeKey(artistName)}`;
-                const cover = artCache[artKey] || firstTrack.image?.[2]?.['#text'] || firstTrack.image?.[1]?.['#text'] || FALLBACK_ART_SVG;
+                const lfCover = extractLastFmImg(firstTrack.image);
+                if (lfCover && !artCache[artKey]) {
+                    artCache[artKey] = lfCover;
+                    saveArtCache();
+                }
+                const cover = artCache[artKey] || lfCover || FALLBACK_ART_SVG;
 
                 if (currentlyPlayingContainer) {
                     currentlyPlayingContainer.innerHTML = `
@@ -4580,14 +4585,40 @@ async function loadTimestampRangeStats(user, key, fromUTS, toUTS, emptyLabel) {
 }
 
 // ----------------------------------------------------
-// RESOLUCIÓN DE IMÁGENES DESDE SPOTIFY / ITUNES CON CACHÉ
+// RESOLUCIÓN DE IMÁGENES (PRIORIDAD LAST.FM / DEEZER / ITUNES)
 // ----------------------------------------------------
 const artCache = JSON.parse(localStorage.getItem('spoti_art_cache') || '{}');
+
+// Purgar carátulas previamente cacheadas desde Spotify para priorizar Last.fm
+try {
+    let cacheModified = false;
+    Object.keys(artCache).forEach(k => {
+        if (typeof artCache[k] === 'string' && (artCache[k].includes('scdn.co') || artCache[k].includes('spotify'))) {
+            delete artCache[k];
+            cacheModified = true;
+        }
+    });
+    if (cacheModified) {
+        localStorage.setItem('spoti_art_cache', JSON.stringify(artCache));
+    }
+} catch (e) {}
 
 function saveArtCache() {
     try {
         localStorage.setItem('spoti_art_cache', JSON.stringify(artCache));
     } catch (e) {}
+}
+
+function extractLastFmImg(images) {
+    if (!Array.isArray(images) || images.length === 0) return null;
+    const rev = [...images].reverse();
+    for (const img of rev) {
+        const url = img?.['#text'];
+        if (url && typeof url === 'string' && url.startsWith('http') && !url.includes('2a96cbd8b46e442fc41c2b86b821562f.png')) {
+            return url;
+        }
+    }
+    return null;
 }
 
 async function resolveSpotifyArtwork(name, artist, type = 'track', elementId) {
@@ -4601,33 +4632,55 @@ async function resolveSpotifyArtwork(name, artist, type = 'track', elementId) {
         return artCache[key];
     }
 
-    // 1. Si hay accessToken de Spotify, buscar directo en Spotify API
-    if (accessToken) {
-        try {
-            let q = type === 'artist' ? `artist:${name}` : `track:${name} artist:${artist}`;
-            if (type === 'album') q = `album:${name} artist:${artist}`;
-            const res = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=${type}&limit=1`, {
-                headers: { 'Authorization': `Bearer ${accessToken}` }
-            });
-            if (res.ok) {
-                const data = await res.json();
-                let img = null;
-                if (type === 'track') img = data.tracks?.items?.[0]?.album?.images?.[1]?.url || data.tracks?.items?.[0]?.album?.images?.[0]?.url;
-                if (type === 'artist') img = data.artists?.items?.[0]?.images?.[1]?.url || data.artists?.items?.[0]?.images?.[0]?.url;
-                if (type === 'album') img = data.albums?.items?.[0]?.images?.[1]?.url || data.albums?.items?.[0]?.images?.[0]?.url;
+    const { key: lfKeyFromCreds } = (typeof getLastFmCredentials === 'function') ? getLastFmCredentials() : { key: null };
+    const lfKey = lfKeyFromCreds || DEFAULT_LASTFM_KEY;
 
-                if (img) {
-                    artCache[key] = img;
-                    saveArtCache();
-                    const el = document.getElementById(elementId);
-                    if (el) el.src = img;
-                    return img;
+    // 1. PRIORIDAD: Last.fm API directa
+    if (lfKey) {
+        try {
+            let lfUrl = null;
+            if (type === 'track') {
+                if (artist) {
+                    const lfRes = await fetch(`https://ws.audioscrobbler.com/2.0/?method=track.getinfo&artist=${encodeURIComponent(artist)}&track=${encodeURIComponent(name)}&api_key=${encodeURIComponent(lfKey)}&format=json`);
+                    if (lfRes.ok) {
+                        const lfData = await lfRes.json();
+                        lfUrl = extractLastFmImg(lfData?.track?.album?.image);
+                    }
                 }
+            } else if (type === 'album') {
+                if (artist) {
+                    const lfRes = await fetch(`https://ws.audioscrobbler.com/2.0/?method=album.getinfo&artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(name)}&api_key=${encodeURIComponent(lfKey)}&format=json`);
+                    if (lfRes.ok) {
+                        const lfData = await lfRes.json();
+                        lfUrl = extractLastFmImg(lfData?.album?.image);
+                    }
+                }
+                if (!lfUrl) {
+                    const lfSearch = await fetch(`https://ws.audioscrobbler.com/2.0/?method=album.search&album=${encodeURIComponent(name)}&api_key=${encodeURIComponent(lfKey)}&limit=1&format=json`);
+                    if (lfSearch.ok) {
+                        const lfData = await lfSearch.json();
+                        lfUrl = extractLastFmImg(lfData?.results?.albummatches?.album?.[0]?.image);
+                    }
+                }
+            } else if (type === 'artist') {
+                const lfRes = await fetch(`https://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=${encodeURIComponent(name)}&api_key=${encodeURIComponent(lfKey)}&format=json`);
+                if (lfRes.ok) {
+                    const lfData = await lfRes.json();
+                    lfUrl = extractLastFmImg(lfData?.artist?.image);
+                }
+            }
+
+            if (lfUrl) {
+                artCache[key] = lfUrl;
+                saveArtCache();
+                const el = document.getElementById(elementId);
+                if (el) el.src = lfUrl;
+                return lfUrl;
             }
         } catch (e) {}
     }
 
-    // 2. Consultar el endpoint serverless unificado /api/artwork (con soporte para fotos de artistas y CDN cache)
+    // 2. Consultar el endpoint serverless unificado /api/artwork (con prioridad Last.fm + Deezer + Apple Music)
     try {
         const apiRes = await fetch(`/api/artwork?type=${encodeURIComponent(type)}&name=${encodeURIComponent(name)}&artist=${encodeURIComponent(artist || '')}`);
         if (apiRes.ok) {
@@ -4667,9 +4720,11 @@ function getInitialImage(item, name, artist, type) {
     if (artCache[key]) {
         return artCache[key];
     }
-    if (item && item.image && Array.isArray(item.image)) {
-        const candidate = item.image[2]?.['#text'] || item.image[1]?.['#text'] || item.image[0]?.['#text'];
-        if (candidate && !candidate.includes('2a96cbd8b46e442fc41c2b86b821562f.png') && candidate.startsWith('http')) {
+    if (item && item.image) {
+        const candidate = extractLastFmImg(item.image);
+        if (candidate) {
+            artCache[key] = candidate;
+            saveArtCache();
             return candidate;
         }
     }
