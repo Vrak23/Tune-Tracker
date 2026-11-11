@@ -4679,25 +4679,6 @@ async function resolveSpotifyArtwork(name, artist, type = 'track', elementId) {
             }
         } catch (e) {}
     }
-
-    // 3. Fallback directo en cliente (Apple / iTunes)
-    try {
-        const itunesEntity = type === 'artist' ? 'album' : (type === 'album' ? 'album' : 'song');
-        const queryTerm = type === 'artist' ? name : `${name} ${artist || ''}`.trim();
-        const itRes = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(queryTerm)}&entity=${itunesEntity}&limit=1`);
-        if (itRes.ok) {
-            const itData = await itRes.json();
-            const rawUrl = itData.results?.[0]?.artworkUrl100;
-            if (rawUrl) {
-                const hdUrl = rawUrl.replace('100x100bb', '300x300bb');
-                artCache[key] = hdUrl;
-                saveArtCache();
-                const el = document.getElementById(elementId);
-                if (el) el.src = hdUrl;
-                return hdUrl;
-            }
-        }
-    } catch (e) {}
 }
 
 function getInitialImage(item, name, artist, type) {

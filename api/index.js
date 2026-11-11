@@ -78,7 +78,7 @@ async function searchSpotifyArtwork(type, name, artist) {
     return null;
 }
 
-// Endpoint universal de carátulas y fotos de artistas (Prioridad Spotify sin login + Last.fm + Deezer/Apple Music + CDN cache)
+// Endpoint universal de carátulas y fotos de artistas (Exclusivo Spotify sin login + Last.fm + CDN cache)
 app.get('/api/artwork', async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Cache-Control', 's-maxage=604800, stale-while-revalidate=86400');
@@ -145,51 +145,6 @@ app.get('/api/artwork', async (req, res) => {
                     }
                 }
             } catch (e) {}
-        }
-
-        // 3. RESPALDO SECUNDARIO: Deezer & iTunes
-        if (type === 'artist') {
-            // Deezer para fotos de artistas
-            const dzRes = await fetch(`https://api.deezer.com/search/artist?q=${encodeURIComponent(name)}&limit=1`);
-            if (dzRes.ok) {
-                const dzData = await dzRes.json();
-                const pic = dzData.data?.[0]?.picture_big || dzData.data?.[0]?.picture_medium;
-                if (pic && !pic.includes('/artist//')) {
-                    return res.json({ url: pic });
-                }
-            }
-            // Fallback iTunes
-            const itRes = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(name)}&entity=album&limit=1`);
-            if (itRes.ok) {
-                const itData = await itRes.json();
-                const rawUrl = itData.results?.[0]?.artworkUrl100;
-                if (rawUrl) {
-                    return res.json({ url: rawUrl.replace('100x100bb', '400x400bb') });
-                }
-            }
-        } else {
-            const q = `${name} ${artist || ''}`.trim();
-            const entity = type === 'album' ? 'album' : 'song';
-
-            // iTunes
-            const itRes = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=${entity}&limit=1`);
-            if (itRes.ok) {
-                const itData = await itRes.json();
-                const rawUrl = itData.results?.[0]?.artworkUrl100;
-                if (rawUrl) {
-                    return res.json({ url: rawUrl.replace('100x100bb', '400x400bb') });
-                }
-            }
-
-            // Deezer
-            const dzRes = await fetch(`https://api.deezer.com/search?q=${encodeURIComponent(q)}&limit=1`);
-            if (dzRes.ok) {
-                const dzData = await dzRes.json();
-                const cov = dzData.data?.[0]?.album?.cover_big || dzData.data?.[0]?.album?.cover_medium;
-                if (cov) {
-                    return res.json({ url: cov });
-                }
-            }
         }
     } catch (err) {
         console.error('Error al resolver artwork:', err.message);
