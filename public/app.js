@@ -1057,6 +1057,8 @@ const btnOpenCuratorNav = document.getElementById('btn-open-curator-nav');
 const menuOpenCurator = document.getElementById('menu-open-curator');
 const curatorYear = document.getElementById('curator-year');
 const curatorHalf = document.getElementById('curator-half');
+const curatorPlaylistName = document.getElementById('curator-playlist-name');
+const curatorBtnSaveCloud = document.getElementById('curator-btn-save-cloud');
 const curatorTargetCount = document.getElementById('curator-target-count');
 const curatorExcludePast = document.getElementById('curator-exclude-past');
 const curatorBtnGenerate = document.getElementById('curator-btn-generate');
@@ -6901,6 +6903,14 @@ async function initCuratorSectionIfNeeded() {
         window._curatorInitialized = true;
         initCuratorEvents();
     }
+    if (curatorPlaylistName && !curatorPlaylistName.value) {
+        const cached = localStorage.getItem('curator_playlist_name');
+        if (cached) {
+            curatorPlaylistName.value = cached;
+        } else {
+            updateCuratorDefaultNameSuggestion();
+        }
+    }
     const year = curatorYear?.value || '';
     const half = curatorHalf?.value || '';
     if (!year || !half) {
@@ -6918,18 +6928,46 @@ async function initCuratorSectionIfNeeded() {
 window.openPlaylistCurator = openPlaylistCurator;
 window.openPlaylistCuratorModal = openPlaylistCurator;
 
+function updateCuratorDefaultNameSuggestion() {
+    if (!curatorPlaylistName) return;
+    const currentVal = (curatorPlaylistName.value || '').trim();
+    const year = curatorYear?.value || '';
+    const half = curatorHalf?.value || '';
+    if (year && half) {
+        const suggestion = `Top ${year} - ${half === '1' ? '1ra Mitad' : '2da Mitad'}`;
+        if (!currentVal || currentVal.startsWith('Top 20') || currentVal === 'Mi Tracklist') {
+            curatorPlaylistName.value = suggestion;
+            localStorage.setItem('curator_playlist_name', suggestion);
+        }
+    }
+}
+
 function initCuratorEvents() {
+    if (curatorPlaylistName) {
+        const cached = localStorage.getItem('curator_playlist_name');
+        if (cached && !curatorPlaylistName.value) {
+            curatorPlaylistName.value = cached;
+        }
+        curatorPlaylistName.addEventListener('input', () => {
+            localStorage.setItem('curator_playlist_name', curatorPlaylistName.value.trim());
+        });
+    }
+    if (curatorBtnSaveCloud) {
+        curatorBtnSaveCloud.addEventListener('click', () => promptAndSaveCuratorToCloud());
+    }
     if (curatorBtnGenerate) {
         curatorBtnGenerate.addEventListener('click', generateCuratorSelection);
     }
     if (curatorYear) {
         curatorYear.addEventListener('change', () => {
+            updateCuratorDefaultNameSuggestion();
             const shouldAutoSelect = curatorSelectedTracks.length > 0;
             loadCuratorCandidates(shouldAutoSelect);
         });
     }
     if (curatorHalf) {
         curatorHalf.addEventListener('change', () => {
+            updateCuratorDefaultNameSuggestion();
             const shouldAutoSelect = curatorSelectedTracks.length > 0;
             loadCuratorCandidates(shouldAutoSelect);
         });
@@ -7779,8 +7817,10 @@ async function copyCuratorPlaylistText() {
 
     const { year, half, periodStr } = curatorCurrentCycleInfo;
     const halfName = half === '1' ? '1ra Mitad (Ene-May)' : '2da Mitad (Jun-Nov)';
+    const customName = (curatorPlaylistName?.value || localStorage.getItem('curator_playlist_name') || '').trim();
+    const title = customName || (year && half ? `Mi Playlist ${year} - ${halfName}` : 'Mi Playlist Curada');
 
-    let text = `🎵 Mi Playlist ${year} - ${halfName}\n📅 Periodo: ${periodStr}\n\n`;
+    let text = `🎵 ${title}\n📅 Periodo: ${periodStr}\n\n`;
     curatorSelectedTracks.forEach((t, i) => {
         text += `${i + 1}. ${t.artist} - ${t.name}\n`;
     });
@@ -7809,10 +7849,12 @@ async function createCuratorSpotifyPlaylist() {
 
     const { year, half, periodStr } = curatorCurrentCycleInfo;
     const halfName = half === '1' ? '1ra Mitad' : '2da Mitad';
+    const customName = (curatorPlaylistName?.value || localStorage.getItem('curator_playlist_name') || '').trim();
+    const playlistTitle = customName || (year && half ? `Top ${year} - ${halfName} (SpotiTracker)` : 'Top Curada (SpotiTracker)');
 
     try {
         const payload = {
-            name: `Top ${year} - ${halfName} (SpotiTracker)`,
+            name: playlistTitle,
             description: `Playlist semestral curada (${periodStr}) con ${curatorSelectedTracks.length} temas. Generada en SpotiTracker.`,
             public: false
         };
@@ -8008,11 +8050,41 @@ function openGoogleDriveModal() {
     modal.show();
 }
 
-async function saveToCloudDatabase(isSilent = false) {
+async function promptAndSaveCuratorToCloud() {
+    if (isCloudSyncing) return;
+    const currentVal = (curatorPlaylistName?.value || localStorage.getItem('curator_playlist_name') || '').trim();
+    let defaultSuggestion = currentVal;
+    if (!defaultSuggestion) {
+        const year = curatorCurrentCycleInfo.year || curatorYear?.value || '';
+        const half = curatorCurrentCycleInfo.half || curatorHalf?.value || '';
+        if (year && half) {
+            defaultSuggestion = `Top ${year} - ${half === '1' ? '1ra Mitad' : '2da Mitad'}`;
+        } else {
+            defaultSuggestion = 'Mi Tracklist';
+        }
+    }
+
+    const enteredName = prompt('Nombre para guardar este tracklist en la base de datos:', defaultSuggestion);
+    if (enteredName === null) {
+        return; // Cancelado por el usuario
+    }
+
+    const finalName = enteredName.trim() || defaultSuggestion;
+    if (curatorPlaylistName) curatorPlaylistName.value = finalName;
+    localStorage.setItem('curator_playlist_name', finalName);
+
+    await saveToCloudDatabase(false, finalName);
+}
+
+async function saveToCloudDatabase(isSilent = false, customName = '') {
     if (isCloudSyncing) return false;
     try {
         isCloudSyncing = true;
         updateCloudUI('syncing', 'Guardando...');
+
+        const playlistName = (customName || curatorPlaylistName?.value || localStorage.getItem('curator_playlist_name') || '').trim() || (curatorCurrentCycleInfo.year ? `Top ${curatorCurrentCycleInfo.year} - ${curatorCurrentCycleInfo.half === '1' ? '1ra Mitad' : '2da Mitad'}` : 'Mi Tracklist');
+        localStorage.setItem('curator_playlist_name', playlistName);
+        if (curatorPlaylistName && !curatorPlaylistName.value) curatorPlaylistName.value = playlistName;
 
         const payload = {
             id: 'default',
@@ -8024,7 +8096,8 @@ async function saveToCloudDatabase(isSilent = false) {
             honorable_mentions: window.curatorHonorableTracks || [],
             year_favorites: window.curatorYearFavorites || [],
             settings: {
-                excludePast: curatorExcludePast ? curatorExcludePast.checked : true
+                excludePast: curatorExcludePast ? curatorExcludePast.checked : true,
+                playlist_name: playlistName
             },
             updated_at: new Date().toISOString()
         };
@@ -8045,8 +8118,8 @@ async function saveToCloudDatabase(isSilent = false) {
             localStorage.setItem(CLOUD_LAST_SYNC_KEY, nowIso);
             updateCloudUI('active', 'Nube Sincronizada');
             if (!isSilent) {
-                showCloudAlert(`¡Guardado exitoso en Supabase! (${payload.selected_tracks.length} canciones sincronizadas)`, 'success');
-                if (typeof showEngagementToast === 'function') showEngagementToast('<i class="fa-solid fa-cloud-arrow-up text-success"></i>', 'Nube Sincronizada', `Se respaldaron ${payload.selected_tracks.length} canciones y tus ajustes de streams.`);
+                showCloudAlert(`¡Guardado exitoso en Supabase! "${playlistName}" (${payload.selected_tracks.length} canciones sincronizadas)`, 'success');
+                if (typeof showEngagementToast === 'function') showEngagementToast('<i class="fa-solid fa-cloud-arrow-up text-success"></i>', 'Nube Sincronizada', `Se respaldó "${playlistName}" con ${payload.selected_tracks.length} canciones.`);
             }
             return true;
         } else {
@@ -8093,6 +8166,12 @@ async function loadFromCloudDatabase() {
                     curatorExcludePast.checked = row.settings.excludePast;
                 }
 
+                const savedName = row.settings?.playlist_name || row.playlist_name || row.name || '';
+                if (savedName) {
+                    if (curatorPlaylistName) curatorPlaylistName.value = savedName;
+                    localStorage.setItem('curator_playlist_name', savedName);
+                }
+
                 curatorCurrentCycleInfo.year = row.cycle_year || '';
                 curatorCurrentCycleInfo.half = row.cycle_half || '';
                 curatorCurrentCycleInfo.periodStr = row.cycle_year && row.cycle_half
@@ -8108,8 +8187,9 @@ async function loadFromCloudDatabase() {
                 const nowIso = new Date().toISOString();
                 localStorage.setItem(CLOUD_LAST_SYNC_KEY, nowIso);
                 updateCloudUI('active', 'Nube Sincronizada');
-                showCloudAlert(`¡Restauradas ${curatorSelectedTracks.length} canciones desde Supabase!`, 'success');
-                if (typeof showEngagementToast === 'function') showEngagementToast('<i class="fa-solid fa-cloud-arrow-down text-info"></i>', 'Datos Restaurados', `Se restauraron ${curatorSelectedTracks.length} canciones y tus ajustes desde la nube.`);
+                const displayName = savedName ? `"${savedName}"` : `${curatorSelectedTracks.length} canciones`;
+                showCloudAlert(`¡Restaurado ${displayName} (${curatorSelectedTracks.length} canciones) desde Supabase!`, 'success');
+                if (typeof showEngagementToast === 'function') showEngagementToast('<i class="fa-solid fa-cloud-arrow-down text-info"></i>', 'Datos Restaurados', `Se restauró ${displayName} y tus ajustes desde la nube.`);
                 return true;
             } else {
                 showCloudAlert('No hay canciones guardadas aún en la base de datos.', 'warning');
@@ -9810,6 +9890,7 @@ window.loadFromCloudDatabase = loadFromCloudDatabase;
 window.saveToGoogleDrive = saveToCloudDatabase;
 window.loadFromGoogleDrive = loadFromCloudDatabase;
 window.triggerGoogleDriveAutoSync = triggerGoogleDriveAutoSync;
+window.promptAndSaveCuratorToCloud = promptAndSaveCuratorToCloud;
 
 
 
