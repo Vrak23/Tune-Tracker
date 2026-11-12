@@ -7177,6 +7177,285 @@ async function generateCuratorSelection() {
     triggerGoogleDriveAutoSync();
 }
 
+// ====================================================
+// HACEDOR DE TRACKLIST / CURADOR: DRAG & DROP & SELECCIÓN
+// ====================================================
+
+let draggedCuratorTrack = null;
+let curatorBenchSelectedKeys = new Set();
+
+window.onTracklistDragStart = function(event, index) {
+    draggedCuratorTrack = { source: 'tracklist', index: index, data: curatorSelectedTracks[index] };
+    event.dataTransfer.effectAllowed = 'move';
+    try {
+        event.dataTransfer.setData('text/plain', JSON.stringify(draggedCuratorTrack));
+    } catch (e) {}
+    event.currentTarget.classList.add('curator-dragging');
+};
+
+window.onTracklistDragOver = function(event, index) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    const targetEl = event.currentTarget;
+    const rect = targetEl.getBoundingClientRect();
+    const midY = rect.top + rect.height / 2;
+    if (event.clientY < midY) {
+        targetEl.classList.add('drag-over-top');
+        targetEl.classList.remove('drag-over-bottom');
+    } else {
+        targetEl.classList.add('drag-over-bottom');
+        targetEl.classList.remove('drag-over-top');
+    }
+};
+
+window.onTracklistDragLeave = function(event, index) {
+    event.currentTarget.classList.remove('drag-over-top', 'drag-over-bottom');
+};
+
+window.onTracklistDrop = function(event, targetIndex) {
+    event.preventDefault();
+    const targetEl = event.currentTarget;
+    const isAbove = targetEl.classList.contains('drag-over-top');
+    targetEl.classList.remove('drag-over-top', 'drag-over-bottom');
+
+    let dropIndex = isAbove ? targetIndex : targetIndex + 1;
+
+    let payload = draggedCuratorTrack;
+    if (!payload) {
+        try {
+            const raw = event.dataTransfer.getData('text/plain');
+            if (raw) payload = JSON.parse(raw);
+        } catch (e) {}
+    }
+
+    if (!payload) return;
+
+    if (payload.source === 'tracklist') {
+        const fromIdx = payload.index;
+        if (fromIdx === targetIndex) return;
+        const [moved] = curatorSelectedTracks.splice(fromIdx, 1);
+        if (fromIdx < dropIndex) dropIndex--;
+        if (dropIndex < 0) dropIndex = 0;
+        if (dropIndex > curatorSelectedTracks.length) dropIndex = curatorSelectedTracks.length;
+        curatorSelectedTracks.splice(dropIndex, 0, moved);
+        renderCuratorSelectedList();
+        triggerGoogleDriveAutoSync();
+    } else if (payload.source === 'bench') {
+        const name = payload.data?.name || payload.name;
+        const artist = payload.data?.artist || payload.artist;
+        let trackObj = null;
+
+        const bIdx = curatorBenchTracks.findIndex(t => t.name === name && t.artist === artist);
+        if (bIdx !== -1) {
+            [trackObj] = curatorBenchTracks.splice(bIdx, 1);
+        } else if (payload.data) {
+            trackObj = payload.data;
+        }
+
+        if (trackObj) {
+            if (dropIndex > curatorSelectedTracks.length) dropIndex = curatorSelectedTracks.length;
+            curatorSelectedTracks.splice(dropIndex, 0, trackObj);
+            renderCuratorView();
+            triggerGoogleDriveAutoSync();
+        }
+    }
+    draggedCuratorTrack = null;
+};
+
+window.onTracklistDragEnd = function(event) {
+    if (event.currentTarget) event.currentTarget.classList.remove('curator-dragging');
+    document.querySelectorAll('.curator-track-item').forEach(el => {
+        el.classList.remove('drag-over-top', 'drag-over-bottom', 'curator-dragging');
+    });
+    draggedCuratorTrack = null;
+};
+
+window.onBenchTrackDragStart = function(event, benchIndex, encName, encArtist) {
+    const name = decodeURIComponent(encName);
+    const artist = decodeURIComponent(encArtist);
+    const benchItem = curatorBenchTracks.find(t => t.name === name && t.artist === artist) || { name, artist };
+    draggedCuratorTrack = { source: 'bench', index: benchIndex, name, artist, data: benchItem };
+    event.dataTransfer.effectAllowed = 'copyMove';
+    try {
+        event.dataTransfer.setData('text/plain', JSON.stringify(draggedCuratorTrack));
+    } catch (e) {}
+    event.currentTarget.classList.add('curator-dragging');
+};
+
+window.onTracklistContainerDragOver = function(event) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+    const container = document.getElementById('curator-selected-list');
+    if (container) container.classList.add('curator-container-dropzone-active');
+};
+
+window.onTracklistContainerDragLeave = function(event) {
+    const container = document.getElementById('curator-selected-list');
+    if (container && !container.contains(event.relatedTarget)) {
+        container.classList.remove('curator-container-dropzone-active');
+    }
+};
+
+window.onTracklistContainerDrop = function(event) {
+    event.preventDefault();
+    const container = document.getElementById('curator-selected-list');
+    if (container) container.classList.remove('curator-container-dropzone-active');
+
+    if (event.target.closest('.curator-track-item')) return;
+
+    let payload = draggedCuratorTrack;
+    if (!payload) {
+        try {
+            const raw = event.dataTransfer.getData('text/plain');
+            if (raw) payload = JSON.parse(raw);
+        } catch (e) {}
+    }
+
+    if (!payload) return;
+
+    if (payload.source === 'bench') {
+        const name = payload.data?.name || payload.name;
+        const artist = payload.data?.artist || payload.artist;
+        let trackObj = null;
+
+        const bIdx = curatorBenchTracks.findIndex(t => t.name === name && t.artist === artist);
+        if (bIdx !== -1) {
+            [trackObj] = curatorBenchTracks.splice(bIdx, 1);
+        } else if (payload.data) {
+            trackObj = payload.data;
+        }
+
+        if (trackObj) {
+            curatorSelectedTracks.push(trackObj);
+            renderCuratorView();
+            triggerGoogleDriveAutoSync();
+        }
+    } else if (payload.source === 'tracklist') {
+        const fromIdx = payload.index;
+        if (fromIdx !== undefined && fromIdx < curatorSelectedTracks.length - 1) {
+            const [moved] = curatorSelectedTracks.splice(fromIdx, 1);
+            curatorSelectedTracks.push(moved);
+            renderCuratorSelectedList();
+            triggerGoogleDriveAutoSync();
+        }
+    }
+    draggedCuratorTrack = null;
+};
+
+// Selección Múltiple
+window.toggleBenchItemSelect = function(event, encName, encArtist) {
+    event.stopPropagation();
+    const name = decodeURIComponent(encName);
+    const artist = decodeURIComponent(encArtist);
+    const key = `${normalizeKey(name)}:::${normalizeKey(artist)}`;
+    if (event.target.checked) {
+        curatorBenchSelectedKeys.add(key);
+    } else {
+        curatorBenchSelectedKeys.delete(key);
+    }
+    updateCuratorBulkBar();
+};
+
+window.toggleSelectAllBenchVisible = function(event) {
+    const isChecked = event.target.checked;
+    const checkboxes = document.querySelectorAll('.curator-bench-checkbox');
+    checkboxes.forEach(cb => {
+        cb.checked = isChecked;
+        const key = cb.getAttribute('data-track-key');
+        if (key) {
+            if (isChecked) curatorBenchSelectedKeys.add(key);
+            else curatorBenchSelectedKeys.delete(key);
+        }
+    });
+    updateCuratorBulkBar();
+};
+
+window.clearBenchSelection = function() {
+    curatorBenchSelectedKeys.clear();
+    const selectAllCb = document.getElementById('curator-select-all-bench');
+    if (selectAllCb) selectAllCb.checked = false;
+    document.querySelectorAll('.curator-bench-checkbox').forEach(cb => cb.checked = false);
+    updateCuratorBulkBar();
+};
+
+window.addSelectedBenchTracks = function() {
+    if (curatorBenchSelectedKeys.size === 0) return;
+    const countToAdd = curatorBenchSelectedKeys.size;
+
+    const remainingBench = [];
+    const activeDb = currentSource === 'unified' ? unifiedDb : spotifyDb;
+
+    for (const t of curatorBenchTracks) {
+        const k = `${normalizeKey(t.name)}:::${normalizeKey(t.artist)}`;
+        if (curatorBenchSelectedKeys.has(k)) {
+            curatorSelectedTracks.push(t);
+            curatorBenchSelectedKeys.delete(k);
+        } else {
+            remainingBench.push(t);
+        }
+    }
+    curatorBenchTracks = remainingBench;
+
+    if (curatorBenchSelectedKeys.size > 0 && activeDb && activeDb.tracksLookup) {
+        for (const k of curatorBenchSelectedKeys) {
+            const t = activeDb.tracksLookup[k];
+            if (t) {
+                curatorSelectedTracks.push({
+                    name: t.name,
+                    artist: t.artist,
+                    album: t.album,
+                    uri: t.uri,
+                    plays: t.plays || 0,
+                    first: t.first,
+                    isPastYear: true,
+                    isSurgeOrPeak: false
+                });
+            }
+        }
+    }
+
+    curatorBenchSelectedKeys.clear();
+    const selectAllCb = document.getElementById('curator-select-all-bench');
+    if (selectAllCb) selectAllCb.checked = false;
+
+    renderCuratorView();
+    triggerGoogleDriveAutoSync();
+
+    if (typeof showEngagementToast === 'function') {
+        showEngagementToast('<i class="fa-solid fa-list-check text-brand"></i>', 'Tracklist Actualizado', `Se añadieron ${countToAdd} canciones al tracklist.`);
+    }
+};
+
+function updateCuratorBulkBar() {
+    const bulkBar = document.getElementById('curator-bulk-bar');
+    const bulkCount = document.getElementById('curator-bulk-count');
+    const bulkBtn = document.getElementById('curator-bulk-add-btn');
+    const size = curatorBenchSelectedKeys.size;
+    if (!bulkBar) return;
+
+    if (size > 0) {
+        bulkBar.classList.remove('d-none');
+        if (bulkCount) bulkCount.textContent = `${size} seleccionada${size === 1 ? '' : 's'}`;
+        if (bulkBtn) bulkBtn.innerHTML = `<i class="fa-solid fa-plus me-1"></i> Añadir (${size})`;
+    } else {
+        bulkBar.classList.add('d-none');
+    }
+}
+
+// Mezcla / Shuffle de Tracklist
+window.shuffleCuratorTracklist = function() {
+    if (curatorSelectedTracks.length <= 1) return;
+    for (let i = curatorSelectedTracks.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [curatorSelectedTracks[i], curatorSelectedTracks[j]] = [curatorSelectedTracks[j], curatorSelectedTracks[i]];
+    }
+    renderCuratorSelectedList();
+    triggerGoogleDriveAutoSync();
+    if (typeof showEngagementToast === 'function') {
+        showEngagementToast('<i class="fa-solid fa-shuffle text-primary"></i>', 'Tracklist Mezclado', 'Se reordenó aleatoriamente el tracklist.');
+    }
+};
+
 function renderCuratorView() {
     if (curatorPeriodBadge) {
         curatorPeriodBadge.innerHTML = `<i class="fa-regular fa-clock me-1"></i> ${curatorCurrentCycleInfo.periodStr}`;
@@ -7186,7 +7465,7 @@ function renderCuratorView() {
     const selectedCount = curatorSelectedTracks.length;
 
     if (curatorCounterBadge) {
-        curatorCounterBadge.textContent = `${selectedCount} / ${targetCount} seleccionadas`;
+        curatorCounterBadge.textContent = `${selectedCount} / ${targetCount} en tracklist`;
         if (selectedCount === targetCount) {
             curatorCounterBadge.style.color = '#4ade80';
             curatorCounterBadge.style.background = 'rgba(34, 197, 94, 0.14)';
@@ -7204,6 +7483,8 @@ function renderCuratorView() {
 
     if (curatorSelectedNum) curatorSelectedNum.textContent = selectedCount;
     if (curatorBenchNum) curatorBenchNum.textContent = curatorBenchTracks.length;
+    const benchBadge = document.getElementById('curator-bench-count-badge');
+    if (benchBadge) benchBadge.textContent = curatorBenchTracks.length;
 
     renderCuratorSelectedList();
     renderCuratorBenchList();
@@ -7217,7 +7498,7 @@ function renderCuratorSelectedList() {
             <div class="text-center py-5 text-secondary">
                 <i class="fa-regular fa-calendar-check fs-2 mb-2 text-primary opacity-50"></i>
                 <div class="fw-semibold text-white mb-1">Sin periodo seleccionado</div>
-                <div class="small text-muted" style="max-width: 380px; margin: 0 auto; font-size: 0.76rem;">
+                <div class="small text-muted" style="max-width: 360px; margin: 0 auto; font-size: 0.76rem;">
                     Elige un año y un periodo (1ra o 2da mitad) en los selectores superiores para comenzar.
                 </div>
             </div>
@@ -7227,11 +7508,15 @@ function renderCuratorSelectedList() {
 
     if (curatorSelectedTracks.length === 0) {
         curatorSelectedList.innerHTML = `
-            <div class="text-center py-4 text-secondary">
-                <i class="fa-solid fa-compact-disc fs-3 mb-2 opacity-50 text-brand"></i>
-                <div class="fw-semibold text-white mb-1">Tu lista está vacía</div>
-                <div class="small text-muted mb-3" style="max-width: 440px; margin: 0 auto; font-size: 0.76rem;">
-                    La playlist empieza limpia para que la armes a tu gusto. Puedes ir añadiendo temas desde la pestaña <b>"Banca / Descarte"</b> o presionar <b>"Generar Selección"</b> para que el curador la autocomplete con los temas más escuchados de este ciclo.
+            <div class="curator-dropzone-empty p-4 text-center rounded-3 border border-dashed border-secondary border-opacity-30"
+                 ondragover="onTracklistContainerDragOver(event)"
+                 ondrop="onTracklistContainerDrop(event)">
+                <div class="rounded-circle p-3 d-inline-flex align-items-center justify-content-center mb-2" style="background: rgba(168,85,247,0.12); color: #c084fc;">
+                    <i class="fa-solid fa-compact-disc fs-3"></i>
+                </div>
+                <div class="fw-bold text-white mb-1" style="font-size: 0.90rem;">Tu tracklist está vacío</div>
+                <div class="small text-muted mb-3" style="max-width: 360px; margin: 0 auto; font-size: 0.74rem;">
+                    Arrastra canciones aquí desde el banco, marca casillas para añadir en bloque, o presiona <b>"Generar Selección"</b> para autocompletar con los temas más escuchados.
                 </div>
                 <button type="button" class="btn btn-sm btn-brand rounded-pill px-3 py-1 fw-semibold" onclick="generateCuratorSelection()" style="font-size: 0.76rem;">
                     <i class="fa-solid fa-rotate me-1"></i> Generar Selección Automática
@@ -7246,30 +7531,41 @@ function renderCuratorSelectedList() {
         const artKey = `track::${normalizeKey(t.name)}::${normalizeKey(t.artist || '')}`;
         const coverImg = artCache[artKey] || FALLBACK_ART_SVG;
         const imgId = `curator-art-sel-${i}`;
+        const rankStr = String(i + 1).padStart(2, '0');
 
         html += `
-            <div class="curator-track-item">
-                <span class="fw-bold text-secondary text-end" style="width: 22px; font-size: 0.76rem;">#${i + 1}</span>
+            <div class="curator-track-item"
+                 draggable="true"
+                 data-index="${i}"
+                 ondragstart="onTracklistDragStart(event, ${i})"
+                 ondragover="onTracklistDragOver(event, ${i})"
+                 ondragleave="onTracklistDragLeave(event, ${i})"
+                 ondrop="onTracklistDrop(event, ${i})"
+                 ondragend="onTracklistDragEnd(event)">
+                <div class="curator-drag-handle" title="Arrastrar para reordenar">
+                    <i class="fa-solid fa-grip-vertical"></i>
+                </div>
+                <span class="curator-track-rank">#${rankStr}</span>
                 <img id="${imgId}" src="${coverImg}" class="rounded flex-shrink-0" style="width: 38px; height: 38px; object-fit: cover;" onerror="safeImgError(this)" alt="Cover">
                 <div class="overflow-hidden flex-grow-1" style="min-width: 0;">
                     <div class="fw-bold text-white text-truncate" style="font-size: 0.82rem;">${t.name}</div>
                     <div class="d-flex align-items-center gap-1.5 flex-wrap">
                         <small class="text-secondary text-truncate" style="font-size: 0.72rem;">${t.artist}</small>
-                        ${t.isSurgeOrPeak ? `<span class="curator-badge-peak" title="Pico de escuchas en esta etapa (${t.plays} plays vs récord previo de ${t.priorMax || 0})"><i class="fa-solid fa-arrow-trend-up"></i> Pico en Etapa</span>` : (t.isPastYear ? '<span class="curator-badge-past">Año Pasado</span>' : '')}
+                        ${t.isSurgeOrPeak ? `<span class="curator-badge-peak" title="Pico de escuchas en esta etapa (${t.plays} plays vs récord previo de ${t.priorMax || 0})"><i class="fa-solid fa-arrow-trend-up"></i> Pico</span>` : (t.isPastYear ? '<span class="curator-badge-past">Año Pasado</span>' : '')}
                     </div>
                 </div>
                 <span class="curator-badge-plays">
                     ${t.plays} ${t.plays === 1 ? 'play' : 'plays'}
                 </span>
                 <div class="d-flex align-items-center gap-0.5 flex-shrink-0">
-                    <button type="button" class="curator-action-btn" onclick="moveCuratorTrack(${i}, -1)" ${i === 0 ? 'disabled' : ''} title="Subir">
-                        <i class="fa-solid fa-chevron-up" style="font-size: 0.74rem;"></i>
+                    <button type="button" class="curator-action-btn" onclick="moveCuratorTrack(${i}, -1)" ${i === 0 ? 'disabled' : ''} title="Subir posición">
+                        <i class="fa-solid fa-chevron-up" style="font-size: 0.72rem;"></i>
                     </button>
-                    <button type="button" class="curator-action-btn" onclick="moveCuratorTrack(${i}, 1)" ${i === curatorSelectedTracks.length - 1 ? 'disabled' : ''} title="Bajar">
-                        <i class="fa-solid fa-chevron-down" style="font-size: 0.74rem;"></i>
+                    <button type="button" class="curator-action-btn" onclick="moveCuratorTrack(${i}, 1)" ${i === curatorSelectedTracks.length - 1 ? 'disabled' : ''} title="Bajar posición">
+                        <i class="fa-solid fa-chevron-down" style="font-size: 0.72rem;"></i>
                     </button>
-                    <button type="button" class="curator-action-btn text-danger ms-1" onclick="removeCuratorTrack(${i})" title="Quitar de la lista">
-                        <i class="fa-solid fa-xmark" style="font-size: 0.82rem;"></i>
+                    <button type="button" class="curator-action-btn text-danger ms-1" onclick="removeCuratorTrack(${i})" title="Quitar de mi tracklist">
+                        <i class="fa-solid fa-xmark" style="font-size: 0.80rem;"></i>
                     </button>
                 </div>
             </div>
@@ -7290,9 +7586,9 @@ function renderCuratorBenchList() {
         curatorBenchList.innerHTML = `
             <div class="text-center py-5 text-secondary">
                 <i class="fa-solid fa-layer-group fs-2 mb-2 text-secondary opacity-40"></i>
-                <div class="fw-semibold text-white mb-1">Banca en espera</div>
-                <div class="small text-muted" style="max-width: 360px; margin: 0 auto; font-size: 0.76rem;">
-                    Selecciona un año y un periodo en los selectores superiores para cargar las canciones disponibles de la banca.
+                <div class="fw-semibold text-white mb-1">Banco en espera</div>
+                <div class="small text-muted" style="max-width: 300px; margin: 0 auto; font-size: 0.74rem;">
+                    Selecciona un año y un periodo arriba para cargar los candidatos de la banca.
                 </div>
             </div>
         `;
@@ -7340,13 +7636,17 @@ function renderCuratorBenchList() {
         filtered = [...benchMatches, ...catalogMatches];
     }
 
+    const benchBadge = document.getElementById('curator-bench-count-badge');
+    if (benchBadge) benchBadge.textContent = filtered.length;
+
     if (filtered.length === 0) {
         curatorBenchList.innerHTML = `
             <div class="text-center py-4 text-secondary">
                 <i class="fa-solid fa-magnifying-glass fs-5 mb-1 opacity-50"></i>
-                <div>No se encontraron más canciones en la banca o catálogo.</div>
+                <div class="small">No se encontraron canciones en la banca o catálogo.</div>
             </div>
         `;
+        updateCuratorBulkBar();
         return;
     }
 
@@ -7355,22 +7655,38 @@ function renderCuratorBenchList() {
         const artKey = `track::${normalizeKey(t.name)}::${normalizeKey(t.artist || '')}`;
         const coverImg = artCache[artKey] || FALLBACK_ART_SVG;
         const imgId = `curator-art-bench-${i}`;
+        const trackKey = `${normalizeKey(t.name)}:::${normalizeKey(t.artist)}`;
+        const isChecked = curatorBenchSelectedKeys.has(trackKey);
 
         html += `
-            <div class="curator-track-item">
+            <div class="curator-track-item"
+                 draggable="true"
+                 ondragstart="onBenchTrackDragStart(event, ${i}, '${encodeURIComponent(t.name)}', '${encodeURIComponent(t.artist)}')"
+                 ondragend="onTracklistDragEnd(event)">
+                <div class="d-flex align-items-center">
+                    <input type="checkbox"
+                           class="form-check-input curator-bench-checkbox me-2"
+                           data-track-key="${trackKey}"
+                           ${isChecked ? 'checked' : ''}
+                           onchange="toggleBenchItemSelect(event, '${encodeURIComponent(t.name)}', '${encodeURIComponent(t.artist)}')"
+                           style="cursor: pointer; width: 15px; height: 15px;">
+                    <div class="curator-drag-handle me-1" title="Arrastrar al tracklist">
+                        <i class="fa-solid fa-grip-vertical"></i>
+                    </div>
+                </div>
                 <img id="${imgId}" src="${coverImg}" class="rounded flex-shrink-0" style="width: 36px; height: 36px; object-fit: cover;" onerror="safeImgError(this)" alt="Cover">
                 <div class="overflow-hidden flex-grow-1" style="min-width: 0;">
                     <div class="fw-bold text-white text-truncate" style="font-size: 0.80rem;">${t.name}</div>
-                    <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                    <div class="d-flex align-items-center gap-1 flex-wrap">
                         <small class="text-secondary text-truncate" style="font-size: 0.70rem;">${t.artist}</small>
-                        ${t.fromFullCatalog ? '<span class="curator-badge-past" title="Canción de tu catálogo completo">Catálogo Total</span>' : (t.isSurgeOrPeak ? `<span class="curator-badge-peak" title="Pico de escuchas en esta etapa (${t.plays} plays vs récord previo de ${t.priorMax || 0})"><i class="fa-solid fa-arrow-trend-up"></i> Pico en Etapa</span>` : (t.isPastYear ? `<span class="curator-badge-past" title="Pico previo: ${t.priorMax || 0} plays en etapa anterior">Año Pasado</span>` : ''))}
+                        ${t.fromFullCatalog ? '<span class="curator-badge-past" title="Canción de tu catálogo completo">Catálogo Total</span>' : (t.isSurgeOrPeak ? `<span class="curator-badge-peak" title="Pico de escuchas en esta etapa"><i class="fa-solid fa-arrow-trend-up"></i> Pico</span>` : (t.isPastYear ? `<span class="curator-badge-past">Año Pasado</span>` : ''))}
                     </div>
                 </div>
                 <span class="curator-badge-plays">
                     ${t.plays} ${t.plays === 1 ? 'play' : 'plays'}
                 </span>
-                <button type="button" class="btn btn-sm btn-outline-brand rounded-pill px-2.5 py-0.5 fw-semibold flex-shrink-0" style="font-size: 0.72rem;" onclick="addCuratorTrackFromBench('${encodeURIComponent(t.name)}', '${encodeURIComponent(t.artist)}')">
-                    <i class="fa-solid fa-plus me-1"></i> Añadir
+                <button type="button" class="btn btn-sm btn-outline-brand rounded-circle p-0 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 26px; height: 26px;" onclick="addCuratorTrackFromBench('${encodeURIComponent(t.name)}', '${encodeURIComponent(t.artist)}')" title="Añadir a mi tracklist">
+                    <i class="fa-solid fa-plus" style="font-size: 0.72rem;"></i>
                 </button>
             </div>
         `;
@@ -7381,6 +7697,7 @@ function renderCuratorBenchList() {
     });
 
     curatorBenchList.innerHTML = html;
+    updateCuratorBulkBar();
 }
 
 window.moveCuratorTrack = function(index, direction) {
@@ -7575,6 +7892,7 @@ async function createCuratorSpotifyPlaylist() {
 
 function clearCuratorSelection() {
     if (curatorSelectedTracks.length === 0) return;
+    if (!confirm('¿Deseas vaciar tu tracklist actual y regresar las canciones a la banca?')) return;
     for (const t of curatorSelectedTracks) {
         curatorBenchTracks.push(t);
     }
