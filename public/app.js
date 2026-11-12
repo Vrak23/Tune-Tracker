@@ -7490,6 +7490,28 @@ function renderCuratorView() {
     renderCuratorBenchList();
 }
 
+window.changeCuratorTrackPosition = function(fromIndex, newPosVal) {
+    let targetPos = parseInt(newPosVal, 10);
+    const max = curatorSelectedTracks.length;
+    if (isNaN(targetPos)) {
+        renderCuratorSelectedList();
+        return;
+    }
+    if (targetPos < 1) targetPos = 1;
+    if (targetPos > max) targetPos = max;
+
+    const toIndex = targetPos - 1;
+    if (toIndex === fromIndex) {
+        renderCuratorSelectedList();
+        return;
+    }
+
+    const [moved] = curatorSelectedTracks.splice(fromIndex, 1);
+    curatorSelectedTracks.splice(toIndex, 0, moved);
+    renderCuratorSelectedList();
+    triggerGoogleDriveAutoSync();
+};
+
 function renderCuratorSelectedList() {
     if (!curatorSelectedList) return;
 
@@ -7526,12 +7548,14 @@ function renderCuratorSelectedList() {
         return;
     }
 
+    const totalTracks = curatorSelectedTracks.length;
     let html = '';
     curatorSelectedTracks.forEach((t, i) => {
-        const artKey = `track::${normalizeKey(t.name)}::${normalizeKey(t.artist || '')}`;
+        const trackName = t.name || t.track || t.title || 'Sin título';
+        const trackArtist = t.artist || t.artistName || 'Artista desconocido';
+        const artKey = `track::${normalizeKey(trackName)}::${normalizeKey(trackArtist)}`;
         const coverImg = artCache[artKey] || FALLBACK_ART_SVG;
         const imgId = `curator-art-sel-${i}`;
-        const rankStr = String(i + 1).padStart(2, '0');
 
         html += `
             <div class="curator-track-item"
@@ -7542,37 +7566,35 @@ function renderCuratorSelectedList() {
                  ondragleave="onTracklistDragLeave(event, ${i})"
                  ondrop="onTracklistDrop(event, ${i})"
                  ondragend="onTracklistDragEnd(event)">
-                <div class="curator-drag-handle" title="Arrastrar para reordenar">
-                    <i class="fa-solid fa-grip-vertical"></i>
-                </div>
-                <span class="curator-track-rank">#${rankStr}</span>
                 <img id="${imgId}" src="${coverImg}" class="rounded flex-shrink-0" style="width: 38px; height: 38px; object-fit: cover;" onerror="safeImgError(this)" alt="Cover">
-                <div class="overflow-hidden flex-grow-1" style="min-width: 0;">
-                    <div class="fw-bold text-white text-truncate" style="font-size: 0.82rem;">${t.name}</div>
+                <div class="curator-track-info">
+                    <div class="curator-track-title" title="${trackName}">${trackName}</div>
                     <div class="d-flex align-items-center gap-1.5 flex-wrap">
-                        <small class="text-secondary text-truncate" style="font-size: 0.72rem;">${t.artist}</small>
+                        <span class="curator-track-artist" title="${trackArtist}">${trackArtist}</span>
                         ${t.isSurgeOrPeak ? `<span class="curator-badge-peak" title="Pico de escuchas en esta etapa (${t.plays} plays vs récord previo de ${t.priorMax || 0})"><i class="fa-solid fa-arrow-trend-up"></i> Pico</span>` : (t.isPastYear ? '<span class="curator-badge-past">Año Pasado</span>' : '')}
                     </div>
                 </div>
-                <span class="curator-badge-plays">
-                    ${t.plays} ${t.plays === 1 ? 'play' : 'plays'}
-                </span>
-                <div class="d-flex align-items-center gap-0.5 flex-shrink-0">
-                    <button type="button" class="curator-action-btn" onclick="moveCuratorTrack(${i}, -1)" ${i === 0 ? 'disabled' : ''} title="Subir posición">
-                        <i class="fa-solid fa-chevron-up" style="font-size: 0.72rem;"></i>
-                    </button>
-                    <button type="button" class="curator-action-btn" onclick="moveCuratorTrack(${i}, 1)" ${i === curatorSelectedTracks.length - 1 ? 'disabled' : ''} title="Bajar posición">
-                        <i class="fa-solid fa-chevron-down" style="font-size: 0.72rem;"></i>
-                    </button>
-                    <button type="button" class="curator-action-btn text-danger ms-1" onclick="removeCuratorTrack(${i})" title="Quitar de mi tracklist">
-                        <i class="fa-solid fa-xmark" style="font-size: 0.80rem;"></i>
+                <div class="d-flex align-items-center gap-1.5 flex-shrink-0 ms-auto">
+                    <span class="curator-badge-plays" title="${t.plays} reproducciones">
+                        ${t.plays}
+                    </span>
+                    <input type="number"
+                           class="curator-pos-input"
+                           value="${i + 1}"
+                           min="1"
+                           max="${totalTracks}"
+                           onchange="changeCuratorTrackPosition(${i}, this.value)"
+                           onkeydown="if(event.key==='Enter'){this.blur();}"
+                           title="Posición en tracklist (cambia el número para reordenar)">
+                    <button type="button" class="curator-action-btn text-danger p-1" onclick="removeCuratorTrack(${i})" title="Quitar de mi tracklist">
+                        <i class="fa-solid fa-xmark" style="font-size: 0.85rem;"></i>
                     </button>
                 </div>
             </div>
         `;
 
         if (!artCache[artKey]) {
-            resolveSpotifyArtwork(t.name, t.artist, 'track', imgId);
+            resolveSpotifyArtwork(trackName, trackArtist, 'track', imgId);
         }
     });
 
@@ -7652,47 +7674,43 @@ function renderCuratorBenchList() {
 
     let html = '';
     filtered.slice(0, 100).forEach((t, i) => {
-        const artKey = `track::${normalizeKey(t.name)}::${normalizeKey(t.artist || '')}`;
+        const trackName = t.name || t.track || t.title || 'Sin título';
+        const trackArtist = t.artist || t.artistName || 'Artista desconocido';
+        const artKey = `track::${normalizeKey(trackName)}::${normalizeKey(trackArtist)}`;
         const coverImg = artCache[artKey] || FALLBACK_ART_SVG;
         const imgId = `curator-art-bench-${i}`;
-        const trackKey = `${normalizeKey(t.name)}:::${normalizeKey(t.artist)}`;
+        const trackKey = `${normalizeKey(trackName)}:::${normalizeKey(trackArtist)}`;
         const isChecked = curatorBenchSelectedKeys.has(trackKey);
 
         html += `
-            <div class="curator-track-item"
-                 draggable="true"
-                 ondragstart="onBenchTrackDragStart(event, ${i}, '${encodeURIComponent(t.name)}', '${encodeURIComponent(t.artist)}')"
-                 ondragend="onTracklistDragEnd(event)">
-                <div class="d-flex align-items-center">
-                    <input type="checkbox"
-                           class="form-check-input curator-bench-checkbox me-2"
-                           data-track-key="${trackKey}"
-                           ${isChecked ? 'checked' : ''}
-                           onchange="toggleBenchItemSelect(event, '${encodeURIComponent(t.name)}', '${encodeURIComponent(t.artist)}')"
-                           style="cursor: pointer; width: 15px; height: 15px;">
-                    <div class="curator-drag-handle me-1" title="Arrastrar al tracklist">
-                        <i class="fa-solid fa-grip-vertical"></i>
-                    </div>
-                </div>
+            <div class="curator-track-item">
+                <input type="checkbox"
+                       class="form-check-input curator-bench-checkbox flex-shrink-0"
+                       data-track-key="${trackKey}"
+                       ${isChecked ? 'checked' : ''}
+                       onchange="toggleBenchItemSelect(event, '${encodeURIComponent(trackName)}', '${encodeURIComponent(trackArtist)}')"
+                       style="cursor: pointer; width: 15px; height: 15px; margin: 0;">
                 <img id="${imgId}" src="${coverImg}" class="rounded flex-shrink-0" style="width: 36px; height: 36px; object-fit: cover;" onerror="safeImgError(this)" alt="Cover">
-                <div class="overflow-hidden flex-grow-1" style="min-width: 0;">
-                    <div class="fw-bold text-white text-truncate" style="font-size: 0.80rem;">${t.name}</div>
+                <div class="curator-track-info">
+                    <div class="curator-track-title" title="${trackName}">${trackName}</div>
                     <div class="d-flex align-items-center gap-1 flex-wrap">
-                        <small class="text-secondary text-truncate" style="font-size: 0.70rem;">${t.artist}</small>
+                        <span class="curator-track-artist" title="${trackArtist}">${trackArtist}</span>
                         ${t.fromFullCatalog ? '<span class="curator-badge-past" title="Canción de tu catálogo completo">Catálogo Total</span>' : (t.isSurgeOrPeak ? `<span class="curator-badge-peak" title="Pico de escuchas en esta etapa"><i class="fa-solid fa-arrow-trend-up"></i> Pico</span>` : (t.isPastYear ? `<span class="curator-badge-past">Año Pasado</span>` : ''))}
                     </div>
                 </div>
-                <span class="curator-badge-plays">
-                    ${t.plays} ${t.plays === 1 ? 'play' : 'plays'}
-                </span>
-                <button type="button" class="btn btn-sm btn-outline-brand rounded-circle p-0 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 26px; height: 26px;" onclick="addCuratorTrackFromBench('${encodeURIComponent(t.name)}', '${encodeURIComponent(t.artist)}')" title="Añadir a mi tracklist">
-                    <i class="fa-solid fa-plus" style="font-size: 0.72rem;"></i>
-                </button>
+                <div class="d-flex align-items-center gap-1.5 flex-shrink-0 ms-auto">
+                    <span class="curator-badge-plays" title="${t.plays} reproducciones">
+                        ${t.plays}
+                    </span>
+                    <button type="button" class="btn btn-sm btn-outline-brand rounded-circle p-0 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 26px; height: 26px;" onclick="addCuratorTrackFromBench('${encodeURIComponent(trackName)}', '${encodeURIComponent(trackArtist)}')" title="Añadir a mi tracklist">
+                        <i class="fa-solid fa-plus" style="font-size: 0.72rem;"></i>
+                    </button>
+                </div>
             </div>
         `;
 
         if (!artCache[artKey]) {
-            resolveSpotifyArtwork(t.name, t.artist, 'track', imgId);
+            resolveSpotifyArtwork(trackName, trackArtist, 'track', imgId);
         }
     });
 

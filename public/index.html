@@ -1275,10 +1275,10 @@
             background-color: #12121a;
             border: 1px solid #232332;
             border-radius: 8px;
-            padding: 6px 10px;
+            padding: 6px 8px;
             display: flex;
             align-items: center;
-            gap: 9px;
+            gap: 8px;
             transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
             position: relative;
             user-select: none;
@@ -1298,31 +1298,55 @@
         .curator-track-item.drag-over-bottom {
             border-bottom: 2px solid #a855f7 !important;
         }
-        .curator-drag-handle {
-            color: #52525b;
-            cursor: grab;
-            padding: 2px 4px;
-            font-size: 0.82rem;
-            transition: color 0.15s ease;
-            display: flex;
-            align-items: center;
+        .curator-track-info {
+            flex: 1 1 0%;
+            min-width: 0;
+            overflow: hidden;
         }
-        .curator-drag-handle:hover {
-            color: #c084fc;
-        }
-        .curator-drag-handle:active {
-            cursor: grabbing;
-        }
-        .curator-track-rank {
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        .curator-track-title {
             font-weight: 700;
-            font-size: 0.78rem;
-            color: #71717a;
-            min-width: 24px;
-            text-align: center;
+            font-size: 0.82rem;
+            color: #ffffff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.25;
         }
-        .curator-track-item:hover .curator-track-rank {
-            color: #c084fc;
+        .curator-track-artist {
+            font-size: 0.72rem;
+            color: #94a3b8;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.25;
+        }
+        .curator-pos-input {
+            width: 38px;
+            height: 28px;
+            padding: 0 2px;
+            text-align: center;
+            background-color: #1a1a28;
+            border: 1px solid #3e3e56;
+            border-radius: 6px;
+            color: #ffffff;
+            font-size: 0.78rem;
+            font-weight: 700;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            outline: none;
+            transition: border-color 0.15s, background-color 0.15s;
+            -moz-appearance: textfield;
+            flex-shrink: 0;
+        }
+        .curator-pos-input::-webkit-inner-spin-button,
+        .curator-pos-input::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .curator-pos-input:focus {
+            border-color: #a855f7;
+            background-color: #222236;
+            box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.25);
+            color: #ffffff;
         }
         .curator-container-dropzone-active {
             outline: 2px dashed #a855f7 !important;
@@ -1408,11 +1432,13 @@
         .curator-badge-plays {
             display: inline-flex;
             align-items: center;
-            padding: 2px 7px;
+            justify-content: center;
+            padding: 2px 6px;
+            min-width: 28px;
             border-radius: 6px;
             font-size: 0.70rem;
             font-weight: 600;
-            color: #f1f5f9 !important;
+            color: #cbd5e1 !important;
             background: rgba(255, 255, 255, 0.08) !important;
             border: 1px solid rgba(255, 255, 255, 0.15) !important;
             flex-shrink: 0;
@@ -2745,7 +2771,7 @@
                                     <div class="d-flex align-items-center gap-1.5">
                                         <i class="fa-solid fa-list-check text-brand opacity-80"></i>
                                         <span class="fw-bold text-white small">Mi Tracklist</span>
-                                        <small class="text-muted ms-1" style="font-size: 0.70rem;">(Arrastra para reordenar)</small>
+                                        <small class="text-muted ms-1" style="font-size: 0.70rem;">(Edita la posición o arrastra)</small>
                                     </div>
                                     <div class="d-flex align-items-center gap-1">
                                         <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-0.5 text-secondary" style="font-size: 0.70rem;" onclick="shuffleCuratorTracklist()" title="Mezclar aleatoriamente el orden">
