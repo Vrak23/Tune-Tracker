@@ -4587,7 +4587,31 @@ async function loadTimestampRangeStats(user, key, fromUTS, toUTS, emptyLabel) {
 // ----------------------------------------------------
 // RESOLUCIÓN DE IMÁGENES (SPOTIFY SIN LOGIN + LAST.FM + FALLBACKS)
 // ----------------------------------------------------
+const ART_CACHE_VERSION = 'v80_spotify_hd';
 const artCache = JSON.parse(localStorage.getItem('spoti_art_cache') || '{}');
+
+// Migración y saneamiento: Si la caché contiene URLs no oficiales o previas (Deezer/iTunes/placeholders), se descartan
+(function sanitizeArtCache() {
+    try {
+        const currentVer = localStorage.getItem('spoti_art_cache_version');
+        if (currentVer !== ART_CACHE_VERSION) {
+            let removed = 0;
+            for (const k of Object.keys(artCache)) {
+                const val = artCache[k];
+                // Mantener exclusivamente carátulas oficiales de Spotify (i.scdn.co o scdn.co)
+                if (typeof val !== 'string' || !val.includes('scdn.co')) {
+                    delete artCache[k];
+                    removed++;
+                }
+            }
+            localStorage.setItem('spoti_art_cache', JSON.stringify(artCache));
+            localStorage.setItem('spoti_art_cache_version', ART_CACHE_VERSION);
+            if (removed > 0) {
+                console.log(`[TuneTracker] Caché de carátulas actualizada a Spotify HD. ${removed} imágenes obsoletas depuradas.`);
+            }
+        }
+    } catch (e) {}
+})();
 
 function saveArtCache() {
     try {
@@ -4612,7 +4636,8 @@ async function resolveSpotifyArtwork(name, artist, type = 'track', elementId) {
 
     const key = `${type}::${normalizeKey(name)}::${normalizeKey(artist || '')}`;
 
-    if (artCache[key]) {
+    // Si ya existe en caché y es oficial de Spotify, reutilizarla directamente
+    if (artCache[key] && typeof artCache[key] === 'string' && artCache[key].includes('scdn.co')) {
         const el = document.getElementById(elementId);
         if (el) el.src = artCache[key];
         return artCache[key];
@@ -4683,10 +4708,10 @@ async function resolveSpotifyArtwork(name, artist, type = 'track', elementId) {
 
 function getInitialImage(item, name, artist, type) {
     const key = `${type}::${normalizeKey(name)}::${normalizeKey(artist || '')}`;
-    if (artCache[key]) {
+    if (artCache[key] && typeof artCache[key] === 'string' && artCache[key].includes('scdn.co')) {
         return artCache[key];
     }
-    if (item && item.image) {
+    if (type !== 'artist' && item && item.image) {
         const candidate = extractLastFmImg(item.image);
         if (candidate) {
             return candidate;
@@ -4700,7 +4725,7 @@ function getImageFromItem(item) {
     const artistName = item.artist ? (item.artist.name || item.artist['#text'] || item.artist) : '';
     const itemType = currentType === 'artists' ? 'artist' : (currentType === 'albums' ? 'album' : 'track');
     const key = `${itemType}::${normalizeKey(item.name)}::${normalizeKey(artistName)}`;
-    if (artCache[key]) return artCache[key];
+    if (artCache[key] && typeof artCache[key] === 'string' && artCache[key].includes('scdn.co')) return artCache[key];
     return getInitialImage(item, item.name, artistName, itemType);
 }
 
@@ -4773,7 +4798,9 @@ function renderTracks(tracks) {
         statsList.appendChild(item);
 
         const key = `track::${normalizeKey(track.name)}::${normalizeKey(artistName)}`;
-        if (!artCache[key]) resolveSpotifyArtwork(track.name, artistName, 'track', imgId);
+        if (!artCache[key] || (typeof artCache[key] === 'string' && !artCache[key].includes('scdn.co'))) {
+            resolveSpotifyArtwork(track.name, artistName, 'track', imgId);
+        }
     });
 }
 
@@ -4825,7 +4852,9 @@ function renderArtists(artists) {
         statsList.appendChild(item);
 
         const key = `artist::${normalizeKey(artistName)}::`;
-        if (!artCache[key]) resolveSpotifyArtwork(artistName, '', 'artist', imgId);
+        if (!artCache[key] || (typeof artCache[key] === 'string' && !artCache[key].includes('scdn.co'))) {
+            resolveSpotifyArtwork(artistName, '', 'artist', imgId);
+        }
     });
 }
 
@@ -4877,7 +4906,9 @@ function renderAlbums(albums) {
         statsList.appendChild(item);
 
         const key = `album::${normalizeKey(album.name)}::${normalizeKey(artistName)}`;
-        if (!artCache[key]) resolveSpotifyArtwork(album.name, artistName, 'album', imgId);
+        if (!artCache[key] || (typeof artCache[key] === 'string' && !artCache[key].includes('scdn.co'))) {
+            resolveSpotifyArtwork(album.name, artistName, 'album', imgId);
+        }
     });
 }
 
@@ -4945,7 +4976,7 @@ function renderRecent(tracks) {
         statsList.appendChild(item);
 
         const key = `track::${normalizeKey(track.name)}::${normalizeKey(artistName)}`;
-        if (!artCache[key]) {
+        if (!artCache[key] || (typeof artCache[key] === 'string' && !artCache[key].includes('scdn.co'))) {
             resolveSpotifyArtwork(track.name, artistName, 'track', imgId);
         }
     });
@@ -5091,7 +5122,7 @@ async function showItemStats(type, name, artist, isBack = false) {
 
     // Cover artwork resolution
     const artKey = `${type}::${normalizeKey(name)}::${normalizeKey(artist || '')}`;
-    const coverImg = artCache[artKey] || '/logo.png';
+    const coverImg = (artCache[artKey] && typeof artCache[artKey] === 'string' && artCache[artKey].includes('scdn.co')) ? artCache[artKey] : (artCache[artKey] || '/logo.png');
 
     // Spotify Link
     const spotifyQuery = encodeURIComponent(`${name} ${artist || ''}`.trim());
@@ -5128,7 +5159,7 @@ async function showItemStats(type, name, artist, isBack = false) {
         modalBody.innerHTML = `
             ${backBtnHtml}
             <div class="d-flex align-items-center gap-3 mb-3 p-2 rounded" style="background-color: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06);">
-                <img src="${coverImg}" class="rounded ${type === 'artist' ? 'rounded-circle' : ''}" style="width: 56px; height: 56px; object-fit: cover;" onerror="safeImgError(this)">
+                <img id="item-stats-modal-img" src="${coverImg}" class="rounded ${type === 'artist' ? 'rounded-circle' : ''}" style="width: 56px; height: 56px; object-fit: cover;" onerror="safeImgError(this)">
                 <div class="overflow-hidden flex-grow-1">
                     <h6 class="fw-bold mb-0 text-white text-truncate">${name}</h6>
                     <small class="text-secondary text-truncate d-block">${artist || 'Artista'}</small>
@@ -5152,6 +5183,9 @@ async function showItemStats(type, name, artist, isBack = false) {
             modalInstance.show();
         } else {
             modalEl.querySelector('.modal-body')?.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        if (!artCache[artKey] || (typeof artCache[artKey] === 'string' && !artCache[artKey].includes('scdn.co'))) {
+            resolveSpotifyArtwork(name, artist, type, 'item-stats-modal-img');
         }
         return;
     }
@@ -5351,7 +5385,7 @@ async function showItemStats(type, name, artist, isBack = false) {
         ${backBtnHtml}
         <!-- Hero Header -->
         <div class="d-flex align-items-center gap-3 mb-3 p-2 rounded" style="background-color: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06);">
-            <img src="${coverImg}" class="rounded ${type === 'artist' ? 'rounded-circle' : ''}" style="width: 58px; height: 58px; object-fit: cover; flex-shrink: 0;" alt="Cover" onerror="safeImgError(this)">
+            <img id="item-stats-modal-img" src="${coverImg}" class="rounded ${type === 'artist' ? 'rounded-circle' : ''}" style="width: 58px; height: 58px; object-fit: cover; flex-shrink: 0;" alt="Cover" onerror="safeImgError(this)">
             <div class="overflow-hidden flex-grow-1" style="min-width: 0;">
                 <div class="d-flex align-items-center gap-1.5 mb-0.5">
                     <h6 class="fw-bold mb-0 text-white text-truncate" style="font-size: 0.95rem;" title="${name}">${name}</h6>
@@ -5435,6 +5469,9 @@ async function showItemStats(type, name, artist, isBack = false) {
         modalInstance.show();
     } else {
         modalEl.querySelector('.modal-body')?.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    if (!artCache[artKey] || (typeof artCache[artKey] === 'string' && !artCache[artKey].includes('scdn.co'))) {
+        resolveSpotifyArtwork(name, artist, type, 'item-stats-modal-img');
     }
 }
 

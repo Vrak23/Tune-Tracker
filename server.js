@@ -1,8 +1,12 @@
 const express = require('express');
 const path = require('path');
+const apiApp = require('./api/index');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Servir endpoints de la API (artwork, firebase-config, callback, etc.)
+app.use(apiApp);
 
 // Servir archivos estáticos del directorio public
 app.use(express.static(path.join(__dirname, 'public')));

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tunetracker-v79';
+const CACHE_NAME = 'tunetracker-v80';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -54,8 +54,8 @@ self.addEventListener('notificationclick', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Ignorar peticiones a APIs externas de Spotify o Last.fm o no GET
-  if (event.request.method !== 'GET' || url.origin.includes('spotify.com') || url.origin.includes('audioscrobbler.com')) {
+  // Ignorar peticiones a APIs externas de Spotify, Last.fm, endpoints /api/ o no GET
+  if (event.request.method !== 'GET' || url.origin.includes('spotify.com') || url.origin.includes('audioscrobbler.com') || url.pathname.startsWith('/api/')) {
     return;
   }
 

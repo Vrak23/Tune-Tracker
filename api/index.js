@@ -61,16 +61,38 @@ async function searchSpotifyArtwork(type, name, artist) {
     if (!token) return null;
 
     try {
-        let q = type === 'artist' ? `artist:${name}` : `track:${name} artist:${artist || ''}`.trim();
-        if (type === 'album') q = `album:${name} artist:${artist || ''}`.trim();
-        const res = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=${type}&limit=1`, {
+        let q = name;
+        if (type === 'track') {
+            q = artist ? `track:${name} artist:${artist}` : name;
+        } else if (type === 'album') {
+            q = artist ? `album:${name} artist:${artist}` : name;
+        } else if (type === 'artist') {
+            q = name;
+        }
+
+        let res = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=${type}&limit=1`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {
             const data = await res.json();
-            if (type === 'track') return data.tracks?.items?.[0]?.album?.images?.[0]?.url || data.tracks?.items?.[0]?.album?.images?.[1]?.url || null;
-            if (type === 'artist') return data.artists?.items?.[0]?.images?.[0]?.url || data.artists?.items?.[0]?.images?.[1]?.url || null;
-            if (type === 'album') return data.albums?.items?.[0]?.images?.[0]?.url || data.albums?.items?.[0]?.images?.[1]?.url || null;
+            let img = null;
+            if (type === 'track') img = data.tracks?.items?.[0]?.album?.images?.[0]?.url || data.tracks?.items?.[0]?.album?.images?.[1]?.url;
+            else if (type === 'artist') img = data.artists?.items?.[0]?.images?.[0]?.url || data.artists?.items?.[0]?.images?.[1]?.url;
+            else if (type === 'album') img = data.albums?.items?.[0]?.images?.[0]?.url || data.albums?.items?.[0]?.images?.[1]?.url;
+            if (img) return img;
+        }
+
+        // Respaldo de búsqueda libre si la búsqueda inicial con prefijo no devolvió nada
+        if (type !== 'artist' && artist) {
+            const fallbackQ = `${name} ${artist}`.trim();
+            const fbRes = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(fallbackQ)}&type=${type}&limit=1`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (fbRes.ok) {
+                const fbData = await fbRes.json();
+                if (type === 'track') return fbData.tracks?.items?.[0]?.album?.images?.[0]?.url || fbData.tracks?.items?.[0]?.album?.images?.[1]?.url || null;
+                if (type === 'album') return fbData.albums?.items?.[0]?.images?.[0]?.url || fbData.albums?.items?.[0]?.images?.[1]?.url || null;
+            }
         }
     } catch (e) {
         console.error('Error buscando artwork en Spotify:', e.message);
