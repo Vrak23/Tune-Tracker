@@ -857,6 +857,8 @@ async function loadTidalEstimates() {
         if (res.ok) {
             rawDefaultTidalEstimates = await res.json();
             applyCustomOverridesToTidal();
+            if (typeof updateStatStrip === 'function' && (unifiedDb || spotifyDb)) updateStatStrip();
+            if (typeof renderCatalogActivityChart === 'function' && (unifiedDb || spotifyDb)) renderCatalogActivityChart(currentRange, unifiedDb || spotifyDb);
             console.log('Era Tidal y ajustes cargados correctamente:', tidalEstimates.period);
         }
     } catch (e) {
@@ -1009,20 +1011,29 @@ window.showUpdateNotification = showUpdateNotification;
 
 // PWA: Registrar Service Worker con detección de actualizaciones
 if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
+    const hadInitialController = Boolean(navigator.serviceWorker.controller);
+    const justUpdated = sessionStorage.getItem('tunetracker_just_updated') === '1';
+    if (justUpdated) sessionStorage.removeItem('tunetracker_just_updated');
+
+    let updateToastShown = false;
+    const triggerUpdateBanner = () => {
+        if (!hadInitialController || justUpdated || updateToastShown) return;
+        updateToastShown = true;
         showUpdateNotification();
-    });
+    };
+
+    navigator.serviceWorker.addEventListener('controllerchange', triggerUpdateBanner);
 
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js').then((registration) => {
-            if (registration.waiting) {
-                showUpdateNotification();
+            if (registration.waiting && hadInitialController) {
+                triggerUpdateBanner();
             }
 
             // Actualizaciones en vivo: buscar nueva versión periódicamente y al volver a la app
             const checkForAppUpdate = () => { if (navigator.onLine) registration.update().catch(() => {}); };
-            setTimeout(checkForAppUpdate, 1500);
-            setInterval(checkForAppUpdate, 45000);
+            setTimeout(checkForAppUpdate, 2500);
+            setInterval(checkForAppUpdate, 60000);
             document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkForAppUpdate(); });
             window.addEventListener('focus', checkForAppUpdate);
 
@@ -1030,10 +1041,8 @@ if ('serviceWorker' in navigator) {
                 const installingWorker = registration.installing;
                 if (installingWorker) {
                     installingWorker.onstatechange = () => {
-                        if (installingWorker.state === 'installed' || installingWorker.state === 'activated') {
-                            if (navigator.serviceWorker.controller) {
-                                showUpdateNotification();
-                            }
+                        if (installingWorker.state === 'installed' && hadInitialController) {
+                            triggerUpdateBanner();
                         }
                     };
                 }
@@ -2528,6 +2537,9 @@ function renderCatalogActivityChart(periodRange, db) {
                     return new Date(parseInt(dt.date.uts, 10) * 1000).getFullYear() === 2026;
                 }).length;
             }
+            if ((currentSource === 'unified') && (yr === '2025' || yr === '2026')) {
+                p = Math.max(0, p + getCustomOverrideDeltaPlays(yr));
+            }
             return {
                 label: yr,
                 fullLabel: yr,
@@ -2559,6 +2571,27 @@ function renderCatalogActivityChart(periodRange, db) {
                 filterKey: `month-${targetY}-${mNum}`
             };
         });
+
+        // Sincronizar ajustes personalizados (overrides) para que el total de la derecha coincida al 100% con #strip-playcount
+        if (currentSource === 'unified' && (targetY === '2025' || targetY === '2026')) {
+            const ovrDelta = getCustomOverrideDeltaPlays(targetY);
+            if (ovrDelta !== 0) {
+                const activePts = dataPoints.filter(pt => pt.plays > 0);
+                const sumActive = activePts.reduce((acc, pt) => acc + pt.plays, 0);
+                if (sumActive > 0) {
+                    let distributed = 0;
+                    activePts.forEach((pt, i) => {
+                        if (i === activePts.length - 1) {
+                            pt.plays = Math.max(0, pt.plays + (ovrDelta - distributed));
+                        } else {
+                            const share = Math.round((pt.plays / sumActive) * ovrDelta);
+                            pt.plays = Math.max(0, pt.plays + share);
+                            distributed += share;
+                        }
+                    });
+                }
+            }
+        }
     } else if (periodRange === 'current-month' || periodRange.startsWith('month-')) {
         let targetY = curYear;
         let targetM = curMonth;
@@ -2986,6 +3019,8 @@ async function forceAppUpdate() {
         menuForceUpdate.innerHTML = '<span class="spinner-border spinner-border-sm me-2 text-info"></span><span class="text-info">Actualizando...</span>';
     }
     try {
+        sessionStorage.setItem('tunetracker_just_updated', '1');
+        localStorage.removeItem('tunetracker_fast_home_cache');
         if ('caches' in window) {
             const keys = await caches.keys();
             await Promise.all(keys.map(k => caches.delete(k)));
@@ -9022,6 +9057,7 @@ async function pullProfileFromCloud() {
         saveCustomStreamOverridesToStorage(mergedOvr, true);
         applyCustomOverridesToTidal();
         if (typeof updateStatStrip === 'function') updateStatStrip();
+        if (typeof renderCatalogActivityChart === 'function') renderCatalogActivityChart(currentRange, unifiedDb || spotifyDb);
     }
 
     saveProfileState();
