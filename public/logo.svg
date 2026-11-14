@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Tune Tracker</title>
+  <desc id="desc">Monograma minimalista de Tune Tracker</desc>
+  <defs>
+    <linearGradient id="tone" x1="86" y1="72" x2="426" y2="440" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f8fafc"/>
+      <stop offset=".48" stop-color="#cbd5e1"/>
+      <stop offset="1" stop-color="#64748b"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="144" fill="#0b0d12"/>
+  <path d="M151 154h212v54h-78v150h-56V208h-78v-54Z" fill="url(#tone)"/>
+  <path d="M286 279c0-25 20-45 45-45h30v45h-30c-6 0-11 5-11 11v30h-34v-41Z" fill="#94a3b8"/>
+  <circle cx="284" cy="359" r="31" fill="#f8fafc"/>
+  <circle cx="284" cy="359" r="12" fill="#0b0d12"/>
+</svg>

@@ -5183,7 +5183,7 @@ async function showItemStats(type, name, artist, isBack = false) {
 
     // Cover artwork resolution
     const artKey = `${type}::${normalizeKey(name)}::${normalizeKey(artist || '')}`;
-    const coverImg = (artCache[artKey] && typeof artCache[artKey] === 'string' && artCache[artKey].includes('scdn.co')) ? artCache[artKey] : (artCache[artKey] || '/logo.png');
+    const coverImg = (artCache[artKey] && typeof artCache[artKey] === 'string' && artCache[artKey].includes('scdn.co')) ? artCache[artKey] : (artCache[artKey] || '/logo.svg');
 
     // Spotify Link
     const spotifyQuery = encodeURIComponent(`${name} ${artist || ''}`.trim());
@@ -5815,7 +5815,7 @@ function renderShareCardContent() {
     wrapper.innerHTML = `
         <div class="d-flex align-items-center justify-content-between mb-3 border-bottom border-secondary border-opacity-25 pb-2">
             <div class="d-flex align-items-center gap-2">
-                <img src="/logo.png" style="width: 30px; height: 30px; object-fit: contain;">
+                <img src="/logo.svg" style="width: 30px; height: 30px; object-fit: contain;">
                 <div class="text-start leading-tight">
                     <div class="fw-bold small" style="color: #f5f5f7;">${currentShareCardTheme === 'apple' ? 'Replay Pro' : 'SpotiTracker'}</div>
                     <small id="card-period-label" class="text-secondary" style="font-size: 0.68rem;">${escapeHtml(periodLabel)}</small>
@@ -6552,8 +6552,8 @@ function sendPushMilestoneNotification(artistName, milestone) {
     const title = `🎉 ¡Hito Alcanzado en Spotify Tracker!`;
     const options = {
         body: `¡${artistName} acaba de superar las ${milestone} reproducciones en tu biblioteca!`,
-        icon: '/logo.png',
-        badge: '/logo.png',
+        icon: '/logo.svg',
+        badge: '/logo.svg',
         tag: `milestone-${normalizeKey(artistName)}-${milestone}`,
         renotify: true
     };
@@ -6598,7 +6598,7 @@ async function showArtistMilestoneCelebration(data) {
     }
 
     if (imgEl) {
-        imgEl.src = '/logo.png';
+        imgEl.src = '/logo.svg';
         const artKey = `artist::${normalizeKey(name)}::`;
         if (artCache[artKey]) {
             imgEl.src = artCache[artKey];
@@ -6712,7 +6712,7 @@ function renderTrophiesMilestonesTab(db) {
         nearContainer.innerHTML = nearList.map(a => {
             const safeName = a.name.replace(/'/g, "\\'");
             const artKey = `artist::${normalizeKey(a.name)}::`;
-            const cover = artCache[artKey] || '/logo.png';
+            const cover = artCache[artKey] || '/logo.svg';
             const imgId = `near-art-img-${Math.abs(normalizeKey(a.name).split('').reduce((acc, c) => acc + c.charCodeAt(0), 0))}`;
             return `
                 <div class="card-uniform p-2" onclick="showItemStats('artist', '${safeName}', '')" style="cursor: pointer; min-height: 48px;">
@@ -6760,7 +6760,7 @@ function renderTrophiesMilestonesTab(db) {
             const safeName = a.name.replace(/'/g, "\\'");
             const milestone = Math.floor(a.effectivePlays / 100) * 100;
             const artKey = `artist::${normalizeKey(a.name)}::`;
-            const cover = artCache[artKey] || '/logo.png';
+            const cover = artCache[artKey] || '/logo.svg';
             const imgId = `achieved-art-img-${idx}`;
             return `
                 <div class="card-uniform p-1.5 px-2.5" style="min-height: 44px;">
@@ -8352,7 +8352,7 @@ function renderCapsuleContent(db, year, monthKey, monthName) {
     const plays = monthData.plays || topTracks.reduce((acc, t) => acc + (t.plays || 0), 0);
 
     const artKey = topArtist ? `artist::${normalizeKey(topArtist.name)}::` : '';
-    const topArtistCover = artCache[artKey] || '/logo.png';
+    const topArtistCover = artCache[artKey] || '/logo.svg';
 
     content.innerHTML = `
         <div class="p-3 rounded-3 mb-3 border border-info border-opacity-20" style="background: rgba(6, 182, 212, 0.08);">
@@ -8383,7 +8383,7 @@ function renderCapsuleContent(db, year, monthKey, monthName) {
                 const safeName = (t.name || '').replace(/'/g, "\\'");
                 const safeArtist = (t.artist || '').replace(/'/g, "\\'");
                 const tArtKey = `track::${normalizeKey(t.name)}::${normalizeKey(t.artist || '')}`;
-                const cover = artCache[tArtKey] || '/logo.png';
+                const cover = artCache[tArtKey] || '/logo.svg';
                 const imgId = `capsule-trk-img-${idx}`;
                 return `
                     <div class="card-uniform p-1.5 px-2.5 cursor-pointer" onclick="showItemStats('track', '${safeName}', '${safeArtist}')" style="min-height: 42px;">

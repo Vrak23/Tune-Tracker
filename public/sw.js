@@ -3,10 +3,7 @@ const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/app.js',
-  '/logo.png',
-  '/logo-192.png',
-  '/apple-touch-icon.png',
-  '/favicon.png',
+  '/logo.svg',
   '/manifest.json',
   '/data/fast_home.json'
 ];

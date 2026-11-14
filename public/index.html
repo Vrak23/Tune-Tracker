@@ -27,9 +27,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Tune Tracker">
     <link rel="manifest" href="/manifest.json">
-    <link rel="icon" type="image/png" sizes="48x48" href="/favicon.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="/logo-192.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/svg+xml" href="/logo.svg">
+    <link rel="apple-touch-icon" href="/logo.svg">
 
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -47,10 +46,10 @@
             --bg-glass-blur: blur(24px);
 
             /* Apple Pro Accents & Finishes */
-            --brand-primary: #a855f7;
-            --brand-primary-hover: #bf5af2;
-            --brand-glow: rgba(168, 85, 247, 0.25);
-            --brand-gradient: linear-gradient(135deg, #a855f7 0%, #2997ff 100%);
+            --brand-primary: #d7dbe3;
+            --brand-primary-hover: #ffffff;
+            --brand-glow: rgba(148, 163, 184, 0.22);
+            --brand-gradient: linear-gradient(135deg, #f8fafc 0%, #94a3b8 100%);
             --apple-blue: #2997ff;
             --apple-purple: #bf5af2;
             --apple-gold: #f5a623;
@@ -1968,6 +1967,99 @@
             transform: translateY(-1px);
         }
 
+        /* Liquid glass landing surface */
+        .login-portal-wrapper {
+            min-height: calc(100svh - 72px);
+            padding: clamp(2.5rem, 8vw, 6rem) 1rem;
+            isolation: isolate;
+        }
+        .login-portal-wrapper::before {
+            content: '';
+            position: absolute;
+            inset: 4% 8%;
+            z-index: -1;
+            border-radius: 48px;
+            background:
+                radial-gradient(circle at 22% 20%, rgba(255,255,255,.13), transparent 30%),
+                radial-gradient(circle at 80% 75%, rgba(99,102,241,.13), transparent 28%),
+                linear-gradient(135deg, rgba(255,255,255,.06), transparent 58%);
+            filter: blur(1px);
+            pointer-events: none;
+        }
+        .login-auth-card {
+            max-width: 520px;
+            padding: clamp(2rem, 5vw, 3.25rem);
+            border-radius: 32px;
+            background: linear-gradient(145deg, rgba(35, 38, 48, .72), rgba(11, 13, 18, .78));
+            border-color: rgba(255, 255, 255, .18);
+            box-shadow: 0 32px 90px rgba(0,0,0,.62), inset 0 1px 0 rgba(255,255,255,.16);
+            backdrop-filter: blur(38px) saturate(145%);
+            -webkit-backdrop-filter: blur(38px) saturate(145%);
+        }
+        .login-auth-card::after {
+            content: '';
+            position: absolute;
+            inset: 1px;
+            border-radius: 31px;
+            border: 1px solid rgba(255,255,255,.06);
+            pointer-events: none;
+        }
+        .login-auth-card h2 {
+            font-size: clamp(1.7rem, 4vw, 2.35rem) !important;
+            letter-spacing: -.055em !important;
+        }
+        .login-auth-card .brand-mark {
+            width: 76px !important;
+            height: 76px !important;
+            padding: 0 !important;
+            border-radius: 22px !important;
+            background: rgba(255,255,255,.08) !important;
+            border-color: rgba(255,255,255,.18) !important;
+            box-shadow: 0 12px 32px rgba(0,0,0,.28);
+        }
+        .login-auth-card .brand-mark img {
+            width: 76px !important;
+            height: 76px !important;
+            border-radius: 22px !important;
+            filter: none !important;
+        }
+        .login-input-wrapper,
+        .btn-demo-cta {
+            background: rgba(255,255,255,.055);
+            border-color: rgba(255,255,255,.16);
+            border-radius: 16px;
+        }
+        .login-input-wrapper:focus-within {
+            border-color: rgba(255,255,255,.55);
+            box-shadow: 0 0 0 4px rgba(255,255,255,.08);
+            background: rgba(255,255,255,.09);
+        }
+        .btn-lastfm-cta {
+            background: linear-gradient(135deg, #f8fafc, #cbd5e1);
+            border-color: rgba(255,255,255,.7);
+            color: #0b0d12;
+            box-shadow: 0 12px 30px rgba(0,0,0,.28);
+            border-radius: 16px;
+        }
+        .btn-lastfm-cta:hover, .btn-lastfm-cta:focus {
+            color: #020617;
+            filter: brightness(1.04);
+            box-shadow: 0 16px 36px rgba(0,0,0,.38);
+        }
+        @media (max-width: 576px) {
+            .login-portal-wrapper {
+                min-height: calc(100svh - 64px);
+                padding: 1.25rem .25rem 2rem;
+            }
+            .login-auth-card {
+                border-radius: 26px;
+                padding: 1.5rem 1rem;
+            }
+            .login-auth-card::after {
+                border-radius: 25px;
+            }
+        }
+
     </style>
 </head>
 <body>
@@ -1976,7 +2068,7 @@
     <nav class="navbar border-bottom border-secondary border-opacity-10 py-2 sticky-top" style="background-color: rgba(0, 0, 0, 0.80) !important; backdrop-filter: saturate(180%) blur(20px) !important; -webkit-backdrop-filter: saturate(180%) blur(20px) !important; border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;">
         <div class="app-container d-flex align-items-center justify-content-between">
             <a class="navbar-brand d-flex align-items-center gap-2 fw-bold text-white text-decoration-none" href="javascript:void(0)" onclick="handleSecretLogoTap(event)">
-                <img src="/logo.png" alt="Tune Tracker Logo">
+                <img src="/logo.svg" alt="Tune Tracker Logo">
                 <span class="fs-6 tracking-wide">Tune<span style="color: var(--brand-primary);">Tracker</span></span>
             </a>
 
@@ -1997,7 +2089,7 @@
         <!-- Initial Auth Check Loading Screen -->
         <div id="auth-loading-view" class="text-center py-5 my-auto">
             <div class="mb-4">
-                <img src="/logo.png" alt="Tune Tracker Logo" style="width: 88px; height: 88px; filter: drop-shadow(0 0 22px var(--brand-glow));" class="rounded-4">
+                <img src="/logo.svg" alt="Tune Tracker Logo" style="width: 88px; height: 88px; filter: drop-shadow(0 0 22px var(--brand-glow));" class="rounded-4">
             </div>
             <div class="d-flex flex-column align-items-center gap-2">
                 <div class="spinner-border text-primary" style="width: 2rem; height: 2rem;" role="status"></div>
@@ -2013,12 +2105,12 @@
             <div class="login-auth-card mx-auto">
                 <!-- Brand Header -->
                 <div class="text-center mb-3">
-                    <div class="d-inline-flex p-2 rounded-3 mb-2" style="background: rgba(168, 85, 247, 0.10); border: 1px solid rgba(168, 85, 247, 0.25);">
-                        <img src="/logo.png" alt="Tune Tracker Logo" style="width: 52px; height: 52px; filter: drop-shadow(0 0 16px rgba(168, 85, 247, 0.45)); cursor: pointer; transition: transform 0.2s ease;" class="rounded-2" onclick="handleSecretLogoTap(event)">
+                    <div class="brand-mark d-inline-flex p-2 rounded-3 mb-2" style="background: rgba(168, 85, 247, 0.10); border: 1px solid rgba(168, 85, 247, 0.25);">
+                        <img src="/logo.svg" alt="Tune Tracker Logo" style="cursor: pointer; transition: transform 0.2s ease;" class="rounded-2" onclick="handleSecretLogoTap(event)">
                     </div>
-                    <h2 class="fw-bold text-white mb-1" style="font-size: 1.4rem; letter-spacing: -0.02em;">Tune Tracker</h2>
+                    <h2 class="fw-bold text-white mb-1" style="font-size: 1.4rem; letter-spacing: -0.02em;">Tu música, <span style="color: #cbd5e1;">a tu manera.</span></h2>
                     <p class="text-secondary mx-auto mb-0" style="font-size: 0.82rem; max-width: 320px; line-height: 1.45;">
-                        Tus estadísticas musicales reales, escucha en vivo con Dynamic Island y tops sin esperar a fin de año.
+                        Descubre tu historia musical con estadísticas reales, escucha en vivo y una vista que se siente tan personal como tu biblioteca.
                     </p>
                 </div>
 
@@ -2850,7 +2942,7 @@
     <div class="offcanvas offcanvas-end offcanvas-dark" tabindex="-1" id="burgerMenu" aria-labelledby="burgerMenuLabel" style="width: 360px; max-width: 88vw; background-color: #0c0c10; border-left: 1px solid rgba(255, 255, 255, 0.08);">
         <div class="offcanvas-header border-bottom border-secondary border-opacity-10 py-3 px-3">
             <div class="d-flex align-items-center gap-2" style="cursor: pointer;" onclick="handleSecretLogoTap(event)">
-                <img src="/logo.png" style="width: 28px; height: 28px; object-fit: contain;">
+                <img src="/logo.svg" style="width: 28px; height: 28px; object-fit: contain;">
                 <span class="fw-bold fs-6 tracking-wide">Tune<span style="color: var(--brand-primary);">Tracker</span></span>
             </div>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
@@ -3103,7 +3195,7 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4 text-center">
-                    <img src="/logo.png" style="width: 64px; height: 64px; filter: drop-shadow(0 0 15px var(--brand-glow));" class="mb-3 rounded-3" alt="Logo">
+                    <img src="/logo.svg" style="width: 64px; height: 64px; filter: drop-shadow(0 0 15px var(--brand-glow));" class="mb-3 rounded-3" alt="Logo">
                     <h5 class="fw-bold mb-2">Instalar como App en tu Dispositivo</h5>
                     <p class="text-secondary small mb-3">
                         Úsala en pantalla completa sin barra de navegación, con acceso directo desde tu celular o escritorio y carga ultra rápida.
@@ -3212,7 +3304,7 @@
                     </div>
 
                     <div class="my-3 position-relative d-inline-block">
-                        <img id="milestone-artist-img" src="/logo.png" alt="Artista" class="rounded-circle border border-2 border-warning shadow" style="width: 104px; height: 104px; object-fit: cover;" onerror="safeAvatarError(this)">
+                        <img id="milestone-artist-img" src="/logo.svg" alt="Artista" class="rounded-circle border border-2 border-warning shadow" style="width: 104px; height: 104px; object-fit: cover;" onerror="safeAvatarError(this)">
                         <span id="milestone-badge-pill" class="position-absolute bottom-0 end-0 badge rounded-pill bg-warning text-dark fw-bold px-2.5 py-1 shadow" style="font-size: 0.76rem; transform: translate(10%, 10%);">
                             +100
                         </span>
