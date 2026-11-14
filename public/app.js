@@ -1862,7 +1862,14 @@ async function loadUnifiedDatabase(requireFull = false) {
             const rawFast = localStorage.getItem('tunetracker_fast_home_cache');
             if (rawFast) {
                 const parsed = JSON.parse(rawFast);
-                if (parsed && parsed.summary && parsed.yearlyTops) {
+                let mSum26 = 0;
+                if (parsed?.yearlyTops?.['2026']?.months) {
+                    Object.values(parsed.yearlyTops['2026'].months).forEach(m => mSum26 += (m?.plays || 0));
+                }
+                // Si la caché fast guardada tenía los meses de 2026 desunificados, invalidarla
+                if (parsed?.yearlyTops?.['2026'] && mSum26 < 10000) {
+                    localStorage.removeItem('tunetracker_fast_home_cache');
+                } else if (parsed && parsed.summary && parsed.yearlyTops) {
                     parsed._isFastCache = true;
                     unifiedDb = parsed;
                     loadTidalEstimates().catch(() => {});
@@ -2498,7 +2505,7 @@ function renderCatalogActivityChart(periodRange, db) {
         const years = ['2019', '2020', '2021', '2022', '2023', '2024', '2025', '2026'];
         dataPoints = years.map(yr => {
             let p = db.yearlyTops[yr]?.plays || 0;
-            if (yr === '2026' && Array.isArray(lastFmRecentDelta)) {
+            if ((currentSource === 'unified') && yr === '2026' && Array.isArray(lastFmRecentDelta)) {
                 p += lastFmRecentDelta.filter(dt => {
                     if (!dt.date?.uts) return false;
                     return new Date(parseInt(dt.date.uts, 10) * 1000).getFullYear() === 2026;
@@ -2520,7 +2527,7 @@ function renderCatalogActivityChart(periodRange, db) {
         dataPoints = mNames.map((mn, idx) => {
             const mNum = idx + 1;
             let p = yData[String(mNum)]?.plays || 0;
-            if (String(targetY) === String(curYear) && Array.isArray(lastFmRecentDelta)) {
+            if ((currentSource === 'unified') && String(targetY) === String(curYear) && Array.isArray(lastFmRecentDelta)) {
                 p += lastFmRecentDelta.filter(dt => {
                     if (!dt.date?.uts) return false;
                     const d = new Date(parseInt(dt.date.uts, 10) * 1000);
@@ -2627,7 +2634,7 @@ function renderCatalogActivityChart(periodRange, db) {
             const y = d.getFullYear();
             const m = d.getMonth() + 1;
             let p = db.yearlyTops[String(y)]?.months?.[String(m)]?.plays || 0;
-            if (y === curYear && m === curMonth && Array.isArray(lastFmRecentDelta)) {
+            if ((currentSource === 'unified') && y === curYear && m === curMonth && Array.isArray(lastFmRecentDelta)) {
                 p += lastFmRecentDelta.filter(dt => {
                     if (!dt.date?.uts) return false;
                     const dtDate = new Date(parseInt(dt.date.uts, 10) * 1000);
@@ -2657,7 +2664,7 @@ function renderCatalogActivityChart(periodRange, db) {
         const years = ['2025', '2026'];
         dataPoints = years.map(yr => {
             let p = db.yearlyTops[yr]?.plays || 0;
-            if (yr === '2026' && Array.isArray(lastFmRecentDelta)) {
+            if ((currentSource === 'unified') && yr === '2026' && Array.isArray(lastFmRecentDelta)) {
                 p += lastFmRecentDelta.filter(dt => {
                     if (!dt.date?.uts) return false;
                     return new Date(parseInt(dt.date.uts, 10) * 1000).getFullYear() === 2026;
