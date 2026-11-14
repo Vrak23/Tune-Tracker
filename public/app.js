@@ -998,24 +998,41 @@ function safeAvatarError(img) {
 }
 window.safeAvatarError = safeAvatarError;
 
+function showUpdateNotification() {
+    const toast = document.getElementById('update-toast');
+    if (toast) {
+        toast.classList.remove('d-none');
+        toast.classList.add('d-flex');
+    }
+}
+window.showUpdateNotification = showUpdateNotification;
+
 // PWA: Registrar Service Worker con detección de actualizaciones
 if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        showUpdateNotification();
+    });
+
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js').then((registration) => {
-            // Actualizaciones en vivo: buscar nueva version cada minuto y al volver a la app
+            if (registration.waiting) {
+                showUpdateNotification();
+            }
+
+            // Actualizaciones en vivo: buscar nueva versión periódicamente y al volver a la app
             const checkForAppUpdate = () => { if (navigator.onLine) registration.update().catch(() => {}); };
-            setInterval(checkForAppUpdate, 60000);
+            setTimeout(checkForAppUpdate, 1500);
+            setInterval(checkForAppUpdate, 45000);
             document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkForAppUpdate(); });
             window.addEventListener('focus', checkForAppUpdate);
+
             registration.onupdatefound = () => {
                 const installingWorker = registration.installing;
                 if (installingWorker) {
                     installingWorker.onstatechange = () => {
-                        if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            const toast = document.getElementById('update-toast');
-                            if (toast) {
-                                toast.classList.remove('d-none');
-                                toast.classList.add('d-flex');
+                        if (installingWorker.state === 'installed' || installingWorker.state === 'activated') {
+                            if (navigator.serviceWorker.controller) {
+                                showUpdateNotification();
                             }
                         }
                     };
