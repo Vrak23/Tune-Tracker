@@ -5062,13 +5062,25 @@ async function showItemStats(type, name, artist, isBack = false) {
     }
     currentOpenStats = { type, name, artist };
 
-    const activeDb = await getActiveDatabase();
-
     const modalTitle = document.getElementById('item-stats-type-title');
     const modalBody = document.getElementById('item-stats-body');
     const spotifyBtn = document.getElementById('item-stats-spotify-btn');
 
     if (!modalBody) return;
+
+    if (!unifiedDb || unifiedDb._isFastCache) {
+        const modalEl = document.getElementById('itemStatsModal');
+        const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+        if (!modalEl.classList.contains('show')) modalInstance.show();
+        modalBody.innerHTML = `
+            <div class="text-center py-5 text-secondary">
+                <span class="spinner-border spinner-border-sm me-2 text-primary"></span>
+                <span style="font-size: 0.82rem;">Cargando estadísticas históricas...</span>
+            </div>
+        `;
+    }
+
+    const activeDb = await getActiveDatabase(true);
 
     const normName = (name || '').trim().toLowerCase();
     const normArt = (artist || '').trim().toLowerCase();
@@ -5318,11 +5330,15 @@ async function showItemStats(type, name, artist, isBack = false) {
 
     // Meses con mayor actividad (Top 3)
     let peakMonthsHtml = '';
-    let monthsObj = { ...(data.months || {}) };
-    if (type === 'artist' && Object.keys(monthsObj).length === 0 && activeDb?.tracksLookup) {
+    let monthsObj = { ...(data?.months || {}) };
+    
+    // Si es un artista y no tiene meses o solo tiene meses de 2026, reconstruir con la historia completa de tracksLookup
+    const monthYears = new Set(Object.keys(monthsObj).map(k => k.split('-')[0]));
+    if (type === 'artist' && (Object.keys(monthsObj).length === 0 || (monthYears.size === 1 && monthYears.has('2026'))) && activeDb?.tracksLookup) {
         const normCurrentArt = normalizeKey(name);
         Object.values(activeDb.tracksLookup).forEach(t => {
-            if (normalizeKey(t.artist) === normCurrentArt && t.months) {
+            const normTArt = normalizeKey(t.artist);
+            if ((normTArt === normCurrentArt || normTArt.startsWith(normCurrentArt) || normCurrentArt.startsWith(normTArt)) && t.months) {
                 Object.entries(t.months).forEach(([mk, cnt]) => {
                     monthsObj[mk] = (monthsObj[mk] || 0) + cnt;
                 });

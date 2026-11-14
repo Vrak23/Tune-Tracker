@@ -221,6 +221,36 @@ if (u.yearlyTops['2026'].plays !== total2026Months) {
     process.exit(1);
 }
 
+// Aggregate complete multi-year months into artistsLookup from all tracks in tracksLookup
+const allArtTracksMap = new Map();
+Object.values(u.tracksLookup || {}).forEach(t => {
+    const normA = stripKey(t.artist);
+    if (!allArtTracksMap.has(normA)) allArtTracksMap.set(normA, []);
+    allArtTracksMap.get(normA).push(t);
+});
+
+Object.values(u.artistsLookup || {}).forEach(a => {
+    const normA = stripKey(a.name);
+    const existingM = a.months || {};
+    const fullMonths = {};
+    const trks = allArtTracksMap.get(normA) || [];
+    trks.forEach(t => {
+        if (t.months) {
+            Object.entries(t.months).forEach(([mk, cnt]) => {
+                fullMonths[mk] = (fullMonths[mk] || 0) + cnt;
+            });
+        }
+    });
+    for (const [mk, cnt] of Object.entries(existingM)) {
+        if (!fullMonths[mk] || cnt > fullMonths[mk]) {
+            fullMonths[mk] = cnt;
+        }
+    }
+    if (Object.keys(fullMonths).length > 0) {
+        a.months = fullMonths;
+    }
+});
+
 // Update fast_home.json snapshot
 fastHome.yearlyTops['2026'] = JSON.parse(JSON.stringify(u.yearlyTops['2026']));
 
