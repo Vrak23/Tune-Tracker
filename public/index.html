@@ -21,7 +21,7 @@
     <meta name="twitter:image" content="/logo_square_1024.png">
 
     <!-- PWA & Mobile Meta Tags -->
-    <meta name="theme-color" content="#a855f7">
+    <meta name="theme-color" content="#0b0d12">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -2057,6 +2057,180 @@
             }
             .login-auth-card::after {
                 border-radius: 25px;
+            }
+        }
+
+        /* Shared liquid-glass system for every dashboard view */
+        #dashboard-view {
+            position: relative;
+            isolation: isolate;
+        }
+        #dashboard-view::before {
+            content: '';
+            position: fixed;
+            inset: 64px 0 0;
+            z-index: -1;
+            pointer-events: none;
+            background:
+                radial-gradient(65% 45% at 8% 2%, rgba(148, 163, 184, .08), transparent 70%),
+                radial-gradient(55% 40% at 94% 24%, rgba(99, 102, 241, .07), transparent 72%);
+        }
+        body > nav,
+        .bottom-nav-bar,
+        .desktop-nav-tabs {
+            background: rgba(11, 13, 18, .72) !important;
+            border-color: rgba(255, 255, 255, .12) !important;
+            backdrop-filter: blur(28px) saturate(135%) !important;
+            -webkit-backdrop-filter: blur(28px) saturate(135%) !important;
+        }
+        .desktop-nav-tabs {
+            padding: 5px !important;
+            gap: 4px !important;
+            border: 1px solid rgba(255, 255, 255, .10) !important;
+            border-radius: 18px !important;
+            margin: 0 0 22px !important;
+        }
+        .desktop-nav-btn {
+            flex: 1;
+            justify-content: center;
+            min-height: 36px;
+            border-color: transparent !important;
+            background: transparent !important;
+            color: #94a3b8 !important;
+        }
+        .desktop-nav-btn.active {
+            color: #f8fafc !important;
+            background: rgba(255, 255, 255, .12) !important;
+            border-color: rgba(255, 255, 255, .14) !important;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 4px 14px rgba(0,0,0,.2) !important;
+        }
+        .bottom-nav-item.active,
+        .bottom-nav-item.active i {
+            color: #f8fafc !important;
+            filter: none !important;
+        }
+        .apple-bento-card,
+        .home-card,
+        .skeleton-card,
+        .lastfm-sidebar-card,
+        .lastfm-chartlist-row,
+        .card-uniform,
+        .now-playing-bar {
+            background: linear-gradient(145deg, rgba(33, 36, 44, .68), rgba(11, 13, 18, .78)) !important;
+            border-color: rgba(255, 255, 255, .12) !important;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 18px 42px rgba(0,0,0,.24) !important;
+            backdrop-filter: blur(24px) saturate(130%);
+            -webkit-backdrop-filter: blur(24px) saturate(130%);
+        }
+        .apple-bento-card[style],
+        .home-card[style],
+        .lastfm-sidebar-card[style] {
+            background: linear-gradient(145deg, rgba(33, 36, 44, .68), rgba(11, 13, 18, .78)) !important;
+        }
+        .apple-bento-card:hover,
+        .home-card:hover,
+        .card-uniform:hover,
+        .lastfm-chartlist-row:hover {
+            border-color: rgba(255, 255, 255, .24) !important;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.13), 0 22px 48px rgba(0,0,0,.34) !important;
+        }
+        .apple-bento-grid {
+            gap: 16px;
+        }
+        .apple-bento-card {
+            border-radius: 24px;
+        }
+        .search-input,
+        .lastfm-search-input,
+        .lastfm-date-picker-btn,
+        .lastfm-date-input,
+        select,
+        input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+        textarea {
+            background-color: rgba(255,255,255,.055) !important;
+            border-color: rgba(255,255,255,.14) !important;
+            color: #f8fafc !important;
+            border-radius: 14px !important;
+        }
+        .search-input:focus,
+        .lastfm-search-input:focus,
+        .lastfm-date-input:focus,
+        select:focus,
+        input:focus,
+        textarea:focus {
+            border-color: rgba(255,255,255,.48) !important;
+            box-shadow: 0 0 0 3px rgba(255,255,255,.08) !important;
+        }
+        .lastfm-date-popover,
+        .lastfm-presets-list,
+        .offcanvas,
+        .modal-content,
+        .dropdown-menu {
+            background: rgba(18, 21, 28, .84) !important;
+            border-color: rgba(255,255,255,.14) !important;
+            box-shadow: 0 28px 80px rgba(0,0,0,.54), inset 0 1px 0 rgba(255,255,255,.08) !important;
+            backdrop-filter: blur(32px) saturate(135%) !important;
+            -webkit-backdrop-filter: blur(32px) saturate(135%) !important;
+        }
+        .modal-content[style],
+        .offcanvas[style] {
+            background-color: rgba(18, 21, 28, .84) !important;
+        }
+        .btn-brand {
+            background: linear-gradient(135deg, #f8fafc, #94a3b8) !important;
+            color: #0b0d12 !important;
+            border-color: rgba(255,255,255,.55) !important;
+            box-shadow: 0 8px 22px rgba(0,0,0,.25) !important;
+        }
+        .btn-outline-brand,
+        .pill-btn,
+        .btn-demo-cta {
+            background: rgba(255,255,255,.055) !important;
+            border-color: rgba(255,255,255,.14) !important;
+        }
+        .btn-outline-brand:hover,
+        .pill-btn:hover,
+        .btn-demo-cta:hover,
+        .pill-btn.active {
+            background: rgba(255,255,255,.13) !important;
+            border-color: rgba(255,255,255,.3) !important;
+            color: #fff !important;
+        }
+        .segmented-tabs {
+            background: rgba(255,255,255,.055) !important;
+            border-color: rgba(255,255,255,.13) !important;
+        }
+        .segmented-tab.active {
+            background: rgba(255,255,255,.16) !important;
+            border-color: rgba(255,255,255,.2) !important;
+        }
+        #update-toast {
+            background: rgba(255,255,255,.07) !important;
+            border-color: rgba(255,255,255,.2) !important;
+        }
+        @media (max-width: 767px) {
+            .app-container {
+                padding-left: 12px;
+                padding-right: 12px;
+            }
+            .apple-bento-grid {
+                gap: 10px;
+            }
+            .apple-bento-card {
+                padding: 15px;
+                border-radius: 20px;
+            }
+            .desktop-nav-tabs {
+                display: none !important;
+            }
+            .lastfm-controls-bar {
+                align-items: stretch;
+            }
+            .lastfm-search-wrap,
+            .lastfm-date-selector-wrapper,
+            .lastfm-date-picker-btn {
+                max-width: none;
+                width: 100%;
             }
         }
 
