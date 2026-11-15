@@ -1833,6 +1833,10 @@
             contain-intrinsic-size: 0 54px;
         }
         @media (pointer: coarse) {
+            html,
+            body {
+                background-attachment: scroll;
+            }
             .navbar.sticky-top,
             .lastfm-library-sidebar,
             .lastfm-sidebar-card {
@@ -2421,7 +2425,7 @@
 <body>
 
     <!-- Header / Navbar -->
-    <nav class="navbar border-bottom border-secondary border-opacity-10 py-2 sticky-top" style="background-color: rgba(0, 0, 0, 0.80) !important; backdrop-filter: saturate(180%) blur(20px) !important; -webkit-backdrop-filter: saturate(180%) blur(20px) !important; border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;">
+    <nav class="navbar border-bottom border-secondary border-opacity-10 py-2 sticky-top" style="background-color: rgba(0, 0, 0, 0.94) !important; border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;">
         <div class="app-container d-flex align-items-center justify-content-between">
             <a class="navbar-brand d-flex align-items-center gap-2 fw-bold text-white text-decoration-none" href="javascript:void(0)" onclick="handleSecretLogoTap(event)">
                 <img src="/logo.svg" alt="Tune Tracker Logo">
@@ -3033,19 +3037,19 @@
                                 <i class="fa-solid fa-wand-magic-sparkles fs-4"></i>
                             </div>
                             <div>
-                                <h5 class="fw-bold mb-0 text-white" style="font-size: 1.05rem;">Hacedor de Tracklist</h5>
-                                <small class="text-secondary d-block" style="font-size: 0.74rem;">Diseña el orden y selección perfecta para tus playlists</small>
+                                <h5 class="fw-bold mb-0 text-white" style="font-size: 1.05rem;">Curador Semestral</h5>
+                                <small class="text-secondary d-block" style="font-size: 0.74rem;">Crea, ordena y exporta tu selección por etapa</small>
                             </div>
                         </div>
                         <div class="d-flex align-items-center gap-2 flex-wrap">
                             <button type="button" id="curator-btn-save-cloud" class="btn btn-sm btn-brand rounded-pill px-3 py-1 fw-semibold text-white" style="font-size: 0.75rem;" onclick="promptAndSaveCuratorToCloud()" title="Guardar este tracklist en la base de datos">
-                                <i class="fa-solid fa-cloud-arrow-up me-1"></i> Guardar BD
+                                <i class="fa-solid fa-cloud-arrow-up me-1"></i> Guardar en nube
                             </button>
                             <button type="button" id="curator-btn-copy" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1 fw-semibold text-white" style="font-size: 0.75rem;" title="Copiar tracklist en texto para notas o redes">
-                                <i class="fa-regular fa-copy me-1"></i> Copiar Lista
+                                <i class="fa-regular fa-copy me-1"></i> Copiar tracklist
                             </button>
                             <button type="button" id="curator-btn-clear" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1 text-secondary" style="font-size: 0.75rem;" title="Vaciar selección actual">
-                                <i class="fa-solid fa-eraser me-1"></i> Vaciar
+                                <i class="fa-solid fa-eraser me-1"></i> Limpiar
                             </button>
 
                             <!-- Dropdown de Opciones Secundarias (Trofeos, Récords, Exportar) -->
@@ -3084,7 +3088,7 @@
                             </div>
                             <div class="col-12 col-md-4 d-flex justify-content-md-end">
                                 <button type="button" class="btn btn-sm btn-brand rounded-pill px-3 py-1 fw-semibold w-100 w-md-auto text-nowrap" style="font-size: 0.78rem; height: 32px;" onclick="promptAndSaveCuratorToCloud()">
-                                    <i class="fa-solid fa-cloud-arrow-up me-1"></i> Guardar en BD
+                                    <i class="fa-solid fa-cloud-arrow-up me-1"></i> Guardar en nube
                                 </button>
                             </div>
                         </div>
@@ -3129,7 +3133,7 @@
                             <!-- Botón Generar Selección -->
                             <div class="col-6 col-sm-2 col-md-4 d-flex justify-content-sm-end">
                                 <button id="curator-btn-generate" class="btn btn-sm btn-outline-brand rounded-pill px-3 py-1 fw-semibold w-100 w-sm-auto text-nowrap" style="font-size: 0.78rem; height: 32px;">
-                                    <i class="fa-solid fa-rotate me-1"></i> Generar Selección
+                                    <i class="fa-solid fa-wand-magic-sparkles me-1"></i> Generar tracklist
                                 </button>
                             </div>
                         </div>
@@ -3159,20 +3163,20 @@
                     <div class="curator-export-panel mb-3">
                         <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap mb-2">
                             <div>
-                                <div class="fw-bold text-white" style="font-size: 0.82rem;"><i class="fa-solid fa-arrow-up-from-bracket text-info me-1.5"></i>Exportar playlist</div>
-                                <div class="text-secondary" style="font-size: 0.69rem;">Usa el mismo tracklist en Spotify, YouTube Music o Molva.</div>
+                                <div class="fw-bold text-white" style="font-size: 0.82rem;"><i class="fa-solid fa-arrow-up-from-bracket text-info me-1.5"></i>Exportar tracklist</div>
+                                <div class="text-secondary" style="font-size: 0.69rem;">Lleva esta selección a tu plataforma o a Molva.</div>
                             </div>
                             <span id="curator-export-count" class="badge rounded-pill bg-light bg-opacity-10 text-secondary" style="font-size: 0.66rem;">0 canciones listas</span>
                         </div>
                         <div class="row g-2">
                             <div class="col-12 col-sm-4">
                                 <a class="btn btn-sm btn-outline-danger rounded-pill w-100 fw-semibold" href="javascript:void(0)" id="curator-btn-ytmusic" title="Copiar y abrir YouTube Music">
-                                    <i class="fa-brands fa-youtube me-1"></i> YouTube Music
+                                    <i class="fa-brands fa-youtube me-1"></i> Abrir en YouTube Music
                                 </a>
                             </div>
                             <div class="col-12 col-sm-4">
                                 <a class="btn btn-sm btn-outline-success rounded-pill w-100 fw-semibold" href="javascript:void(0)" id="curator-btn-spotify" title="Guardar la playlist en Spotify">
-                                    <i class="fa-brands fa-spotify me-1"></i> Guardar en Spotify
+                                    <i class="fa-brands fa-spotify me-1"></i> Crear en Spotify
                                 </a>
                             </div>
                             <div class="col-12 col-sm-4">

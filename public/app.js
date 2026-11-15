@@ -1660,14 +1660,20 @@ function setupEventListeners() {
             currentOpenStats = null;
         });
     }
-    // Prevenir touchmove detrás del modal en dispositivos táctiles
-    document.addEventListener('touchmove', function(e) {
+    // Bloquear el fondo solo mientras un modal está abierto.
+    const preventModalBackgroundTouchmove = (e) => {
         if (document.body.classList.contains('modal-open')) {
             if (!e.target.closest('.modal-body') && !e.target.closest('.modal-dialog')) {
                 e.preventDefault();
             }
         }
-    }, { passive: false });
+    };
+    document.addEventListener('show.bs.modal', () => {
+        document.addEventListener('touchmove', preventModalBackgroundTouchmove, { passive: false });
+    }, { once: false });
+    document.addEventListener('hidden.bs.modal', () => {
+        document.removeEventListener('touchmove', preventModalBackgroundTouchmove);
+    }, { once: false });
 
     // Acciones de Actualización PWA / Forzar Limpieza
     if (menuForceUpdate) {
@@ -3583,17 +3589,20 @@ window.refreshLiveData = refreshLiveData;
 function startCurrentlyPlayingPolling() {
     if (currentlyPlayingTimer) clearInterval(currentlyPlayingTimer);
     fetchCurrentlyPlaying();
-    currentlyPlayingTimer = setInterval(fetchCurrentlyPlaying, 7000);
+    currentlyPlayingTimer = setInterval(() => {
+        if (document.visibilityState === 'visible') fetchCurrentlyPlaying();
+    }, 15000);
 
-    document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') {
-            fetchCurrentlyPlaying();
-        }
-    });
+    if (!window.__tuneTrackerPlayingListenersBound) {
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') fetchCurrentlyPlaying();
+        });
 
-    window.addEventListener('focus', () => {
-        fetchCurrentlyPlaying();
-    });
+        window.addEventListener('focus', () => {
+            if (document.visibilityState === 'visible') fetchCurrentlyPlaying();
+        });
+        window.__tuneTrackerPlayingListenersBound = true;
+    }
 }
 
 // ----------------------------------------------------
@@ -7655,10 +7664,10 @@ function renderCuratorSelectedList() {
                 </div>
                 <div class="fw-bold text-white mb-1" style="font-size: 0.90rem;">Tu tracklist está vacío</div>
                 <div class="small text-muted mb-3" style="max-width: 360px; margin: 0 auto; font-size: 0.74rem;">
-                    Arrastra canciones aquí desde el banco, marca casillas para añadir en bloque, o presiona <b>"Generar Selección"</b> para autocompletar con los temas más escuchados.
+                    Arrastra canciones aquí desde el banco, marca casillas para añadir en bloque, o presiona <b>"Generar tracklist"</b> para autocompletar con los temas más escuchados.
                 </div>
                 <button type="button" class="btn btn-sm btn-brand rounded-pill px-3 py-1 fw-semibold" onclick="generateCuratorSelection()" style="font-size: 0.76rem;">
-                    <i class="fa-solid fa-rotate me-1"></i> Generar Selección Automática
+                    <i class="fa-solid fa-wand-magic-sparkles me-1"></i> Generar tracklist automático
                 </button>
             </div>
         `;
