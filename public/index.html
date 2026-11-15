@@ -1685,6 +1685,111 @@
             transform: translateY(-2px);
         }
 
+        .weekly-wrapped-card {
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(192, 132, 252, 0.34);
+            border-radius: 26px;
+            background:
+                radial-gradient(circle at 88% 8%, rgba(56, 189, 248, 0.18), transparent 34%),
+                radial-gradient(circle at 8% 100%, rgba(168, 85, 247, 0.22), transparent 42%),
+                linear-gradient(145deg, #191523 0%, #0e1018 72%);
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+        .weekly-wrapped-card::after {
+            content: "";
+            position: absolute;
+            width: 180px;
+            height: 180px;
+            right: -70px;
+            bottom: -90px;
+            border-radius: 50%;
+            background: rgba(236, 72, 153, 0.16);
+            filter: blur(28px);
+            pointer-events: none;
+        }
+        .weekly-wrapped-cover {
+            width: 104px;
+            height: 104px;
+            object-fit: cover;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            box-shadow: 0 16px 30px rgba(0, 0, 0, 0.42);
+        }
+        .weekly-wrapped-stat {
+            min-height: 76px;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.045);
+        }
+        .weekly-wrapped-rank {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+        }
+        .weekly-wrapped-rank:last-child {
+            border-bottom: 0;
+            padding-bottom: 0;
+        }
+        .weekly-wrapped-rank:first-child {
+            padding-top: 0;
+        }
+        .profile-feature-card {
+            height: 100%;
+            padding: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            border-radius: 20px;
+            background: linear-gradient(145deg, rgba(28, 28, 34, 0.9), rgba(15, 15, 20, 0.96));
+        }
+        .profile-feature-card .feature-label {
+            color: #86868b;
+            font-size: 0.63rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .profile-timeline-item {
+            position: relative;
+            padding: 0 0 18px 22px;
+            border-left: 1px solid rgba(168, 85, 247, 0.4);
+        }
+        .profile-timeline-item:last-child {
+            padding-bottom: 0;
+            border-left-color: transparent;
+        }
+        .profile-timeline-item::before {
+            content: "";
+            position: absolute;
+            top: 2px;
+            left: -5px;
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: #a855f7;
+            box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.14);
+        }
+        .profile-suggestion {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+        }
+        .profile-suggestion:last-child {
+            border-bottom: 0;
+            padding-bottom: 0;
+        }
+        @media (max-width: 420px) {
+            .weekly-wrapped-cover {
+                width: 82px;
+                height: 82px;
+                border-radius: 16px;
+            }
+        }
+
         .apple-eyebrow {
             font-size: 0.68rem;
             font-weight: 700;
@@ -3097,6 +3202,11 @@
                         </button>
                     </div>
 
+                    <div id="weekly-wrapped" class="mb-3"></div>
+                    <div id="monthly-wrapped" class="mb-3"></div>
+                    <div id="profile-records" class="mb-3"></div>
+                    <div id="profile-recommendations" class="mb-3"></div>
+                    <div id="profile-timeline" class="mb-3"></div>
                     <div id="wrapped-teaser" class="mb-3"></div>
 
                     <div id="profile-section-content" class="pb-2">
