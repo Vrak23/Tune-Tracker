@@ -1782,6 +1782,83 @@
             border-bottom: 0;
             padding-bottom: 0;
         }
+        .analysis-overview-card {
+            height: 100%;
+            padding: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            border-radius: 20px;
+            background: linear-gradient(145deg, rgba(28, 28, 34, 0.9), rgba(15, 15, 20, 0.96));
+        }
+        .analysis-bar-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-size: 0.7rem;
+        }
+        .analysis-bar-label {
+            width: 58px;
+            flex-shrink: 0;
+            color: var(--text-secondary);
+            text-align: right;
+        }
+        .analysis-bar-track {
+            height: 8px;
+            flex: 1;
+            overflow: hidden;
+            border-radius: 99px;
+            background: rgba(255, 255, 255, 0.07);
+        }
+        .analysis-bar-fill {
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #a855f7, #38bdf8);
+        }
+        .curator-export-panel {
+            padding: 12px;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            border-radius: 16px;
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.07), rgba(168, 85, 247, 0.07));
+        }
+        .curator-export-panel .btn {
+            min-height: 34px;
+        }
+        .dashboard-section {
+            content-visibility: auto;
+            contain-intrinsic-size: 0 720px;
+        }
+        .card-uniform,
+        .curator-track-item {
+            content-visibility: auto;
+            contain-intrinsic-size: 0 54px;
+        }
+        @media (pointer: coarse) {
+            .navbar.sticky-top,
+            .lastfm-library-sidebar,
+            .lastfm-sidebar-card {
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+            }
+            .navbar.sticky-top {
+                background-color: rgba(0, 0, 0, 0.94) !important;
+            }
+            .apple-bento-card,
+            .home-card,
+            .profile-feature-card,
+            .analysis-overview-card {
+                box-shadow: 0 12px 30px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                scroll-behavior: auto !important;
+                transition-duration: 0.01ms !important;
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+            }
+        }
         @media (max-width: 420px) {
             .weekly-wrapped-cover {
                 width: 82px;
@@ -2940,6 +3017,7 @@
                             </button>
                         </div>
                     </div>
+                    <div id="analysis-overview" class="col-12 mt-3"></div>
                 </div>
             </div>
 
@@ -2987,16 +3065,6 @@
                                         </a>
                                     </li>
                                     <li><hr class="dropdown-divider border-secondary border-opacity-20 my-1"></li>
-                                    <li>
-                                        <a class="dropdown-item py-1.5" href="javascript:void(0)" id="curator-btn-ytmusic" title="Abrir en YouTube Music">
-                                            <i class="fa-brands fa-youtube text-danger me-2"></i> Abrir en YouTube
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item py-1.5" href="javascript:void(0)" id="curator-btn-spotify" title="Exportar a Spotify">
-                                            <i class="fa-brands fa-spotify text-success me-2"></i> Guardar en Spotify
-                                        </a>
-                                    </li>
                                 </ul>
                             </div>
 
@@ -3083,6 +3151,33 @@
                                 </span>
                                 <button type="button" id="curator-btn-cloud" class="curator-badge-period border-0" style="cursor: pointer; background: rgba(16, 185, 129, 0.12) !important; color: #10b981 !important; border: 1px solid rgba(16, 185, 129, 0.28) !important;" title="SpotiTracker Cloud Sync (Supabase)">
                                     <i class="fa-solid fa-cloud me-1 text-success"></i> <span id="curator-cloud-label">Nube Activa</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="curator-export-panel mb-3">
+                        <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap mb-2">
+                            <div>
+                                <div class="fw-bold text-white" style="font-size: 0.82rem;"><i class="fa-solid fa-arrow-up-from-bracket text-info me-1.5"></i>Exportar playlist</div>
+                                <div class="text-secondary" style="font-size: 0.69rem;">Usa el mismo tracklist en Spotify, YouTube Music o Molva.</div>
+                            </div>
+                            <span id="curator-export-count" class="badge rounded-pill bg-light bg-opacity-10 text-secondary" style="font-size: 0.66rem;">0 canciones listas</span>
+                        </div>
+                        <div class="row g-2">
+                            <div class="col-12 col-sm-4">
+                                <a class="btn btn-sm btn-outline-danger rounded-pill w-100 fw-semibold" href="javascript:void(0)" id="curator-btn-ytmusic" title="Copiar y abrir YouTube Music">
+                                    <i class="fa-brands fa-youtube me-1"></i> YouTube Music
+                                </a>
+                            </div>
+                            <div class="col-12 col-sm-4">
+                                <a class="btn btn-sm btn-outline-success rounded-pill w-100 fw-semibold" href="javascript:void(0)" id="curator-btn-spotify" title="Guardar la playlist en Spotify">
+                                    <i class="fa-brands fa-spotify me-1"></i> Guardar en Spotify
+                                </a>
+                            </div>
+                            <div class="col-12 col-sm-4">
+                                <button type="button" class="btn btn-sm btn-outline-info rounded-pill w-100 fw-semibold" onclick="copyCuratorPlaylistText()" title="Copiar formato compatible con Molva">
+                                    <i class="fa-regular fa-copy me-1"></i> Copiar para Molva
                                 </button>
                             </div>
                         </div>

@@ -7576,6 +7576,10 @@ function renderCuratorView() {
 
     const targetCount = parseInt(curatorTargetCount?.value, 10) || 18;
     const selectedCount = curatorSelectedTracks.length;
+    const exportCount = document.getElementById('curator-export-count');
+    if (exportCount) {
+        exportCount.textContent = `${selectedCount} canción${selectedCount === 1 ? '' : 'es'} lista${selectedCount === 1 ? '' : 's'}`;
+    }
 
     if (curatorCounterBadge) {
         curatorCounterBadge.textContent = `${selectedCount} / ${targetCount} en tracklist`;
@@ -7679,7 +7683,7 @@ function renderCuratorSelectedList() {
                  ondragleave="onTracklistDragLeave(event, ${i})"
                  ondrop="onTracklistDrop(event, ${i})"
                  ondragend="onTracklistDragEnd(event)">
-                <img id="${imgId}" src="${coverImg}" class="rounded flex-shrink-0" style="width: 38px; height: 38px; object-fit: cover;" onerror="safeImgError(this)" alt="Cover">
+                <img id="${imgId}" src="${coverImg}" loading="lazy" decoding="async" class="rounded flex-shrink-0" style="width: 38px; height: 38px; object-fit: cover;" onerror="safeImgError(this)" alt="Cover">
                 <div class="curator-track-info">
                     <div class="curator-track-title" title="${trackName}">${trackName}</div>
                     <div class="d-flex align-items-center gap-1.5 flex-wrap">
@@ -7803,7 +7807,7 @@ function renderCuratorBenchList() {
                        ${isChecked ? 'checked' : ''}
                        onchange="toggleBenchItemSelect(event, '${encodeURIComponent(trackName)}', '${encodeURIComponent(trackArtist)}')"
                        style="cursor: pointer; width: 15px; height: 15px; margin: 0;">
-                <img id="${imgId}" src="${coverImg}" class="rounded flex-shrink-0" style="width: 36px; height: 36px; object-fit: cover;" onerror="safeImgError(this)" alt="Cover">
+                <img id="${imgId}" src="${coverImg}" loading="lazy" decoding="async" class="rounded flex-shrink-0" style="width: 36px; height: 36px; object-fit: cover;" onerror="safeImgError(this)" alt="Cover">
                 <div class="curator-track-info">
                     <div class="curator-track-title" title="${trackName}">${trackName}</div>
                     <div class="d-flex align-items-center gap-1 flex-wrap">
@@ -9651,6 +9655,8 @@ function switchAppView(viewName) {
             if (!currentLoadedItems || currentLoadedItems.length === 0) {
                 loadStats();
             }
+        } else if (viewName === 'hub') {
+            renderAnalysisOverview();
         } else if (viewName === 'curator') {
             initCuratorSectionIfNeeded();
         } else if (viewName === 'profile') {
@@ -9663,6 +9669,101 @@ function switchAppView(viewName) {
     window.scrollTo({ top: 0, behavior: 'instant' });
 }
 window.switchAppView = switchAppView;
+
+async function renderAnalysisOverview() {
+    const container = document.getElementById('analysis-overview');
+    if (!container) return;
+    container.innerHTML = '<div class="text-center py-4 text-secondary"><span class="spinner-border spinner-border-sm me-2 text-info"></span>Construyendo tu evolución musical...</div>';
+
+    const [db, insights] = await Promise.all([getActiveDatabase(), loadInsightsData()]);
+    if (!db) {
+        container.innerHTML = '<div class="text-center py-4 text-secondary">No hay suficientes datos para mostrar el análisis.</div>';
+        return;
+    }
+
+    const yearlyEntries = Object.keys(db.yearlyTops || {})
+        .filter(year => /^\d{4}$/.test(year) && db.yearlyTops[year]?.artists?.[0])
+        .sort((a, b) => Number(a) - Number(b));
+    const maxArtistPlays = Math.max(...yearlyEntries.map(year => db.yearlyTops[year].artists[0].plays || 0), 1);
+    const evolution = yearlyEntries.map(year => {
+        const data = db.yearlyTops[year];
+        const artist = data.artists[0];
+        return `
+            <div class="analysis-bar-row">
+                <span class="analysis-bar-label">${year}</span>
+                <div class="analysis-bar-track"><div class="analysis-bar-fill" style="width:${Math.min(100, Math.max(8, (artist.plays / maxArtistPlays) * 100))}%;"></div></div>
+                <span class="text-white text-truncate" style="width: 105px; font-size: 0.68rem;" title="${escapeHtml(artist.name)}">${escapeHtml(artist.name)}</span>
+            </div>
+        `;
+    }).join('');
+
+    const habits = insights?.habits || {};
+    const hourly = Array.isArray(habits.hourly) ? habits.hourly : [];
+    const weekdays = Array.isArray(habits.weekday) ? habits.weekday : [];
+    const weekdayNames = habits.weekdayNames || ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    const maxHourly = Math.max(...hourly, 1);
+    const maxWeekday = Math.max(...weekdays, 1);
+    const hourlyBars = hourly.filter((_, hour) => hour % 2 === 0).map((count, hour) => `
+        <div class="analysis-bar-row">
+            <span class="analysis-bar-label">${String(hour).padStart(2, '0')}h</span>
+            <div class="analysis-bar-track"><div class="analysis-bar-fill" style="width:${Math.round((count / maxHourly) * 100)}%;"></div></div>
+            <span class="text-secondary" style="width: 42px; text-align: right; font-size: 0.65rem;">${formatNumber(count)}</span>
+        </div>
+    `).join('');
+    const weekdayBars = weekdays.map((count, index) => `
+        <div class="analysis-bar-row">
+            <span class="analysis-bar-label">${escapeHtml(weekdayNames[index] || '')}</span>
+            <div class="analysis-bar-track"><div class="analysis-bar-fill" style="width:${Math.round((count / maxWeekday) * 100)}%; background:linear-gradient(90deg,#06b6d4,#38bdf8);"></div></div>
+            <span class="text-secondary" style="width: 42px; text-align: right; font-size: 0.65rem;">${formatNumber(count)}</span>
+        </div>
+    `).join('');
+
+    const topDay = insights?.records?.topDay;
+    const monthlyTotals = [];
+    Object.entries(db.yearlyTops || {}).forEach(([year, yearData]) => {
+        Object.entries(yearData?.months || {}).forEach(([month, monthData]) => {
+            const plays = Number(monthData?.plays) || (monthData?.tracks || []).reduce((sum, track) => sum + (track.plays || 0), 0);
+            if (plays > 0) monthlyTotals.push({ year, month: Number(month), plays });
+        });
+    });
+    monthlyTotals.sort((a, b) => b.plays - a.plays);
+    const topMonth = monthlyTotals[0];
+    const topMonthLabel = topMonth ? `${MONTH_NAMES[topMonth.month - 1]} ${topMonth.year}` : 'Sin datos';
+    const topDayLabel = topDay?.date ? new Date(`${topDay.date}T12:00:00Z`).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Sin datos';
+
+    container.innerHTML = `
+        <div class="row g-3">
+            <div class="col-12 col-lg-5">
+                <div class="analysis-overview-card">
+                    <div class="apple-eyebrow text-primary mb-1"><i class="fa-solid fa-arrow-trend-up me-1"></i>EVOLUCIÓN DE ARTISTAS</div>
+                    <h5 class="text-white fw-bold mb-3">Quién definió cada etapa</h5>
+                    ${evolution || '<div class="text-secondary small">No hay evolución anual disponible.</div>'}
+                </div>
+            </div>
+            <div class="col-12 col-lg-7">
+                <div class="analysis-overview-card">
+                    <div class="apple-eyebrow text-info mb-1"><i class="fa-solid fa-clock me-1"></i>HORARIOS Y DÍAS</div>
+                    <h5 class="text-white fw-bold mb-3">Cuándo escuchas más música</h5>
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6"><div class="text-secondary mb-2" style="font-size:0.68rem;">Horas del día</div>${hourlyBars || '<div class="text-secondary small">Sin datos.</div>'}</div>
+                        <div class="col-12 col-md-6"><div class="text-secondary mb-2" style="font-size:0.68rem;">Días de la semana</div>${weekdayBars || '<div class="text-secondary small">Sin datos.</div>'}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="analysis-overview-card">
+                    <div class="apple-eyebrow text-warning mb-1"><i class="fa-solid fa-fire me-1"></i>PERIODOS MÁS INTENSOS</div>
+                    <h5 class="text-white fw-bold mb-3">Tus picos de escucha</h5>
+                    <div class="row g-2">
+                        <div class="col-12 col-md-6"><div class="weekly-wrapped-stat"><div class="text-secondary" style="font-size:0.68rem;">Día con más reproducciones</div><div class="text-warning fw-bold fs-5">${formatNumber(topDay?.count || 0)}</div><div class="text-secondary" style="font-size:0.68rem;">${topDayLabel}</div></div></div>
+                        <div class="col-12 col-md-6"><div class="weekly-wrapped-stat"><div class="text-secondary" style="font-size:0.68rem;">Mes con más reproducciones</div><div class="text-warning fw-bold fs-5">${formatNumber(topMonth?.plays || 0)}</div><div class="text-secondary" style="font-size:0.68rem;">${topMonthLabel}</div></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+window.renderAnalysisOverview = renderAnalysisOverview;
 
 async function refreshHomeView() {
     try {
