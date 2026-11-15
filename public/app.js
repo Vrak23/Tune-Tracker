@@ -9943,7 +9943,6 @@ async function renderProfileSection() {
     if (db) {
         renderMonthlyWrapped(db);
         renderProfileRecords();
-        renderProfileRecommendations(db);
         renderProfileTimeline(db);
     }
     if (lastEngagementInfo) {
@@ -10122,8 +10121,9 @@ window.renderWeeklyWrapped = renderWeeklyWrapped;
 
 function getMonthWrappedData(db) {
     const now = new Date();
-    const year = String(now.getFullYear());
-    const month = String(now.getMonth() + 1);
+    const completedMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const year = String(completedMonth.getFullYear());
+    const month = String(completedMonth.getMonth() + 1);
     const monthData = db?.yearlyTops?.[year]?.months?.[month] || {};
     const tracks = (monthData.tracks || []).map(track => ({ ...track }));
     const trackMap = new Map(tracks.map(track => [
@@ -10169,7 +10169,7 @@ function getMonthWrappedData(db) {
     const sortedAlbums = [...albumMap.values()].filter(item => item.plays > 0).sort((a, b) => b.plays - a.plays);
     const plays = sortedTracks.reduce((sum, item) => sum + (item.plays || 0), 0);
     return {
-        monthName: MESES_ES[now.getMonth()],
+        monthName: MESES_ES[completedMonth.getMonth()],
         plays: monthData.plays || plays,
         hours: monthData.hours || (plays * 3.5 / 60),
         tracks: sortedTracks,
@@ -10250,60 +10250,6 @@ async function renderProfileRecords() {
                 <div class="col-12 col-md-4"><div class="weekly-wrapped-stat"><div class="text-secondary" style="font-size: 0.68rem;">Día más intenso</div><div class="text-warning fw-bold fs-5">${formatNumber(records.topDay.count)}</div><div class="text-secondary" style="font-size: 0.68rem;">${date}</div></div></div>
                 <div class="col-6 col-md-4"><div class="weekly-wrapped-stat"><div class="text-secondary" style="font-size: 0.68rem;">Días activos</div><div class="text-white fw-bold fs-5">${formatNumber(records.totalDaysActive)}</div><div class="text-secondary" style="font-size: 0.68rem;">en tu historial</div></div></div>
                 <div class="col-6 col-md-4"><div class="weekly-wrapped-stat"><div class="text-secondary" style="font-size: 0.68rem;">Promedio diario</div><div class="text-white fw-bold fs-5">${records.avgPlaysPerDay}</div><div class="text-secondary" style="font-size: 0.68rem;">streams por día</div></div></div>
-            </div>
-        </div>
-    `;
-}
-
-async function getSimilarArtists(artistName, knownArtists) {
-    const { user, key } = getLastFmCredentials();
-    if (!user || !key || !artistName) return [];
-    try {
-        const response = await fetch(`https://ws.audioscrobbler.com/2.0/?method=artist.getsimilar&artist=${encodeURIComponent(artistName)}&limit=8&api_key=${encodeURIComponent(key)}&format=json`);
-        if (!response.ok) return [];
-        const data = await response.json();
-        return (data?.similarartists?.artist || [])
-            .map(artist => artist.name)
-            .filter(name => name && !knownArtists.has(normalizeKey(name)))
-            .slice(0, 3);
-    } catch (error) {
-        console.warn('No se pudieron cargar artistas relacionados:', error);
-        return [];
-    }
-}
-
-async function renderProfileRecommendations(db) {
-    const box = document.getElementById('profile-recommendations');
-    if (!box) return;
-    const knownArtists = new Set(Object.values(db?.artistsLookup || {}).map(artist => normalizeKey(artist.name)));
-    const topArtists = Object.values(db?.artistsLookup || {}).sort((a, b) => (b.plays || 0) - (a.plays || 0)).slice(0, 2);
-    let similarArtists = [];
-    for (const artist of topArtists) {
-        similarArtists.push(...await getSimilarArtists(artist.name, knownArtists));
-        if (similarArtists.length >= 3) break;
-    }
-    const insights = await loadInsightsData();
-    const forgotten = (insights?.forgottenArtists || []).slice(0, 3);
-    const incompleteAlbums = Object.values(db?.albumsLookup || {})
-        .filter(album => album?.name && album.plays > 0 && album.plays <= 3)
-        .sort((a, b) => (b.plays || 0) - (a.plays || 0))
-        .filter((album, index, list) => list.findIndex(item => normalizeKey(item.name) === normalizeKey(album.name)) === index)
-        .slice(0, 3);
-    if (isDemoMode() && similarArtists.length === 0) similarArtists = ['Tame Impala', 'M83', 'Gorillaz'];
-    const renderItems = (items, empty, formatter) => items.length ? items.map(formatter).join('') : `<div class="text-secondary" style="font-size: 0.74rem;">${empty}</div>`;
-    box.innerHTML = `
-        <div class="profile-feature-card">
-            <div class="feature-label text-info mb-1"><i class="fa-solid fa-compass me-1"></i>RECOMENDACIONES</div>
-            <h5 class="text-white fw-bold mb-3">Tu siguiente escucha</h5>
-            <div class="row g-3">
-                <div class="col-12 col-md-6">
-                    <div class="text-secondary mb-1" style="font-size: 0.7rem;"><i class="fa-solid fa-user-plus text-info me-1"></i>Artistas relacionados que aún no aparecen en tu historial</div>
-                    ${renderItems(similarArtists, 'Conecta Last.fm para buscar artistas relacionados.', name => `<div class="profile-suggestion"><span class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 30px; height: 30px; background: rgba(56,189,248,0.14);"><i class="fa-solid fa-music text-info" style="font-size: 0.72rem;"></i></span><span class="text-white text-truncate" style="font-size: 0.78rem;">${escapeHtml(name)}</span></div>`)}
-                </div>
-                <div class="col-12 col-md-6">
-                    <div class="text-secondary mb-1" style="font-size: 0.7rem;"><i class="fa-solid fa-compact-disc text-warning me-1"></i>Álbumes que empezaste y dejaste pendientes</div>
-                    ${renderItems(incompleteAlbums, 'Todavía no hay álbumes pendientes detectados.', album => `<div class="profile-suggestion"><span class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 30px; height: 30px; background: rgba(245,158,11,0.14);"><i class="fa-solid fa-compact-disc text-warning" style="font-size: 0.72rem;"></i></span><div class="min-w-0"><div class="text-white text-truncate" style="font-size: 0.78rem;">${escapeHtml(album.name)}</div><div class="text-secondary text-truncate" style="font-size: 0.68rem;">${escapeHtml(album.artist || '')} · ${album.plays} reproducciones</div></div></div>`)}
-                </div>
             </div>
         </div>
     `;
