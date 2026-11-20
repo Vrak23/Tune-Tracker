@@ -11046,7 +11046,7 @@ function buildWrappedHints(db) {
     if (trackList.length) {
         hints.push(`Ya escuchaste al menos ${formatNumber(trackList.length)} canciones distintas en 2026. El Wrapped las pondrá en orden.`);
     }
-    hints.push('El Wrapped llegará en diciembre con tu canción del año, tus artistas top, tu mes pico y un final sorpresa.');
+    hints.push('El Wrapped llegará el 5 de diciembre con tu canción del año, tus artistas top, tu mes pico y un final sorpresa.');
     return hints;
 }
 
@@ -11093,13 +11093,39 @@ function renderWrappedTeaser() {
         ? `Ya viste la pista de esta quincena. Próxima: <strong class="text-white">${nextLabel}</strong> (en ${daysLeft} día${daysLeft === 1 ? '' : 's'}).`
         : '¡Tienes una pista disponible esta quincena!';
 
+    const now = new Date();
+    // Fecha de estreno oficial del Wrapped Anual: 5 de diciembre
+    const isWrappedReleased = (now.getFullYear() > 2026) || (now.getFullYear() === 2026 && now.getMonth() === 11 && now.getDate() >= 5);
+
+    if (isWrappedReleased) {
+        box.innerHTML = `
+            <div class="p-3 rounded-3" style="background: linear-gradient(135deg, rgba(168,85,247,0.28), rgba(56,189,248,0.16)); border: 1px solid rgba(192,132,252,0.55); box-shadow: 0 12px 32px rgba(168,85,247,0.18);">
+                <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
+                    <div style="min-width: 0;">
+                        <div class="fw-bold text-white" style="font-size: 0.98rem;"><i class="fa-solid fa-sparkles text-info me-2"></i>¡Tu Wrapped 2026 ya está aquí!</div>
+                        <div class="text-white text-opacity-75 mt-1" style="font-size: 0.76rem;">Tu canción del año, artistas top, mes pico y tarjeta resumen lista para compartir.</div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <button type="button" class="btn btn-sm btn-brand rounded-pill px-3 py-1.5 fw-semibold text-nowrap" style="font-size: 0.78rem;" onclick="openAnnualWrapped('2026')">
+                            <i class="fa-solid fa-play me-1"></i>Abrir Wrapped 2026
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-3 py-1.5 fw-semibold text-nowrap" style="font-size: 0.74rem;" onclick="openWrappedHint()">
+                            <i class="fa-solid fa-eye me-1"></i>Pistas (${hintCount})
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
     box.innerHTML = `
         <div class="p-3 rounded-3" style="background: linear-gradient(135deg, rgba(168,85,247,0.18), rgba(236,72,153,0.10)); border: 1px solid rgba(168,85,247,0.4);">
             <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
                 <div style="min-width: 0;">
                     <div class="fw-bold text-white" style="font-size: 0.95rem;"><i class="fa-solid fa-gift text-primary me-2"></i>Wrapped 2026 · Se está cocinando 🍳</div>
                     <div class="text-secondary mt-1" style="font-size: 0.76rem;">${status}</div>
-                    <div class="text-secondary" style="font-size: 0.70rem;">Pistas descubiertas: ${hintCount} · 2 por mes (1 por quincena)</div>
+                    <div class="text-secondary" style="font-size: 0.70rem;">Pistas descubiertas: ${hintCount} · 2 por mes (1 por quincena) · Estreno: 5 de diciembre</div>
                 </div>
                 <button type="button" class="btn btn-sm ${used ? 'btn-outline-light' : 'btn-brand'} rounded-pill px-3 py-1.5 fw-semibold text-nowrap" style="font-size: 0.78rem;" onclick="openWrappedHint()">
                     <i class="fa-solid ${used ? 'fa-eye' : 'fa-magnifying-glass'} me-1"></i>${used ? 'Ver mis pistas' : 'Descubrir pista'}
@@ -11157,6 +11183,753 @@ async function openWrappedHint() {
 window.openWrappedHint = openWrappedHint;
 window.openWrappedHintModal = openWrappedHint;
 window.renderWrappedTeaser = renderWrappedTeaser;
+
+// ----------------------------------------------------
+// WRAPPED ANUAL 2026: EXPERIENCIA STORY INTERACTIVA
+// ----------------------------------------------------
+let annualWrappedState = { year: '2026', slide: 0, data: null };
+
+function getAnnualWrappedData(db, year = '2026') {
+    const yData = db?.yearlyTops?.[year] || {};
+    const trackMap = new Map();
+    const artistMap = new Map();
+    const albumMap = new Map();
+
+    (yData.tracks || []).forEach(t => {
+        const name = entryName(t);
+        const artist = entryArtist(t);
+        if (!name || !artist) return;
+        const key = `${normalizeKey(name)}:::${normalizeKey(artist)}`;
+        trackMap.set(key, { name, artist, plays: t.plays || 0, coverKey: `track::${normalizeKey(name)}::${normalizeKey(artist)}` });
+    });
+
+    (yData.artists || []).forEach(a => {
+        const name = entryName(a);
+        if (!name) return;
+        const key = normalizeKey(name);
+        artistMap.set(key, { name, plays: a.plays || 0, coverKey: `artist::${key}::` });
+    });
+
+    (yData.albums || []).forEach(al => {
+        const name = entryName(al);
+        const artist = entryArtist(al);
+        if (!name) return;
+        const key = `${normalizeKey(name)}:::${normalizeKey(artist)}`;
+        albumMap.set(key, { name, artist, plays: al.plays || 0, coverKey: `album::${normalizeKey(name)}::${normalizeKey(artist)}` });
+    });
+
+    const monthlyCounts = Array(12).fill(0);
+    Object.entries(yData.months || {}).forEach(([mk, mv]) => {
+        const idx = parseInt(mk, 10) - 1;
+        if (idx >= 0 && idx < 12) {
+            const mPlays = Number(mv?.plays) || (mv?.tracks || []).reduce((acc, t) => acc + (t.plays || 0), 0);
+            monthlyCounts[idx] += mPlays;
+        }
+    });
+
+    let deltaCount = 0;
+    (lastFmRecentDelta || []).forEach(t => {
+        const uts = parseInt(t?.date?.uts || t?.uts, 10);
+        if (!uts) return;
+        const d = new Date(uts * 1000);
+        if (String(d.getFullYear()) !== String(year)) return;
+        deltaCount++;
+        monthlyCounts[d.getMonth()] += 1;
+
+        const name = entryName(t);
+        const artist = entryArtist(t);
+        const album = t.album ? entryName(t.album) : '';
+        if (name && artist) {
+            const tk = `${normalizeKey(name)}:::${normalizeKey(artist)}`;
+            const prevT = trackMap.get(tk) || { name, artist, plays: 0, coverKey: `track::${normalizeKey(name)}::${normalizeKey(artist)}` };
+            prevT.plays += 1;
+            trackMap.set(tk, prevT);
+        }
+        if (artist) {
+            const ak = normalizeKey(artist);
+            const prevA = artistMap.get(ak) || { name: artist, plays: 0, coverKey: `artist::${ak}::` };
+            prevA.plays += 1;
+            artistMap.set(ak, prevA);
+        }
+        if (album) {
+            const alk = `${normalizeKey(album)}:::${normalizeKey(artist)}`;
+            const prevAl = albumMap.get(alk) || { name: album, artist, plays: 0, coverKey: `album::${normalizeKey(album)}::${normalizeKey(artist)}` };
+            prevAl.plays += 1;
+            albumMap.set(alk, prevAl);
+        }
+    });
+
+    // Unificar estadísticas con Era Tidal y ajustes manuales del año
+    let tidalTrackAdded = 0;
+    if (typeof tidalEstimates !== 'undefined' && tidalEstimates) {
+        Object.values(tidalEstimates.tracks || {}).forEach(t => {
+            const addPlays = Number(t?.years?.[year]) || 0;
+            if (!addPlays) return;
+            tidalTrackAdded += addPlays;
+            const name = t.name || '';
+            const artist = t.artist || '';
+            if (name && artist) {
+                const tk = `${normalizeKey(name)}:::${normalizeKey(artist)}`;
+                const prevT = trackMap.get(tk) || { name, artist, plays: 0, coverKey: `track::${normalizeKey(name)}::${normalizeKey(artist)}` };
+                prevT.plays += addPlays;
+                trackMap.set(tk, prevT);
+            }
+            if (t.album && artist) {
+                const alk = `${normalizeKey(t.album)}:::${normalizeKey(artist)}`;
+                const prevAl = albumMap.get(alk) || { name: t.album, artist, plays: 0, coverKey: `album::${normalizeKey(t.album)}::${normalizeKey(artist)}` };
+                prevAl.plays += addPlays;
+                albumMap.set(alk, prevAl);
+            }
+            if (t.months && typeof t.months === 'object') {
+                Object.entries(t.months).forEach(([ym, cnt]) => {
+                    if (ym.startsWith(`${year}-`)) {
+                        const mIdx = parseInt(ym.slice(5, 7), 10) - 1;
+                        if (mIdx >= 0 && mIdx < 12) monthlyCounts[mIdx] += Number(cnt) || 0;
+                    }
+                });
+            }
+        });
+
+        Object.entries(tidalEstimates.artists || {}).forEach(([artName, a]) => {
+            const addPlays = Number(a?.years?.[year]) || 0;
+            if (!addPlays || !artName) return;
+            const ak = normalizeKey(artName);
+            const prevA = artistMap.get(ak) || { name: artName, plays: 0, coverKey: `artist::${ak}::` };
+            prevA.plays += addPlays;
+            artistMap.set(ak, prevA);
+        });
+    }
+
+    const tracks = Array.from(trackMap.values()).sort((a, b) => b.plays - a.plays);
+    const artists = Array.from(artistMap.values()).sort((a, b) => b.plays - a.plays);
+    const albums = Array.from(albumMap.values()).sort((a, b) => b.plays - a.plays);
+    const sumTracks = tracks.reduce((acc, t) => acc + (t.plays || 0), 0);
+    const totalStreams = (Number(yData.plays) ? Number(yData.plays) + deltaCount + tidalTrackAdded : 0) || sumTracks;
+    const totalHours = Math.round(Number(yData.hours) ? Number(yData.hours) + ((deltaCount + tidalTrackAdded) * 3.5 / 60) : (totalStreams * 3.5 / 60));
+
+    let peakIdx = 0;
+    monthlyCounts.forEach((val, idx) => {
+        if (val > monthlyCounts[peakIdx]) peakIdx = idx;
+    });
+    const peakMonthName = MESES_ES[peakIdx] ? MESES_ES[peakIdx].charAt(0).toUpperCase() + MESES_ES[peakIdx].slice(1) : 'Octubre';
+
+    return {
+        year,
+        totalStreams,
+        totalHours,
+        distinctTracks: tracks.length,
+        distinctArtists: artists.length,
+        tracks: tracks.slice(0, 5),
+        artists: artists.slice(0, 5),
+        albums: albums.slice(0, 5),
+        monthlyCounts,
+        peakIdx,
+        peakMonthName,
+        peakMonthPlays: monthlyCounts[peakIdx] || 0
+    };
+}
+
+async function resolveWrappedArtwork(name, artist, type, coverKey, elementId) {
+    if (!name) return null;
+    const cached = artCache[coverKey];
+    const isSpotifyOfficial = typeof cached === 'string' && cached.includes('scdn.co');
+    if (type === 'artist' ? isSpotifyOfficial : (typeof cached === 'string' && !cached.startsWith('data:image/svg'))) {
+        const el = elementId ? document.getElementById(elementId) : null;
+        if (el) el.src = cached;
+        return cached;
+    }
+
+    let url = await resolveSpotifyArtwork(name, artist, type, elementId);
+    if (!url && type !== 'artist' && navigator.onLine) {
+        try {
+            const term = artist ? `${name} ${artist}` : name;
+            const entity = type === 'album' ? 'album' : 'song';
+            const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=${entity}&limit=1`);
+            if (res.ok) {
+                const json = await res.json();
+                const raw = json?.results?.[0]?.artworkUrl100;
+                if (raw) {
+                    url = raw.replace('100x100bb', '600x600bb');
+                    artCache[coverKey] = url;
+                    saveArtCache();
+                }
+            }
+        } catch (e) {}
+    }
+
+    if (url && elementId) {
+        const el = document.getElementById(elementId);
+        if (el) el.src = url;
+    }
+    return url;
+}
+
+async function openAnnualWrapped(year = '2026') {
+    if (isDemoMode()) return;
+    if (getUserFeatureStatus('wrapped') !== 'approved') {
+        openFeatureRequestModal('wrapped');
+        return;
+    }
+
+    const dialog = document.getElementById('annualWrappedDialog');
+    const body = document.getElementById('wrapped-story-body');
+    if (!dialog || !body) return;
+
+    body.innerHTML = '<div class="text-center py-5 text-secondary"><span class="spinner-border spinner-border-sm text-info me-2"></span>Preparando tu Wrapped ' + escapeHtml(year) + '...</div>';
+    if (!dialog.open) dialog.showModal();
+
+    let db = null;
+    try {
+        const [loadedDb] = await Promise.all([
+            getActiveDatabase(true),
+            typeof loadTidalEstimates === 'function' ? loadTidalEstimates() : Promise.resolve(),
+            typeof fetchLastFmDelta === 'function' ? fetchLastFmDelta() : Promise.resolve()
+        ]);
+        db = loadedDb;
+    } catch (e) {}
+    const data = getAnnualWrappedData(db, year);
+    annualWrappedState = { year, slide: 0, data };
+
+    renderWrappedSlide(0);
+    if (typeof confetti === 'function') {
+        confetti({ particleCount: 65, spread: 75, origin: { y: 0.55 } });
+    }
+
+    // Pre-cargar portadas de Top 5 canciones, Top 5 artistas (Spotify API) y Top 5 álbumes
+    Promise.all([
+        ...data.tracks.map((t, i) => resolveWrappedArtwork(t.name, t.artist, 'track', t.coverKey, i === 0 ? 'wrapped-hero-track-img' : `wrapped-top-track-img-${i}`).then(url => {
+            if (url) {
+                const thumbEl = document.getElementById(`wrapped-top-track-img-${i}`);
+                if (thumbEl) thumbEl.src = url;
+                const shareTrkEl = document.getElementById(`wrapped-share-track-${i}`);
+                if (shareTrkEl) shareTrkEl.src = url;
+            }
+        })),
+        ...data.artists.map((a, i) => resolveWrappedArtwork(a.name, '', 'artist', a.coverKey, i === 0 ? 'wrapped-hero-artist-img' : `wrapped-top-artist-img-${i}`).then(url => {
+            if (url && i === 0) {
+                const shareArtEl = document.getElementById('wrapped-share-artist-img');
+                if (shareArtEl) shareArtEl.src = url;
+            }
+        })),
+        ...data.albums.map((al, i) => resolveWrappedArtwork(al.name, al.artist, 'album', al.coverKey, `wrapped-share-album-${i}`))
+    ]).catch(() => {});
+}
+
+function renderWrappedSlide(index) {
+    const shell = document.getElementById('wrapped-story-shell');
+    const body = document.getElementById('wrapped-story-body');
+    const counter = document.getElementById('wrapped-slide-counter');
+    const prevBtn = document.getElementById('wrapped-btn-prev');
+    const nextBtn = document.getElementById('wrapped-btn-next');
+    const segs = document.querySelectorAll('#wrapped-progress-track .wrapped-progress-seg');
+    const data = annualWrappedState.data;
+    if (!shell || !body || !data) return;
+
+    const slide = Math.max(0, Math.min(3, index));
+    annualWrappedState.slide = slide;
+    shell.setAttribute('data-slide', String(slide));
+
+    segs.forEach((seg, idx) => {
+        seg.classList.toggle('done', idx < slide);
+        seg.classList.toggle('active', idx === slide);
+    });
+    if (counter) counter.textContent = `${slide + 1} / 4`;
+    if (prevBtn) prevBtn.disabled = slide === 0;
+    if (nextBtn) {
+        nextBtn.innerHTML = slide === 3
+            ? 'Finalizar<i class="fa-solid fa-check ms-1"></i>'
+            : 'Siguiente<i class="fa-solid fa-chevron-right ms-1"></i>';
+    }
+
+    const topTrack = data.tracks[0];
+    const topArtist = data.artists[0];
+    const trackCover = topTrack ? (artCache[topTrack.coverKey] || FALLBACK_ART_SVG) : '/logo.svg';
+    const artistCover = topArtist ? (artCache[topArtist.coverKey] || FALLBACK_ART_SVG) : '/logo.svg';
+
+    if (slide === 0) {
+        body.innerHTML = `
+            <div class="text-center my-auto py-2">
+                <div class="badge rounded-pill px-3 py-1 mb-3" style="background: rgba(168,85,247,0.18); color: #e9d5ff; border: 1px solid rgba(192,132,252,0.4); font-size: 0.68rem; letter-spacing: 0.08em;">EDICIÓN ANUAL ${escapeHtml(data.year)}</div>
+                <h2 class="fw-bold text-white mb-2" style="font-size: 1.85rem; letter-spacing: -0.04em; line-height: 1.12;">Tu Wrapped ${escapeHtml(data.year)}<br>ya está aquí</h2>
+                <p class="text-white text-opacity-75 mb-4" style="font-size: 0.82rem;">Un recorrido por los sonidos, artistas y momentos que definieron tu año.</p>
+
+                <div class="wrapped-glass-box mb-4">
+                    <div class="fw-bold text-white" style="font-size: 2.5rem; letter-spacing: -0.04em; line-height: 1;">${formatNumber(data.totalStreams)}</div>
+                    <div class="text-info fw-semibold mt-1" style="font-size: 0.8rem;">streams este año</div>
+                    <div class="d-flex justify-content-center gap-3 mt-3 pt-2 border-top border-light border-opacity-10" style="font-size: 0.74rem;">
+                        <span class="text-white text-opacity-75"><strong class="text-white">${formatNumber(data.totalHours)} h</strong> de música</span>
+                        <span class="text-white text-opacity-75"><strong class="text-white">${formatNumber(data.distinctArtists)}</strong> artistas</span>
+                    </div>
+                </div>
+
+                <button type="button" class="btn btn-brand rounded-pill px-4 py-2 fw-semibold" style="font-size: 0.86rem;" onclick="nextWrappedSlide()">
+                    Comenzar mi viaje <i class="fa-solid fa-arrow-right ms-1"></i>
+                </button>
+            </div>
+        `;
+    } else if (slide === 1) {
+        const top5Html = data.tracks.map((t, i) => {
+            const thumb = artCache[t.coverKey] || FALLBACK_ART_SVG;
+            return `
+            <div class="d-flex align-items-center gap-2 py-1.5 ${i < data.tracks.length - 1 ? 'border-bottom border-light border-opacity-10' : ''}">
+                <span class="fw-bold ${i === 0 ? 'text-warning' : 'text-secondary'}" style="width: 20px; font-size: 0.76rem;">#${i + 1}</span>
+                <img id="wrapped-top-track-img-${i}" src="${thumb}" alt="${escapeHtml(t.name)}" style="width: 30px; height: 30px; border-radius: 7px; object-fit: cover; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.12);" onerror="safeImgError(this)">
+                <div class="min-w-0 flex-grow-1">
+                    <div class="text-white text-truncate fw-semibold" style="font-size: 0.78rem;">${escapeHtml(t.name)}</div>
+                    <div class="text-secondary text-truncate" style="font-size: 0.68rem;">${escapeHtml(t.artist)}</div>
+                </div>
+                <span class="text-warning fw-semibold text-nowrap" style="font-size: 0.72rem;">${formatNumber(t.plays)}</span>
+            </div>
+        `;}).join('');
+
+        body.innerHTML = `
+            <div class="my-auto">
+                <div class="text-center mb-3">
+                    <div class="text-warning text-uppercase fw-bold mb-2" style="font-size: 0.66rem; letter-spacing: 0.1em;"><i class="fa-solid fa-crown me-1"></i>TU CANCIÓN DEL AÑO</div>
+                    <img id="wrapped-hero-track-img" src="${trackCover}" class="wrapped-hero-cover mb-2.5" alt="${escapeHtml(topTrack?.name || 'Canción')}" onerror="safeImgError(this)">
+                    <h4 class="fw-bold text-white mb-0 text-truncate">${escapeHtml(topTrack?.name || 'Sin datos')}</h4>
+                    <div class="text-white text-opacity-75 mb-2" style="font-size: 0.82rem;">${escapeHtml(topTrack?.artist || '')}</div>
+                    <span class="badge rounded-pill px-3 py-1" style="background: rgba(245,158,11,0.18); color: #fcd34d; border: 1px solid rgba(245,158,11,0.35); font-size: 0.72rem;">${formatNumber(topTrack?.plays || 0)} reproducciones</span>
+                </div>
+                <div class="wrapped-glass-box">
+                    <div class="text-secondary text-uppercase fw-bold mb-2" style="font-size: 0.62rem; letter-spacing: 0.08em;">TOP 5 CANCIONES DE ${escapeHtml(data.year)}</div>
+                    ${top5Html || '<div class="text-secondary small">Sin canciones registradas.</div>'}
+                </div>
+            </div>
+        `;
+        data.tracks.forEach((t, i) => {
+            if (!artCache[t.coverKey]) {
+                resolveWrappedArtwork(t.name, t.artist, 'track', t.coverKey, `wrapped-top-track-img-${i}`).then(url => {
+                    if (url && i === 0) {
+                        const heroEl = document.getElementById('wrapped-hero-track-img');
+                        if (heroEl) heroEl.src = url;
+                    }
+                });
+            }
+        });
+    } else if (slide === 2) {
+        const maxMonth = Math.max(...data.monthlyCounts, 1);
+        const monthAbbr = ['E', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
+        const barsHtml = data.monthlyCounts.map((count, i) => {
+            const pct = count > 0 ? Math.max(10, Math.round((count / maxMonth) * 100)) : 6;
+            const isPeak = i === data.peakIdx && count > 0;
+            return `
+                <div class="wrapped-month-col" title="${MESES_ES[i]}: ${formatNumber(count)} streams">
+                    <div class="wrapped-month-bar ${isPeak ? 'peak' : ''}" style="height: ${pct}%;"></div>
+                    <span style="font-size: 0.56rem; color: ${isPeak ? '#38bdf8' : 'rgba(255,255,255,0.45)'}; font-weight: ${isPeak ? '700' : '500'};">${monthAbbr[i]}</span>
+                </div>
+            `;
+        }).join('');
+
+        const next4Html = data.artists.slice(1, 5).map((a, i) => {
+            const thumb = (artCache[a.coverKey] && artCache[a.coverKey].includes('scdn.co')) ? artCache[a.coverKey] : FALLBACK_ART_SVG;
+            return `
+            <div class="col-6" style="min-width: 0;">
+                <div class="wrapped-artist-subcard">
+                    <img id="wrapped-top-artist-img-${i + 1}" src="${thumb}" alt="${escapeHtml(a.name)}" onerror="safeImgError(this)">
+                    <div class="min-w-0 flex-grow-1">
+                        <div class="text-info fw-bold" style="font-size: 0.64rem; line-height: 1.1;">#${i + 2}</div>
+                        <div class="text-white fw-semibold text-truncate" style="font-size: 0.78rem;">${escapeHtml(a.name)}</div>
+                        <div class="text-secondary" style="font-size: 0.65rem;">${formatNumber(a.plays)} streams</div>
+                    </div>
+                </div>
+            </div>
+        `;}).join('');
+
+        const artistHours = Math.max(1, Math.round(((topArtist?.plays || 0) * 3.5) / 60));
+        const officialArtistCover = (topArtist && artCache[topArtist.coverKey] && artCache[topArtist.coverKey].includes('scdn.co')) ? artCache[topArtist.coverKey] : FALLBACK_ART_SVG;
+        body.innerHTML = `
+            <div class="my-auto">
+                <div class="text-info text-uppercase fw-bold mb-2 text-center" style="font-size: 0.66rem; letter-spacing: 0.1em;">TU ARTISTA #1 DE ${escapeHtml(data.year)}</div>
+                <div class="wrapped-artist-hero-banner mb-3">
+                    <img id="wrapped-hero-artist-img" src="${officialArtistCover}" alt="${escapeHtml(topArtist?.name || 'Artista')}" onerror="safeImgError(this)">
+                    <div class="wrapped-artist-hero-overlay">
+                        <div class="d-flex align-items-end justify-content-between gap-2">
+                            <div class="min-w-0">
+                                <span class="badge rounded-pill mb-1" style="background: rgba(56,189,248,0.22); color: #7dd3fc; border: 1px solid rgba(56,189,248,0.45); font-size: 0.62rem;">#1 DEL AÑO</span>
+                                <h3 class="fw-bold text-white mb-0 text-truncate" style="letter-spacing: -0.03em;">${escapeHtml(topArtist?.name || 'Sin datos')}</h3>
+                            </div>
+                            <div class="text-end text-nowrap">
+                                <div class="text-info fw-bold" style="font-size: 0.85rem;">${formatNumber(topArtist?.plays || 0)}</div>
+                                <div class="text-white text-opacity-75" style="font-size: 0.64rem;">${formatNumber(artistHours)} h juntos</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="wrapped-glass-box mb-3">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <span class="text-secondary text-uppercase fw-bold" style="font-size: 0.62rem; letter-spacing: 0.08em;">MES PICO DE ESCUCHA</span>
+                        <span class="text-info fw-bold" style="font-size: 0.76rem;">${escapeHtml(data.peakMonthName)} (${formatNumber(data.peakMonthPlays)})</span>
+                    </div>
+                    <div class="wrapped-month-bars">${barsHtml}</div>
+                </div>
+                <div>
+                    <div class="text-secondary text-uppercase fw-bold mb-2" style="font-size: 0.62rem; letter-spacing: 0.08em;">TOP 4 SIGUIENTES</div>
+                    <div class="row g-2">${next4Html || '<div class="text-secondary small">—</div>'}</div>
+                </div>
+            </div>
+        `;
+        data.artists.forEach((a, i) => {
+            if (!artCache[a.coverKey] || !artCache[a.coverKey].includes('scdn.co')) {
+                resolveWrappedArtwork(a.name, '', 'artist', a.coverKey, i === 0 ? 'wrapped-hero-artist-img' : `wrapped-top-artist-img-${i}`);
+            }
+        });
+    } else if (slide === 3) {
+        const officialArtistCover = (topArtist && artCache[topArtist.coverKey] && artCache[topArtist.coverKey].includes('scdn.co')) ? artCache[topArtist.coverKey] : FALLBACK_ART_SVG;
+        const tracksLeftHtml = data.tracks.map((tr, i) => `
+            <div class="text-truncate py-0.5" style="font-size: 0.72rem;"><span class="text-warning fw-bold me-1.5">${i + 1}</span>${escapeHtml(tr.name)}</div>
+        `).join('');
+        const artistsRightHtml = data.artists.map((ar, i) => `
+            <div class="text-truncate py-0.5" style="font-size: 0.72rem;"><span class="text-info fw-bold me-1.5">${i + 1}</span>${escapeHtml(ar.name)}</div>
+        `).join('');
+
+        const albumCoversOnlyHtml = data.albums.slice(0, 5).map((al, i) => {
+            const alThumb = artCache[al.coverKey] || FALLBACK_ART_SVG;
+            return `<img id="wrapped-share-album-${i}" src="${alThumb}" alt="${escapeHtml(al.name)}" title="${escapeHtml(al.name)}" style="width: 38px; height: 38px; border-radius: 8px; object-fit: cover; flex-shrink: 0;" onerror="safeImgError(this)">`;
+        }).join('');
+
+        body.innerHTML = `
+            <div class="my-auto">
+                <div class="wrapped-share-frame mb-3" id="wrapped-share-card">
+                    <div class="d-flex align-items-center justify-content-between mb-1.5">
+                        <div class="d-flex align-items-center gap-2">
+                            <img src="/logo.svg" alt="TuneTracker" style="width: 18px; height: 18px;">
+                            <span class="fw-bold text-white" style="font-size: 0.82rem;">TuneTracker</span>
+                        </div>
+                        <span class="badge rounded-pill" style="background: rgba(168,85,247,0.22); color: #e9d5ff; border: 1px solid rgba(192,132,252,0.4); font-size: 0.62rem;">WRAPPED ${escapeHtml(data.year)}</span>
+                    </div>
+
+                    <div class="wrapped-artist-hero-banner compact mb-2">
+                        <img id="wrapped-share-artist-img" src="${officialArtistCover}" alt="${escapeHtml(topArtist?.name || 'Artista')}" onerror="safeImgError(this)">
+                        <div class="wrapped-artist-hero-overlay" style="padding: 8px 10px;">
+                            <div class="d-flex align-items-end justify-content-between gap-2">
+                                <div class="min-w-0">
+                                    <div class="text-info text-uppercase fw-bold" style="font-size: 0.56rem; letter-spacing: 0.08em;">ARTISTA GANADOR #1</div>
+                                    <div class="text-white fw-bold text-truncate" style="font-size: 1.05rem;">${escapeHtml(topArtist?.name || '—')}</div>
+                                </div>
+                                <span class="badge rounded-pill" style="background: rgba(56,189,248,0.2); color: #7dd3fc; font-size: 0.62rem;">${formatNumber(topArtist?.plays || 0)} streams</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-2 text-center py-1.5 mb-2.5 rounded-3" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);">
+                        <div class="col-4"><div class="text-white fw-bold" style="font-size: 0.82rem;">${formatNumber(data.totalStreams)}</div><div class="text-secondary" style="font-size: 0.58rem;">Streams</div></div>
+                        <div class="col-4"><div class="text-white fw-bold" style="font-size: 0.82rem;">${formatNumber(data.totalHours)}h</div><div class="text-secondary" style="font-size: 0.58rem;">Horas</div></div>
+                        <div class="col-4"><div class="text-info fw-bold" style="font-size: 0.82rem;">${escapeHtml(data.peakMonthName.slice(0, 3))}</div><div class="text-secondary" style="font-size: 0.58rem;">Mes Pico</div></div>
+                    </div>
+
+                    <div class="row g-2.5 mb-3">
+                        <div class="col-6" style="min-width: 0;">
+                            <div class="text-warning text-uppercase fw-bold mb-1.5" style="font-size: 0.58rem; letter-spacing: 0.08em;">TOP 5 CANCIONES</div>
+                            ${tracksLeftHtml}
+                        </div>
+                        <div class="col-6" style="min-width: 0;">
+                            <div class="text-info text-uppercase fw-bold mb-1.5" style="font-size: 0.58rem; letter-spacing: 0.08em;">TOP 5 ARTISTAS</div>
+                            ${artistsRightHtml}
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center justify-content-center gap-2 pt-1">
+                        ${albumCoversOnlyHtml}
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-brand flex-grow-1 rounded-pill py-2 fw-semibold" style="font-size: 0.78rem;" onclick="downloadWrappedShareCard()">
+                        <i class="fa-solid fa-download me-1"></i>Descargar imagen
+                    </button>
+                    <button type="button" class="btn btn-outline-light flex-grow-1 rounded-pill py-2 fw-semibold" style="font-size: 0.78rem; border-color: rgba(255,255,255,0.22);" onclick="shareWrappedSummary()">
+                        <i class="fa-solid fa-share-nodes me-1"></i>Compartir
+                    </button>
+                </div>
+            </div>
+        `;
+        if (topArtist && (!artCache[topArtist.coverKey] || !artCache[topArtist.coverKey].includes('scdn.co'))) {
+            resolveWrappedArtwork(topArtist.name, '', 'artist', topArtist.coverKey, 'wrapped-share-artist-img');
+        }
+        data.albums.forEach((al, i) => {
+            if (!artCache[al.coverKey]) {
+                resolveWrappedArtwork(al.name, al.artist, 'album', al.coverKey, `wrapped-share-album-${i}`);
+            }
+        });
+        if (typeof confetti === 'function') {
+            confetti({ particleCount: 55, spread: 70, origin: { y: 0.6 } });
+        }
+    }
+}
+
+function goToWrappedSlide(index) {
+    renderWrappedSlide(index);
+}
+
+function nextWrappedSlide() {
+    if (annualWrappedState.slide >= 3) {
+        document.getElementById('annualWrappedDialog')?.close();
+        return;
+    }
+    renderWrappedSlide(annualWrappedState.slide + 1);
+}
+
+function prevWrappedSlide() {
+    if (annualWrappedState.slide <= 0) return;
+    renderWrappedSlide(annualWrappedState.slide - 1);
+}
+
+function loadCanvasImage(url) {
+    return new Promise((resolve) => {
+        if (!url || url.startsWith('data:image/svg')) return resolve(null);
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = url;
+    });
+}
+
+function drawRoundedRectPath(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    if (typeof ctx.roundRect === 'function') {
+        ctx.roundRect(x, y, w, h, r);
+    } else {
+        ctx.rect(x, y, w, h);
+    }
+}
+
+function fitCanvasText(ctx, text, maxWidth) {
+    let s = String(text || '');
+    if (ctx.measureText(s).width <= maxWidth) return s;
+    while (s.length > 1 && ctx.measureText(s + '…').width > maxWidth) {
+        s = s.slice(0, -1);
+    }
+    return s + '…';
+}
+
+async function downloadWrappedShareCard() {
+    const data = annualWrappedState.data;
+    if (!data) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = 900;
+    canvas.height = 1200;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const topArtist = data.artists[0];
+    const artistUrl = (topArtist && artCache[topArtist.coverKey] && artCache[topArtist.coverKey].includes('scdn.co'))
+        ? artCache[topArtist.coverKey]
+        : document.getElementById('wrapped-share-artist-img')?.src;
+
+    const [logoImg, artistImg, ...albumImgs] = await Promise.all([
+        loadCanvasImage('/logo.svg'),
+        loadCanvasImage(artistUrl),
+        ...data.albums.slice(0, 5).map((al, i) => loadCanvasImage(artCache[al.coverKey] || document.getElementById(`wrapped-share-album-${i}`)?.src))
+    ]);
+
+    // 1. Fondo cósmico oscuro + brillos radiales (igual que .wrapped-share-frame)
+    const bgGrad = ctx.createLinearGradient(0, 0, 900, 1200);
+    bgGrad.addColorStop(0, '#1b152b');
+    bgGrad.addColorStop(1, '#0b0c12');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, 900, 1200);
+
+    const glowCyan = ctx.createRadialGradient(810, 96, 10, 810, 96, 420);
+    glowCyan.addColorStop(0, 'rgba(56, 189, 248, 0.22)');
+    glowCyan.addColorStop(1, 'transparent');
+    ctx.fillStyle = glowCyan;
+    ctx.fillRect(0, 0, 900, 1200);
+
+    const glowAmber = ctx.createRadialGradient(108, 1140, 10, 108, 1140, 420);
+    glowAmber.addColorStop(0, 'rgba(245, 158, 11, 0.16)');
+    glowAmber.addColorStop(1, 'transparent');
+    ctx.fillStyle = glowAmber;
+    ctx.fillRect(0, 0, 900, 1200);
+
+    // Borde exterior redondeado sutil
+    drawRoundedRectPath(ctx, 28, 28, 844, 1144, 42);
+    ctx.strokeStyle = 'rgba(192, 132, 252, 0.45)';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // 2. Header: Logo + TuneTracker + Badge WRAPPED
+    if (logoImg) {
+        ctx.drawImage(logoImg, 68, 66, 42, 42);
+    }
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 34px system-ui, -apple-system, sans-serif';
+    ctx.fillText('TuneTracker', logoImg ? 124 : 68, 99);
+
+    drawRoundedRectPath(ctx, 646, 66, 186, 44, 22);
+    ctx.fillStyle = 'rgba(168, 85, 247, 0.24)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(192, 132, 252, 0.45)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = '#e9d5ff';
+    ctx.font = 'bold 21px system-ui, -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(`WRAPPED ${data.year}`, 739, 95);
+    ctx.textAlign = 'left';
+
+    // 3. Banner Artista Ganador #1 sin bordes + degradado en los bordes
+    const bx = 68, by = 142, bw = 764, bh = 310;
+    if (artistImg) {
+        ctx.save();
+        drawRoundedRectPath(ctx, bx, by, bw, bh, 0);
+        ctx.clip();
+        const scale = Math.max(bw / artistImg.width, bh / artistImg.height);
+        const dw = artistImg.width * scale;
+        const dh = artistImg.height * scale;
+        const dx = bx + (bw - dw) / 2;
+        const dy = by + (bh - dh) * 0.22;
+        ctx.drawImage(artistImg, dx, dy, dw, dh);
+
+        // Degradado vertical (arriba y abajo)
+        const vFade = ctx.createLinearGradient(0, by, 0, by + bh);
+        vFade.addColorStop(0, 'rgba(19, 16, 30, 0.72)');
+        vFade.addColorStop(0.26, 'rgba(19, 16, 30, 0)');
+        vFade.addColorStop(0.62, 'rgba(14, 14, 22, 0.15)');
+        vFade.addColorStop(1, 'rgba(14, 14, 22, 0.98)');
+        ctx.fillStyle = vFade;
+        ctx.fillRect(bx, by, bw, bh);
+
+        // Degradado lateral (izquierda y derecha)
+        const lFade = ctx.createLinearGradient(bx, 0, bx + bw, 0);
+        lFade.addColorStop(0, 'rgba(18, 15, 28, 0.95)');
+        lFade.addColorStop(0.18, 'rgba(18, 15, 28, 0)');
+        lFade.addColorStop(0.82, 'rgba(18, 15, 28, 0)');
+        lFade.addColorStop(1, 'rgba(18, 15, 28, 0.95)');
+        ctx.fillStyle = lFade;
+        ctx.fillRect(bx, by, bw, bh);
+        ctx.restore();
+    }
+
+    ctx.fillStyle = '#38bdf8';
+    ctx.font = 'bold 20px system-ui, -apple-system, sans-serif';
+    ctx.fillText('ARTISTA GANADOR #1', 82, by + bh - 62);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 46px system-ui, -apple-system, sans-serif';
+    ctx.fillText(fitCanvasText(ctx, topArtist?.name || '—', 520), 82, by + bh - 14);
+
+    // Pill streams derecha
+    const streamsBadgeText = `${formatNumber(topArtist?.plays || 0)} streams`;
+    ctx.font = 'bold 22px system-ui, -apple-system, sans-serif';
+    const sbW = ctx.measureText(streamsBadgeText).width + 36;
+    drawRoundedRectPath(ctx, bx + bw - sbW - 12, by + bh - 54, sbW, 40, 20);
+    ctx.fillStyle = 'rgba(56, 189, 248, 0.22)';
+    ctx.fill();
+    ctx.fillStyle = '#7dd3fc';
+    ctx.textAlign = 'center';
+    ctx.fillText(streamsBadgeText, bx + bw - sbW / 2 - 12, by + bh - 27);
+    ctx.textAlign = 'left';
+
+    // 4. Caja de estadísticas (Streams / Horas / Mes Pico)
+    const sy = 478, sh = 128;
+    drawRoundedRectPath(ctx, 68, sy, 764, sh, 24);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.055)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.09)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    const cols = [
+        { val: formatNumber(data.totalStreams), lbl: 'Streams', color: '#ffffff', cx: 195 },
+        { val: `${formatNumber(data.totalHours)}h`, lbl: 'Horas', color: '#ffffff', cx: 450 },
+        { val: data.peakMonthName.slice(0, 3), lbl: 'Mes Pico', color: '#38bdf8', cx: 705 }
+    ];
+    ctx.textAlign = 'center';
+    cols.forEach(c => {
+        ctx.fillStyle = c.color;
+        ctx.font = 'bold 40px system-ui, -apple-system, sans-serif';
+        ctx.fillText(c.val, c.cx, sy + 64);
+        ctx.fillStyle = '#9ca3af';
+        ctx.font = '22px system-ui, -apple-system, sans-serif';
+        ctx.fillText(c.lbl, c.cx, sy + 100);
+    });
+    ctx.textAlign = 'left';
+
+    // 5. Dos columnas: Izquierda TOP 5 CANCIONES | Derecha TOP 5 ARTISTAS
+    const ly = 668;
+    ctx.fillStyle = '#f59e0b';
+    ctx.font = 'bold 22px system-ui, -apple-system, sans-serif';
+    ctx.fillText('TOP 5 CANCIONES', 74, ly);
+    ctx.fillStyle = '#38bdf8';
+    ctx.fillText('TOP 5 ARTISTAS', 474, ly);
+
+    data.tracks.forEach((tr, i) => {
+        const y = ly + 52 + i * 58;
+        ctx.fillStyle = '#f59e0b';
+        ctx.font = 'bold 28px system-ui, -apple-system, sans-serif';
+        ctx.fillText(`${i + 1}`, 74, y);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '27px system-ui, -apple-system, sans-serif';
+        ctx.fillText(fitCanvasText(ctx, tr.name, 330), 108, y);
+    });
+
+    data.artists.forEach((ar, i) => {
+        const y = ly + 52 + i * 58;
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = 'bold 28px system-ui, -apple-system, sans-serif';
+        ctx.fillText(`${i + 1}`, 474, y);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '27px system-ui, -apple-system, sans-serif';
+        ctx.fillText(fitCanvasText(ctx, ar.name, 330), 508, y);
+    });
+
+    // 6. Fila inferior centrada: 5 portadas pequeñas de álbumes (solo portada)
+    const size = 86;
+    const gap = 18;
+    const totalW = albumImgs.length * size + Math.max(0, albumImgs.length - 1) * gap;
+    const startX = (900 - totalW) / 2;
+    const ay = 1020;
+
+    albumImgs.forEach((img, i) => {
+        const ax = startX + i * (size + gap);
+        ctx.save();
+        drawRoundedRectPath(ctx, ax, ay, size, size, 16);
+        ctx.clip();
+        if (img) {
+            ctx.drawImage(img, ax, ay, size, size);
+        } else {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+            ctx.fillRect(ax, ay, size, size);
+        }
+        ctx.restore();
+    });
+
+    const link = document.createElement('a');
+    link.download = `TuneTracker-Wrapped-${data.year}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+}
+
+async function shareWrappedSummary() {
+    const data = annualWrappedState.data;
+    if (!data) return;
+    const text = `🎧 Mi TuneTracker Wrapped ${data.year}:\n• ${formatNumber(data.totalStreams)} streams (${formatNumber(data.totalHours)}h)\n• Artista #1: ${data.artists[0]?.name || '—'}\n• Álbum #1: ${data.albums[0]?.name || '—'}\n• Canción #1: ${data.tracks[0]?.name || '—'}\n• Mes Pico: ${data.peakMonthName}`;
+    if (navigator.share) {
+        try {
+            await navigator.share({ title: `TuneTracker Wrapped ${data.year}`, text });
+            return;
+        } catch (e) {}
+    }
+    try {
+        await navigator.clipboard.writeText(text);
+        showToast('Resumen copiado al portapapeles', 'success');
+    } catch (e) {}
+}
+
+document.addEventListener('keydown', (e) => {
+    const dialog = document.getElementById('annualWrappedDialog');
+    if (!dialog || !dialog.open) return;
+    if (e.key === 'ArrowRight') nextWrappedSlide();
+    else if (e.key === 'ArrowLeft') prevWrappedSlide();
+});
+
+window.openAnnualWrapped = openAnnualWrapped;
+window.goToWrappedSlide = goToWrappedSlide;
+window.nextWrappedSlide = nextWrappedSlide;
+window.prevWrappedSlide = prevWrappedSlide;
+window.downloadWrappedShareCard = downloadWrappedShareCard;
+window.shareWrappedSummary = shareWrappedSummary;
 
 
 // ----------------------------------------------------
