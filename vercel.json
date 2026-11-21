@@ -10,6 +10,22 @@
       "destination": "/index.html"
     },
     {
+      "source": "/tops",
+      "destination": "/public/index.html"
+    },
+    {
+      "source": "/analisis",
+      "destination": "/public/index.html"
+    },
+    {
+      "source": "/curador",
+      "destination": "/public/index.html"
+    },
+    {
+      "source": "/progreso",
+      "destination": "/public/index.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/public/$1"
     }

@@ -3131,8 +3131,8 @@ async function showDashboard() {
     if (selectDataSource) selectDataSource.value = currentSource;
     if (selectLimit) selectLimit.value = String(currentLimit);
 
-    // Iniciar con la vista de Inicio por defecto (portada)
-    switchAppView('home');
+    // Iniciar con la vista indicada por la URL actual
+    switchAppView(getViewFromPath(window.location.pathname), { replace: true });
 
     try {
         if (currentSource === 'unified') {
@@ -9604,16 +9604,56 @@ window.openProfileSection = openProfileSection;
 // ----------------------------------------------------
 let currentActiveView = 'home';
 
-function switchAppView(viewName) {
+const VIEW_ROUTES = {
+    home: '/',
+    catalog: '/tops',
+    hub: '/analisis',
+    curator: '/curador',
+    profile: '/progreso'
+};
+
+const VIEW_TITLES = {
+    home: 'Tune Tracker',
+    catalog: 'Tops & Catalogo',
+    hub: 'Analisis & Historial',
+    curator: 'Curador Semestral',
+    profile: 'Mi Progreso'
+};
+
+function getViewFromPath(pathname) {
+    const normalizedPath = (pathname || '/').replace(/\/+$/, '') || '/';
+    const entry = Object.entries(VIEW_ROUTES).find(([, route]) =>
+        route === normalizedPath
+    );
+    return entry ? entry[0] : 'home';
+}
+
+function updateViewUrl(viewName, replace = false) {
+    const route = VIEW_ROUTES[viewName] || VIEW_ROUTES.home;
+    const currentUrl = window.location.pathname + window.location.search;
+    if (currentUrl === route) return;
+
+    const state = { tuneTrackerView: viewName };
+    if (replace) {
+        window.history.replaceState(state, document.title, route);
+    } else {
+        window.history.pushState(state, document.title, route);
+    }
+}
+
+function switchAppView(viewName, options = {}) {
     if (!viewName) viewName = 'home';
 
     // Control de acceso para Playlists Semestrales (Curador) - Exclusivo Admin
     if (viewName === 'curator') {
         if (!isAppOwner()) {
-            switchAppView('home');
+            switchAppView('home', { replace: true });
             return;
         }
     }
+
+    updateViewUrl(viewName, options.replace === true);
+    document.title = `${VIEW_TITLES[viewName] || VIEW_TITLES.home} | Tune Tracker`;
 
     currentActiveView = viewName;
 
@@ -9678,6 +9718,15 @@ function switchAppView(viewName) {
     window.scrollTo({ top: 0, behavior: 'instant' });
 }
 window.switchAppView = switchAppView;
+
+window.addEventListener('popstate', () => {
+    const viewName = getViewFromPath(window.location.pathname);
+    if (viewName === 'curator' && !isAppOwner()) {
+        switchAppView('home', { replace: true });
+        return;
+    }
+    switchAppView(viewName, { replace: true });
+});
 
 async function renderAnalysisOverview() {
     const container = document.getElementById('analysis-overview');

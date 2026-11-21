@@ -1,6 +1,10 @@
 const CACHE_NAME = 'tunetracker-v93';
 const STATIC_ASSETS = [
   '/',
+  '/tops',
+  '/analisis',
+  '/curador',
+  '/progreso',
   '/index.html',
   '/app.js',
   '/logo.svg',
