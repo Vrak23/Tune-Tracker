@@ -2954,13 +2954,24 @@ function updateStatStrip() {
     // Periodo: Rango de fechas personalizado (dates_YYYY-MM-DD_to_YYYY-MM-DD)
     if (currentRange && currentRange.startsWith('dates_')) {
         const [fromD, toD] = currentRange.replace('dates_', '').split('_to_');
-        const rData = getRangeTopData(activeDb, fromD, toD);
-        if (rData) {
-            const extra = (currentSource === 'unified' && toD >= '2026-10-01') ? deltaCount : 0;
-            const extraH = (currentSource === 'unified' && toD >= '2026-10-01') ? deltaHours : 0;
-            setStatValues(rData.plays + extra, parseFloat(rData.hours) + extraH, rData.artists.length, rData.albums.length, `${fromD} a ${toD}`);
-            return;
-        }
+        const rData = (fromD <= '2026-10-14') ? getRangeTopData(activeDb, fromD, toD > '2026-10-14' ? '2026-10-14' : toD) : null;
+        const rangeDelta = (currentSource === 'unified') ? lastFmRecentDelta.filter(t => isDeltaItemInCurrentRange(t, currentRange)) : [];
+        const extra = rangeDelta.length;
+        const extraH = extra * (3.5 / 60);
+        const baseP = rData ? (rData.plays || 0) : 0;
+        const baseH = rData ? parseFloat(rData.hours || 0) : 0;
+
+        const artistSet = new Set((rData?.artists || []).map(a => normalizeKey(a.name)).filter(Boolean));
+        const albumSet = new Set((rData?.albums || []).map(al => normalizeKey(al.name)).filter(Boolean));
+        rangeDelta.forEach(t => {
+            const art = normalizeKey(t.artist?.['#text'] || t.artist?.name || '');
+            const alb = normalizeKey(t.album?.['#text'] || t.album?.name || '');
+            if (art) artistSet.add(art);
+            if (alb) albumSet.add(alb);
+        });
+
+        setStatValues(baseP + extra, baseH + extraH, artistSet.size, albumSet.size, `${fromD} a ${toD}`);
+        return;
     }
 
     // Periodo: Año específico
@@ -4004,7 +4015,9 @@ async function loadStats(silent = false) {
             dateRangeTo = '2026-12-31';
         } else if (currentRange && currentRange.startsWith('dates_')) {
             const [fromD, toD] = currentRange.replace('dates_', '').split('_to_');
-            topData = getRangeTopData(activeDb, fromD, toD);
+            topData = (fromD <= '2026-10-14')
+                ? getRangeTopData(activeDb, fromD, toD > '2026-10-14' ? '2026-10-14' : toD)
+                : { plays: 0, hours: '0', tracks: [], artists: [], albums: [] };
             isDateRange = true;
             dateRangeTo = toD;
         } else if (currentRange.startsWith('year-')) {
