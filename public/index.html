@@ -2056,6 +2056,21 @@
             border-radius: 14px;
             background: rgba(255, 255, 255, 0.022);
         }
+        .analysis-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 7fr) minmax(260px, 5fr);
+            gap: 16px;
+            align-items: start;
+        }
+        .analysis-layout > [class*="col-"] {
+            width: auto;
+            max-width: none;
+            padding-left: 0;
+            padding-right: 0;
+        }
+        .analysis-layout > .analysis-full {
+            grid-column: 1 / -1;
+        }
         .analysis-bar-row {
             display: flex;
             align-items: center;
@@ -2080,6 +2095,14 @@
             height: 100%;
             border-radius: inherit;
             background: linear-gradient(90deg, #a855f7, #38bdf8);
+        }
+        @media (max-width: 767px) {
+            .analysis-layout {
+                grid-template-columns: minmax(0, 1fr);
+            }
+            .analysis-layout > .analysis-full {
+                grid-column: auto;
+            }
         }
         .curator-export-panel {
             padding: 12px;

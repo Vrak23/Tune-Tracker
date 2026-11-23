@@ -9834,7 +9834,7 @@ function renderAnalysisTimeline(container) {
 
     container.innerHTML = `
         ${liveHtml}
-        <div class="row g-3">
+        <div class="analysis-layout">
             <div class="col-12 col-lg-7">
                 <div class="analysis-overview-card">
                     <div class="d-flex align-items-center justify-content-between mb-2">
@@ -9941,10 +9941,10 @@ function renderAnalysisWeekly(container) {
             <div class="col-6 col-md-3"><div class="analysis-week-stat"><div class="text-secondary small">Artistas</div><div class="text-white fw-bold fs-5">${topArtists.length}</div></div></div>
             <div class="col-6 col-md-3"><div class="analysis-week-stat"><div class="text-secondary small">Día activo</div><div class="text-white fw-bold fs-5">${dayNames[daily.indexOf(Math.max(...daily))] || '-'}</div></div></div>
         </div>
-        <div class="row g-3">
-            <div class="col-12 col-lg-7"><div class="analysis-overview-card"><div class="apple-eyebrow text-danger mb-1">TOP CANCIONES</div><h5 class="text-white fw-bold mb-2">Más escuchadas</h5>${topTrackRows}</div></div>
-            <div class="col-12 col-lg-5"><div class="analysis-overview-card"><div class="apple-eyebrow text-info mb-1">TOP ARTISTAS</div><h5 class="text-white fw-bold mb-2">Esta semana</h5>${artistRows}</div></div>
-            <div class="col-12"><div class="analysis-overview-card"><div class="apple-eyebrow text-warning mb-1">POR DÍA</div><h5 class="text-white fw-bold mb-3">Actividad de lunes a domingo</h5>${dailyBars}</div></div>
+        <div class="analysis-layout">
+            <div><div class="analysis-overview-card"><div class="apple-eyebrow text-danger mb-1">TOP CANCIONES</div><h5 class="text-white fw-bold mb-2">Más escuchadas</h5>${topTrackRows}</div></div>
+            <div><div class="analysis-overview-card"><div class="apple-eyebrow text-info mb-1">TOP ARTISTAS</div><h5 class="text-white fw-bold mb-2">Esta semana</h5>${artistRows}</div></div>
+            <div class="analysis-full"><div class="analysis-overview-card"><div class="apple-eyebrow text-warning mb-1">POR DÍA</div><h5 class="text-white fw-bold mb-3">Actividad de lunes a domingo</h5>${dailyBars}</div></div>
         </div>`;
 }
 
@@ -9975,9 +9975,9 @@ function renderAnalysisPatterns(container) {
         : 'Sin datos';
 
     container.innerHTML = `
-        <div class="row g-3">
-            <div class="col-12 col-lg-7"><div class="analysis-overview-card"><div class="apple-eyebrow text-warning mb-1">HORARIOS</div><h5 class="text-white fw-bold mb-3">Actividad por hora</h5><div style="max-height:390px;overflow-y:auto;padding-right:4px;">${hourlyBars || '<div class="text-secondary">Sin datos.</div>'}</div></div></div>
-            <div class="col-12 col-lg-5">
+        <div class="analysis-layout">
+            <div><div class="analysis-overview-card"><div class="apple-eyebrow text-warning mb-1">HORARIOS</div><h5 class="text-white fw-bold mb-3">Actividad por hora</h5><div style="max-height:390px;overflow-y:auto;padding-right:4px;">${hourlyBars || '<div class="text-secondary">Sin datos.</div>'}</div></div></div>
+            <div>
                 <div class="analysis-overview-card mb-3"><div class="apple-eyebrow text-info mb-1">DÍAS</div><h5 class="text-white fw-bold mb-3">Tu semana habitual</h5>${dayBars || '<div class="text-secondary">Sin datos.</div>'}</div>
                 <div class="analysis-overview-card"><div class="apple-eyebrow text-warning mb-1">RÉCORDS</div><div class="d-grid gap-2">
                     <div class="d-flex justify-content-between"><span class="text-secondary small">Día récord</span><strong class="text-white">${formatNumber(records.topDay?.count || 0)}</strong></div>
@@ -10049,15 +10049,15 @@ function renderAnalysisSummary(container) {
             <div class="col-6 col-md-3"><div class="analysis-week-stat"><div class="text-secondary small">Artistas</div><div class="text-white fw-bold fs-5">${formatNumber(db.summary?.totalArtists || 0)}</div></div></div>
             <div class="col-6 col-md-3"><div class="analysis-week-stat"><div class="text-secondary small">Álbumes</div><div class="text-white fw-bold fs-5">${formatNumber(db.summary?.totalAlbums || 0)}</div></div></div>
         </div>
-        <div class="row g-3">
-            <div class="col-12 col-lg-5">
+        <div class="analysis-layout">
+            <div>
                 <div class="analysis-overview-card">
                     <div class="apple-eyebrow text-primary mb-1"><i class="fa-solid fa-arrow-trend-up me-1"></i>EVOLUCIÓN DE ARTISTAS</div>
                     <h5 class="text-white fw-bold mb-3">Quién definió cada etapa</h5>
                     ${evolution || '<div class="text-secondary small">No hay evolución anual disponible.</div>'}
                 </div>
             </div>
-            <div class="col-12 col-lg-7">
+            <div>
                 <div class="analysis-overview-card">
                     <div class="apple-eyebrow text-info mb-1"><i class="fa-solid fa-clock me-1"></i>HORARIOS Y DÍAS</div>
                     <h5 class="text-white fw-bold mb-3">Cuándo escuchas más música</h5>
