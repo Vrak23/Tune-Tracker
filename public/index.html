@@ -2096,6 +2096,409 @@
             border-radius: inherit;
             background: linear-gradient(90deg, #a855f7, #38bdf8);
         }
+        /* Last.fm Listening Report (Last.week) Styles */
+        .lfm-report-wrap {
+            background: #000000;
+            border: 1px solid #222226;
+            border-radius: 16px;
+            overflow: hidden;
+            color: #ffffff;
+        }
+        .lfm-period-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 28px;
+            padding: 14px 16px 0;
+            background: #000000;
+            border-bottom: 1px solid #222226;
+        }
+        .lfm-period-tab {
+            border: 0;
+            background: transparent;
+            color: #9ca3af;
+            font-size: 0.85rem;
+            font-weight: 700;
+            padding: 6px 4px 12px;
+            border-bottom: 3px solid transparent;
+            transition: color 0.15s ease;
+        }
+        .lfm-period-tab.active {
+            color: #ffffff;
+            border-bottom-color: #ffffff;
+        }
+        .lfm-date-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 18px;
+            background: #18181a;
+        }
+        .lfm-date-nav-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: 1px solid #2e2e34;
+            background: #111114;
+            color: #ffffff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+        }
+        .lfm-date-nav-btn:hover:not(:disabled) {
+            background: #26262c;
+            border-color: #f6cbd1;
+        }
+        .lfm-date-nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        .lfm-date-range-label {
+            color: #f6cbd1;
+            font-size: 0.84rem;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            text-align: center;
+        }
+        .lfm-hatched-divider {
+            height: 6px;
+            background: repeating-linear-gradient(
+                -45deg,
+                #f6cbd1 0px,
+                #f6cbd1 4px,
+                #000000 4px,
+                #000000 8px
+            );
+        }
+        .lfm-hero-banner {
+            background: #f6cbd1;
+            color: #111111;
+            padding: 24px 22px 20px;
+        }
+        .lfm-hero-grid {
+            display: grid;
+            grid-template-columns: minmax(220px, 1fr) minmax(260px, 1.35fr);
+            gap: 20px;
+            align-items: end;
+        }
+        .lfm-hero-eyebrow {
+            font-size: 0.78rem;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            margin-bottom: 6px;
+        }
+        .lfm-hero-total {
+            font-size: clamp(2rem, 4vw, 2.75rem);
+            font-weight: 900;
+            line-height: 1.02;
+            letter-spacing: -0.03em;
+        }
+        .lfm-hero-chart-legend {
+            display: flex;
+            justify-content: flex-end;
+            gap: 14px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .lfm-legend-dot {
+            display: inline-block;
+            width: 9px;
+            height: 9px;
+            margin-right: 5px;
+            vertical-align: middle;
+        }
+        .lfm-hero-bars {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            align-items: end;
+            height: 112px;
+            border-bottom: 1px solid rgba(17, 17, 17, 0.2);
+            padding-bottom: 6px;
+        }
+        .lfm-hero-day-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100%;
+            justify-content: flex-end;
+            gap: 4px;
+        }
+        .lfm-hero-bar-pair {
+            display: flex;
+            align-items: flex-end;
+            gap: 3px;
+            width: 100%;
+            justify-content: center;
+            flex: 1;
+        }
+        .lfm-hero-bar {
+            width: 11px;
+            min-height: 3px;
+            border-radius: 2px 2px 0 0;
+            transition: opacity 0.15s ease;
+        }
+        .lfm-hero-bar.this-week { background: #111111; }
+        .lfm-hero-bar.last-week { background: #a98d92; }
+        .lfm-hero-day-label {
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: #2b2325;
+        }
+        .lfm-share-row {
+            display: flex;
+            justify-content: flex-end;
+            padding: 12px 22px 6px;
+            background: #000000;
+        }
+        .lfm-share-btn {
+            background: #f6cbd1;
+            color: #111111;
+            border: 0;
+            border-radius: 3px;
+            padding: 7px 14px;
+            font-size: 0.72rem;
+            font-weight: 900;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            cursor: pointer;
+        }
+        .lfm-share-btn:hover {
+            filter: brightness(0.95);
+        }
+        .lfm-body {
+            padding: 16px 20px 26px;
+            background: #000000;
+        }
+        .lfm-chamfer {
+            clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%);
+        }
+        .lfm-top3-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        .lfm-top3-col {
+            display: flex;
+            flex-direction: column;
+        }
+        .lfm-cat-header {
+            padding: 16px 16px 14px;
+            color: #111111;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .lfm-cat-header.artists { background: #c99eff; }
+        .lfm-cat-header.albums { background: #69f0ae; }
+        .lfm-cat-header.tracks { background: #5ba8ff; }
+        .lfm-cat-label {
+            font-size: 0.76rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .lfm-cat-num {
+            font-size: 2.1rem;
+            font-weight: 900;
+            line-height: 1;
+            margin: 4px 0 3px;
+            font-variant-numeric: tabular-nums;
+        }
+        .lfm-cat-delta {
+            font-size: 0.72rem;
+            font-weight: 700;
+            opacity: 0.85;
+        }
+        .lfm-sparkline {
+            display: flex;
+            align-items: flex-end;
+            gap: 3px;
+            height: 44px;
+            padding-bottom: 2px;
+        }
+        .lfm-spark-bar {
+            width: 6px;
+            min-height: 3px;
+            background: #111111;
+            border-radius: 1px 1px 0 0;
+        }
+        .lfm-hero-item-card {
+            position: relative;
+            aspect-ratio: 1 / 1;
+            background: #18181a;
+            overflow: hidden;
+            cursor: pointer;
+            margin-bottom: 2px;
+        }
+        .lfm-hero-item-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.25s ease;
+        }
+        .lfm-hero-item-card:hover img {
+            transform: scale(1.04);
+        }
+        .lfm-hero-item-scrim {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(0, 0, 0, 0.12) 25%, rgba(0, 0, 0, 0.88) 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 14px;
+        }
+        .lfm-top-pill {
+            display: inline-block;
+            align-self: flex-start;
+            font-size: 0.68rem;
+            font-weight: 800;
+            color: #111111;
+            padding: 3px 9px;
+            border-radius: 999px;
+            margin-bottom: 6px;
+        }
+        .lfm-top-pill.artists { background: #c99eff; }
+        .lfm-top-pill.albums { background: #69f0ae; }
+        .lfm-top-pill.tracks { background: #5ba8ff; }
+        .lfm-rank-list {
+            background: #18181a;
+            margin-bottom: 10px;
+        }
+        .lfm-rank-row {
+            display: grid;
+            grid-template-columns: 24px minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 12px;
+            border-bottom: 1px solid #262629;
+            font-size: 0.78rem;
+            cursor: pointer;
+        }
+        .lfm-rank-row:last-child {
+            border-bottom: 0;
+        }
+        .lfm-rank-row:hover {
+            background: #202024;
+        }
+        .lfm-discovery-card {
+            background: #18181a;
+            padding: 14px;
+            margin-top: auto;
+        }
+        .lfm-discovery-row {
+            display: grid;
+            grid-template-columns: 44px minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 10px;
+            padding-top: 10px;
+            margin-top: 10px;
+            border-top: 1px solid #262629;
+            cursor: pointer;
+        }
+        .lfm-discovery-thumb {
+            width: 44px;
+            height: 44px;
+            object-fit: cover;
+            background: #111114;
+        }
+        .lfm-section-heading {
+            font-size: 1.05rem;
+            font-weight: 900;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #ffffff;
+            margin: 0 0 18px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #262629;
+            position: relative;
+        }
+        .lfm-section-heading::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: -1px;
+            width: 42px;
+            height: 3px;
+            background: #ffffff;
+        }
+        .lfm-charts-2col {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        .lfm-chart-card {
+            background: #18181a;
+            padding: 18px;
+            border: 1px solid #242429;
+        }
+        .lfm-chart-title {
+            font-size: 0.92rem;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 14px;
+        }
+        .lfm-seg-bar-row {
+            display: grid;
+            grid-template-columns: 76px minmax(0, 1fr) 36px;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 9px;
+            font-size: 0.74rem;
+        }
+        .lfm-seg-ticks {
+            display: grid;
+            grid-template-columns: repeat(16, 1fr);
+            gap: 3px;
+            height: 14px;
+        }
+        .lfm-seg-tick {
+            border-radius: 2px;
+            background: #28282e;
+        }
+        .lfm-seg-tick.filled {
+            background: #69f0ae;
+        }
+        .lfm-quick-facts-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+        }
+        .lfm-fact-card {
+            background: #18181a;
+            padding: 18px 16px;
+        }
+        .lfm-fact-val {
+            font-size: 1.7rem;
+            font-weight: 900;
+            letter-spacing: -0.02em;
+            color: #ffffff;
+            line-height: 1.1;
+            margin: 6px 0 4px;
+        }
+        @media (max-width: 991px) {
+            .lfm-top3-grid,
+            .lfm-quick-facts-grid,
+            .lfm-charts-2col,
+            .lfm-hero-grid {
+                grid-template-columns: minmax(0, 1fr);
+            }
+        }
         @media (max-width: 767px) {
             .analysis-layout {
                 grid-template-columns: minmax(0, 1fr);

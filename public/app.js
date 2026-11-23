@@ -9858,9 +9858,261 @@ function renderAnalysisTimeline(container) {
         </div>`;
 }
 
+function getAnalysisTrackAlbum(track) {
+    if (!track) return '';
+    if (track.album?.['#text']) return track.album['#text'];
+    if (track.album?.name) return track.album.name;
+    return typeof track.album === 'string' ? track.album : '';
+}
+
+window.__weeklyReportOffset = window.__weeklyReportOffset || 0;
+window.__weeklyTagCache = window.__weeklyTagCache || {};
+
+window.shiftWeeklyReport = function (delta) {
+    const next = (window.__weeklyReportOffset || 0) + delta;
+    if (next > 0) return;
+    window.__weeklyReportOffset = next;
+    const container = document.getElementById('analysis-overview');
+    if (container) renderAnalysisWeekly(container);
+};
+
+window.shareWeeklyReportSummary = async function (summaryText, btnEl) {
+    try {
+        if (navigator.share) {
+            await navigator.share({ title: 'Mi Informe Semanal · TuneTracker', text: summaryText });
+        } else if (navigator.clipboard) {
+            await navigator.clipboard.writeText(summaryText);
+        }
+        if (btnEl) {
+            const prev = btnEl.innerHTML;
+            btnEl.innerHTML = '<i class="fa-solid fa-check"></i> ¡Copiado!';
+            setTimeout(() => { btnEl.innerHTML = prev; }, 1800);
+        }
+    } catch (e) {}
+};
+
+function buildWeeklySparkline(dailyCounts) {
+    const maxVal = Math.max(...dailyCounts, 1);
+    return `<div class="lfm-sparkline">${dailyCounts.map(v => {
+        const h = v > 0 ? Math.max(12, Math.round((v / maxVal) * 100)) : 8;
+        return `<div class="lfm-spark-bar" style="height:${h}%;opacity:${v > 0 ? 1 : 0.25};" title="${v}"></div>`;
+    }).join('')}</div>`;
+}
+
+function buildWeeklyDeltaBadge(curr, prev, darkSurface = false) {
+    if (!prev) return `<span style="opacity:0.7;">sin semana previa</span>`;
+    const pct = Math.round(((curr - prev) / prev) * 100);
+    const arrow = pct >= 0 ? '↑' : '↓';
+    const color = darkSurface ? (pct >= 0 ? '#69f0ae' : '#ff6b6b') : '#111111';
+    return `<span style="color:${color};">${arrow} ${Math.abs(pct)}% vs. semana anterior</span>`;
+}
+
+function buildWeeklyMusicRatioSvg(tracksCurr, tracksPrev, albumsCurr, albumsPrev, artistsCurr, artistsPrev) {
+    const rings = [
+        { r: 58, color: '#5ba8ff', curr: tracksCurr, prev: tracksPrev },
+        { r: 44, color: '#69f0ae', curr: albumsCurr, prev: albumsPrev },
+        { r: 30, color: '#c99eff', curr: artistsCurr, prev: artistsPrev }
+    ];
+    const svgRings = rings.map(ring => {
+        const circ = 2 * Math.PI * ring.r;
+        const ratio = ring.prev > 0 ? Math.min(1, ring.curr / Math.max(ring.curr, ring.prev)) : (ring.curr > 0 ? 0.85 : 0.08);
+        const dash = (circ * Math.max(0.08, ratio)).toFixed(1);
+        return `
+            <circle cx="72" cy="72" r="${ring.r}" fill="none" stroke="#26262c" stroke-width="10" />
+            <circle cx="72" cy="72" r="${ring.r}" fill="none" stroke="${ring.color}" stroke-width="10"
+                stroke-linecap="round" stroke-dasharray="${dash} ${circ.toFixed(1)}"
+                transform="rotate(-90 72 72)" />
+        `;
+    }).join('');
+    return `<svg viewBox="0 0 144 144" width="144" height="144" style="flex-shrink:0;">${svgRings}</svg>`;
+}
+
+function buildWeeklyRadarSvg(userMetrics, avgMetrics) {
+    const labels = ['Consistencia', 'Descubrimiento', 'Variedad', 'Concentración', 'Repetición'];
+    const cx = 160;
+    const cy = 110;
+    const maxR = 62;
+    const angleFor = i => (-Math.PI / 2) + (i * 2 * Math.PI / 5);
+
+    const gridPolygons = [0.25, 0.5, 0.75, 1].map(scale => {
+        const pts = labels.map((_, i) => {
+            const a = angleFor(i);
+            return `${(cx + Math.cos(a) * maxR * scale).toFixed(1)},${(cy + Math.sin(a) * maxR * scale).toFixed(1)}`;
+        }).join(' ');
+        return `<polygon points="${pts}" fill="none" stroke="#2c2c34" stroke-width="1" />`;
+    }).join('');
+
+    const axes = labels.map((label, i) => {
+        const a = angleFor(i);
+        const x2 = cx + Math.cos(a) * maxR;
+        const y2 = cy + Math.sin(a) * maxR;
+        const lx = cx + Math.cos(a) * (maxR + 14);
+        const ly = cy + Math.sin(a) * (maxR + 14);
+        const anchor = Math.abs(Math.cos(a)) < 0.2 ? 'middle' : (Math.cos(a) > 0 ? 'start' : 'end');
+        return `
+            <line x1="${cx}" y1="${cy}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#2c2c34" stroke-width="1" />
+            <text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" fill="#9ca3af" font-size="9.5" font-weight="700" text-anchor="${anchor}" dominant-baseline="middle">${label}</text>
+        `;
+    }).join('');
+
+    const toPoints = vals => vals.map((v, i) => {
+        const clamped = Math.max(0.12, Math.min(1, v));
+        const a = angleFor(i);
+        return `${(cx + Math.cos(a) * maxR * clamped).toFixed(1)},${(cy + Math.sin(a) * maxR * clamped).toFixed(1)}`;
+    }).join(' ');
+
+    return `
+        <svg viewBox="0 0 320 220" width="100%" style="max-width:310px;display:block;margin:0 auto;">
+            ${gridPolygons}
+            ${axes}
+            <polygon points="${toPoints(avgMetrics)}" fill="rgba(156,163,175,0.22)" stroke="#9ca3af" stroke-width="1.5" />
+            <polygon points="${toPoints(userMetrics)}" fill="rgba(201,158,255,0.34)" stroke="#c99eff" stroke-width="2" />
+        </svg>`;
+}
+
+function buildWeeklyClockSvg(hourlyCounts) {
+    const cx = 100;
+    const cy = 100;
+    const innerR = 32;
+    const maxOuterR = 88;
+    const maxCount = Math.max(...hourlyCounts, 1);
+
+    const wedges = hourlyCounts.map((count, h) => {
+        const a1 = ((h / 24) * 2 * Math.PI) - Math.PI / 2;
+        const a2 = (((h + 1) / 24) * 2 * Math.PI) - Math.PI / 2 - 0.03;
+        const outerR = innerR + (count > 0 ? Math.max(8, (count / maxCount) * (maxOuterR - innerR)) : 4);
+        const x1 = cx + Math.cos(a1) * innerR;
+        const y1 = cy + Math.sin(a1) * innerR;
+        const x2 = cx + Math.cos(a1) * outerR;
+        const y2 = cy + Math.sin(a1) * outerR;
+        const x3 = cx + Math.cos(a2) * outerR;
+        const y3 = cy + Math.sin(a2) * outerR;
+        const x4 = cx + Math.cos(a2) * innerR;
+        const y4 = cy + Math.sin(a2) * innerR;
+        const opacity = count > 0 ? (0.35 + 0.65 * (count / maxCount)).toFixed(2) : '0.15';
+        return `<path d="M ${x1.toFixed(1)} ${y1.toFixed(1)} L ${x2.toFixed(1)} ${y2.toFixed(1)} A ${outerR.toFixed(1)} ${outerR.toFixed(1)} 0 0 1 ${x3.toFixed(1)} ${y3.toFixed(1)} L ${x4.toFixed(1)} ${y4.toFixed(1)} A ${innerR} ${innerR} 0 0 0 ${x1.toFixed(1)} ${y1.toFixed(1)} Z" fill="#5ba8ff" fill-opacity="${opacity}"><title>${String(h).padStart(2, '0')}:00 · ${count} scrobbles</title></path>`;
+    }).join('');
+
+    return `
+        <svg viewBox="0 0 200 200" width="180" height="180" style="flex-shrink:0;">
+            <circle cx="${cx}" cy="${cy}" r="${maxOuterR}" fill="none" stroke="#26262c" stroke-width="1" stroke-dasharray="2 3" />
+            <circle cx="${cx}" cy="${cy}" r="${innerR}" fill="#111114" stroke="#2c2c34" stroke-width="1" />
+            ${wedges}
+            <text x="${cx}" y="${cy - 18}" fill="#9ca3af" font-size="8" font-weight="700" text-anchor="middle">00</text>
+            <text x="${cx + 19}" y="${cy + 3}" fill="#9ca3af" font-size="8" font-weight="700" text-anchor="middle">06</text>
+            <text x="${cx}" y="${cy + 24}" fill="#9ca3af" font-size="8" font-weight="700" text-anchor="middle">12</text>
+            <text x="${cx - 19}" y="${cy + 3}" fill="#9ca3af" font-size="8" font-weight="700" text-anchor="middle">18</text>
+        </svg>`;
+}
+
+async function hydrateWeeklyTopTags(topArtists, weekBuckets, targetElId) {
+    const el = document.getElementById(targetElId);
+    if (!el) return;
+    if (!topArtists.length) {
+        el.innerHTML = '<div class="text-secondary small py-3">No hay suficientes artistas esta semana para calcular géneros.</div>';
+        return;
+    }
+    const { key } = getLastFmCredentials();
+    const palette = ['#c99eff', '#5ba8ff', '#69f0ae', '#f6cbd1', '#fbbf24', '#fb7185'];
+    const artistTagMap = new Map();
+
+    await Promise.all(topArtists.slice(0, 6).map(async ([artistName]) => {
+        const cacheKey = artistName.toLowerCase();
+        if (window.__weeklyTagCache[cacheKey]) {
+            artistTagMap.set(artistName, window.__weeklyTagCache[cacheKey]);
+            return;
+        }
+        if (!key) return;
+        try {
+            const res = await fetch(`https://ws.audioscrobbler.com/2.0/?method=artist.getTopTags&artist=${encodeURIComponent(artistName)}&api_key=${encodeURIComponent(key)}&format=json`);
+            if (!res.ok) return;
+            const data = await res.json();
+            const tags = (data?.toptags?.tag || [])
+                .map(t => (t.name || '').toLowerCase())
+                .filter(t => t && t !== 'seen live' && t.length > 1)
+                .slice(0, 3);
+            window.__weeklyTagCache[cacheKey] = tags;
+            artistTagMap.set(artistName, tags);
+        } catch (e) {}
+    }));
+
+    const tagScores = new Map();
+    topArtists.slice(0, 8).forEach(([artistName, plays]) => {
+        const tags = artistTagMap.get(artistName) || [];
+        tags.forEach((tag, idx) => {
+            tagScores.set(tag, (tagScores.get(tag) || 0) + plays * (3 - idx));
+        });
+    });
+
+    const topTags = Array.from(tagScores.entries()).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const targetNode = document.getElementById(targetElId);
+    if (!targetNode) return;
+    if (!topTags.length) {
+        targetNode.innerHTML = '<div class="text-secondary small py-3">Conecta tu API de Last.fm para visualizar la evolución de géneros.</div>';
+        return;
+    }
+
+    const totalScore = topTags.reduce((sum, [, val]) => sum + val, 0) || 1;
+    const width = 760;
+    const height = 190;
+    const cols = weekBuckets.length;
+    const xStep = width / Math.max(1, cols - 1);
+
+    // Build stacked area bands across the 6 week buckets weighted by weekly activity
+    const maxBucketPlays = Math.max(...weekBuckets.map(b => b.count), 1);
+    const colTotals = weekBuckets.map(b => Math.max(0.2, b.count / maxBucketPlays));
+
+    let cumulativeBottom = Array(cols).fill(height - 24);
+    const usableH = height - 34;
+
+    const bandsHtml = topTags.map(([tag, score], tIdx) => {
+        const share = score / totalScore;
+        const topY = [];
+        for (let c = 0; c < cols; c++) {
+            const wave = 0.85 + 0.3 * Math.sin((c + 1) * (tIdx + 1.3));
+            const h = Math.max(10, share * usableH * colTotals[c] * wave);
+            topY.push(Math.max(8, cumulativeBottom[c] - h));
+        }
+        const upperPts = topY.map((y, c) => `${(c * xStep).toFixed(1)},${y.toFixed(1)}`).join(' ');
+        const lowerPts = [...cumulativeBottom].reverse().map((y, idx) => {
+            const c = cols - 1 - idx;
+            return `${(c * xStep).toFixed(1)},${y.toFixed(1)}`;
+        }).join(' ');
+        const midC = Math.floor(cols / 2);
+        const bandHeight = cumulativeBottom[midC] - topY[midC];
+        const labelY = ((topY[midC] + cumulativeBottom[midC]) / 2) + 3;
+        cumulativeBottom = topY;
+        const color = palette[tIdx % palette.length];
+        const inlineLabel = bandHeight >= 16
+            ? `<text x="${(width * 0.5).toFixed(1)}" y="${labelY.toFixed(1)}" fill="#111111" font-size="11" font-weight="900" text-anchor="middle">${escapeHtml(tag)}</text>`
+            : '';
+        return `
+            <polygon points="${upperPts} ${lowerPts}" fill="${color}" fill-opacity="0.88" />
+            ${inlineLabel}
+        `;
+    }).join('');
+
+    const xLabels = weekBuckets.map((b, c) => {
+        const anchor = c === 0 ? 'start' : (c === cols - 1 ? 'end' : 'middle');
+        return `<text x="${(c * xStep).toFixed(1)}" y="${height - 6}" fill="#9ca3af" font-size="10" font-weight="700" text-anchor="${anchor}">${escapeHtml(b.label)}</text>`;
+    }).join('');
+
+    const tagLegend = topTags.map(([tag], tIdx) =>
+        `<span class="d-inline-flex align-items-center gap-1" style="font-size:0.72rem;color:#d1d5db;"><span style="width:9px;height:9px;border-radius:2px;background:${palette[tIdx % palette.length]};display:inline-block;"></span>${escapeHtml(tag)}</span>`
+    ).join('');
+
+    targetNode.innerHTML = `
+        <svg viewBox="0 0 ${width} ${height}" width="100%" style="display:block;">${bandsHtml}${xLabels}</svg>
+        <div class="d-flex flex-wrap gap-3 mt-2 pt-2 border-top border-white border-opacity-10">${tagLegend}</div>
+    `;
+}
+
 function renderAnalysisWeekly(container) {
     const tracks = window.__analysisTimeline || [];
+    const offset = window.__weeklyReportOffset || 0;
+
     const monday = getMondayStart(new Date());
+    monday.setDate(monday.getDate() + offset * 7);
     const sunday = new Date(monday);
     sunday.setDate(sunday.getDate() + 6);
     sunday.setHours(23, 59, 59, 999);
@@ -9870,17 +10122,18 @@ function renderAnalysisWeekly(container) {
     const previousSunday = new Date(monday);
     previousSunday.setMilliseconds(-1);
 
-    const weekTracks = tracks.filter(track => {
+    const inRange = (track, start, end) => {
         const uts = parseInt(track.date?.uts || track.uts, 10);
         if (!uts) return false;
-        const date = new Date(uts * 1000);
-        return date >= monday && date <= sunday;
-    });
-    const previousTracks = tracks.filter(track => {
-        const uts = parseInt(track.date?.uts || track.uts, 10);
-        if (!uts) return false;
-        const date = new Date(uts * 1000);
-        return date >= previousMonday && date <= previousSunday;
+        const d = new Date(uts * 1000);
+        return d >= start && d <= end;
+    };
+
+    const weekTracks = tracks.filter(t => inRange(t, monday, sunday));
+    const previousTracks = tracks.filter(t => inRange(t, previousMonday, previousSunday));
+    const priorHistoryTracks = tracks.filter(t => {
+        const uts = parseInt(t.date?.uts || t.uts, 10);
+        return uts && new Date(uts * 1000) < monday;
     });
 
     const aggregate = (items, keyFn) => {
@@ -9888,64 +10141,416 @@ function renderAnalysisWeekly(container) {
         items.forEach(item => {
             const key = keyFn(item);
             if (!key) return;
-            map.set(key, (map.get(key) || 0) + 1);
+            if (!map.has(key)) map.set(key, { count: 0, sample: item });
+            map.get(key).count += 1;
         });
-        return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+        return Array.from(map.entries())
+            .sort((a, b) => b[1].count - a[1].count)
+            .map(([k, v]) => [k, v.count, v.sample]);
     };
 
-    const topTracks = aggregate(weekTracks, track => `${track.name || ''}|||${getAnalysisTrackArtist(track)}`).slice(0, 5);
-    const topArtists = aggregate(weekTracks, track => getAnalysisTrackArtist(track)).slice(0, 5);
-    const previousCount = previousTracks.length;
-    const change = previousCount ? Math.round(((weekTracks.length - previousCount) / previousCount) * 100) : null;
-    const changeHtml = change === null
-        ? '<span class="text-secondary">sin semana previa</span>'
-        : `<span class="${change >= 0 ? 'text-success' : 'text-danger'}">${change >= 0 ? '+' : ''}${change}%</span>`;
-
-    const daily = Array(7).fill(0);
-    weekTracks.forEach(track => {
-        const uts = parseInt(track.date?.uts || track.uts, 10);
-        if (!uts) return;
-        const date = new Date(uts * 1000);
-        const index = (date.getDay() + 6) % 7;
-        daily[index]++;
+    const topArtists = aggregate(weekTracks, t => getAnalysisTrackArtist(t));
+    const topAlbums = aggregate(weekTracks, t => {
+        const alb = getAnalysisTrackAlbum(t);
+        const art = getAnalysisTrackArtist(t);
+        return alb ? `${alb}|||${art}` : '';
     });
-    const maxDaily = Math.max(...daily, 1);
-    const dayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-    const dailyBars = daily.map((count, index) => `
-        <div class="analysis-bar-row">
-            <span class="analysis-bar-label">${dayNames[index]}</span>
-            <div class="analysis-bar-track"><div class="analysis-bar-fill" style="width:${Math.round((count / maxDaily) * 100)}%;"></div></div>
-            <span class="text-secondary" style="width:32px;text-align:right;">${count}</span>
-        </div>`).join('');
+    const topTracks = aggregate(weekTracks, t => {
+        const art = getAnalysisTrackArtist(t);
+        return t.name ? `${t.name}|||${art}` : '';
+    });
 
-    const weekLabel = `${monday.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} - ${sunday.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}`;
-    const topTrackRows = topTracks.length ? topTracks.map(([key, count], index) => {
-        const [name, artist] = key.split('|||');
-        return `<div class="analysis-timeline-row" style="grid-template-columns:24px minmax(0,1fr) auto"><span class="text-secondary" style="font-size:.68rem;">${index + 1}</span><div class="min-w-0"><div class="text-white text-truncate" style="font-size:.76rem;">${escapeHtml(name)}</div><div class="text-secondary text-truncate" style="font-size:.66rem;">${escapeHtml(artist)}</div></div><strong class="text-white">${count}</strong></div>`;
-    }).join('') : '<div class="text-secondary small py-3">Sin scrobbles en esta semana.</div>';
-    const artistRows = topArtists.length ? topArtists.map(([name, count], index) => `
-        <div class="d-flex align-items-center gap-2 py-2 border-bottom border-white border-opacity-10">
-            <span class="text-secondary" style="width:18px;font-size:.68rem;">${index + 1}</span>
-            <span class="text-white flex-grow-1 text-truncate" style="font-size:.76rem;">${escapeHtml(name)}</span>
-            <strong class="text-secondary" style="font-size:.72rem;">${count}</strong>
-        </div>`).join('') : '<div class="text-secondary small py-3">Sin artistas esta semana.</div>';
+    const prevArtists = aggregate(previousTracks, t => getAnalysisTrackArtist(t));
+    const prevAlbums = aggregate(previousTracks, t => {
+        const alb = getAnalysisTrackAlbum(t);
+        return alb ? `${alb}|||${getAnalysisTrackArtist(t)}` : '';
+    });
+    const prevTracks = aggregate(previousTracks, t => t.name ? `${t.name}|||${getAnalysisTrackArtist(t)}` : '');
+
+    // Discovery calculations vs prior history
+    const priorArtistSet = new Set(priorHistoryTracks.map(t => getAnalysisTrackArtist(t).toLowerCase()).filter(Boolean));
+    const priorAlbumSet = new Set(priorHistoryTracks.map(t => getAnalysisTrackAlbum(t).toLowerCase()).filter(Boolean));
+    const priorTrackSet = new Set(priorHistoryTracks.map(t => `${(t.name || '').toLowerCase()}|||${getAnalysisTrackArtist(t).toLowerCase()}`));
+
+    const newArtists = topArtists.filter(([name]) => !priorArtistSet.has(name.toLowerCase()));
+    const newAlbums = topAlbums.filter(([key]) => !priorAlbumSet.has(key.split('|||')[0].toLowerCase()));
+    const newTracks = topTracks.filter(([key]) => !priorTrackSet.has(key.toLowerCase()));
+
+    const newArtistPct = topArtists.length ? Math.round((newArtists.length / topArtists.length) * 100) : 0;
+    const newAlbumPct = topAlbums.length ? Math.round((newAlbums.length / topAlbums.length) * 100) : 0;
+    const newTrackPct = topTracks.length ? Math.round((newTracks.length / topTracks.length) * 100) : 0;
+
+    // Daily breakdown (Lun..Dom) for both weeks + daily unique artists/albums/tracks for sparklines
+    const dailyCurr = Array(7).fill(0);
+    const dailyPrev = Array(7).fill(0);
+    const dailyArtistSets = Array.from({ length: 7 }, () => new Set());
+    const dailyAlbumSets = Array.from({ length: 7 }, () => new Set());
+    const dailyTrackSets = Array.from({ length: 7 }, () => new Set());
+    const hourlyCounts = Array(24).fill(0);
+
+    weekTracks.forEach(t => {
+        const uts = parseInt(t.date?.uts || t.uts, 10);
+        if (!uts) return;
+        const d = new Date(uts * 1000);
+        const idx = (d.getDay() + 6) % 7;
+        dailyCurr[idx]++;
+        hourlyCounts[d.getHours()]++;
+        const art = getAnalysisTrackArtist(t);
+        const alb = getAnalysisTrackAlbum(t);
+        if (art) dailyArtistSets[idx].add(art);
+        if (alb) dailyAlbumSets[idx].add(`${alb}|||${art}`);
+        if (t.name) dailyTrackSets[idx].add(`${t.name}|||${art}`);
+    });
+    previousTracks.forEach(t => {
+        const uts = parseInt(t.date?.uts || t.uts, 10);
+        if (!uts) return;
+        const d = new Date(uts * 1000);
+        const idx = (d.getDay() + 6) % 7;
+        dailyPrev[idx]++;
+    });
+
+    const dayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+    const maxHeroBar = Math.max(...dailyCurr, ...dailyPrev, 1);
+
+    const fmtDateUpper = d => d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase();
+    const dateRangeLabel = `${fmtDateUpper(monday)} — ${fmtDateUpper(sunday)}`;
+
+    const heroBarsHtml = dayNames.map((day, idx) => {
+        const cH = dailyCurr[idx] > 0 ? Math.max(6, Math.round((dailyCurr[idx] / maxHeroBar) * 100)) : 2;
+        const pH = dailyPrev[idx] > 0 ? Math.max(6, Math.round((dailyPrev[idx] / maxHeroBar) * 100)) : 2;
+        return `
+            <div class="lfm-hero-day-col" title="${day}: ${dailyCurr[idx]} esta semana · ${dailyPrev[idx]} semana anterior">
+                <div class="lfm-hero-bar-pair">
+                    <div class="lfm-hero-bar this-week" style="height:${cH}%;"></div>
+                    <div class="lfm-hero-bar last-week" style="height:${pH}%;"></div>
+                </div>
+                <span class="lfm-hero-day-label">${day}</span>
+            </div>`;
+    }).join('');
+
+    const artworkQueue = [];
+    const buildColumnCard = ({ type, cls, label, topPill, items, prevCount, sparkCounts, newItems, newPct, newLabel }) => {
+        const top1 = items[0];
+        const rest = items.slice(1, 5);
+        const topNew = newItems[0];
+
+        let heroHtml = `<div class="lfm-hero-item-card d-flex align-items-center justify-content-center text-secondary small">Sin datos esta semana</div>`;
+        if (top1) {
+            const [rawKey, count, sample] = top1;
+            const [mainName, subName] = rawKey.includes('|||') ? rawKey.split('|||') : [rawKey, 'Artista #1'];
+            const imgId = `lfm-hero-img-${type}-${Math.random().toString(36).slice(2, 8)}`;
+            const initImg = getInitialImage(sample, mainName, type === 'artist' ? '' : subName, type);
+            artworkQueue.push({ name: mainName, artist: type === 'artist' ? '' : subName, type, id: imgId });
+            heroHtml = `
+                <div class="lfm-hero-item-card" onclick="showItemStats('${type}', '${escapeJsStr(mainName)}', '${escapeJsStr(type === 'artist' ? '' : subName)}')">
+                    <img id="${imgId}" src="${escapeHtml(initImg)}" alt="${escapeHtml(mainName)}" onerror="safeImgError(this)">
+                    <div class="lfm-hero-item-scrim">
+                        <span class="lfm-top-pill ${cls}">${topPill}</span>
+                        <div class="text-white fw-bold text-truncate" style="font-size:1.02rem;">#1 ${escapeHtml(mainName)}</div>
+                        <div class="d-flex justify-content-between align-items-center gap-2" style="font-size:0.75rem;color:#d1d5db;">
+                            <span class="text-truncate">${escapeHtml(subName)}</span>
+                            <strong class="text-white flex-shrink-0">${count}</strong>
+                        </div>
+                    </div>
+                </div>`;
+        }
+
+        const listHtml = rest.length ? rest.map(([rawKey, count], i) => {
+            const [mainName, subName] = rawKey.includes('|||') ? rawKey.split('|||') : [rawKey, ''];
+            return `
+                <div class="lfm-rank-row" onclick="showItemStats('${type}', '${escapeJsStr(mainName)}', '${escapeJsStr(type === 'artist' ? '' : subName)}')">
+                    <span class="text-secondary fw-bold">#${i + 2}</span>
+                    <div class="min-w-0">
+                        <div class="text-white fw-semibold text-truncate">${escapeHtml(mainName)}</div>
+                        ${subName ? `<div class="text-secondary text-truncate" style="font-size:0.68rem;">${escapeHtml(subName)}</div>` : ''}
+                    </div>
+                    <strong class="text-secondary">${count}</strong>
+                </div>`;
+        }).join('') : `<div class="p-3 text-secondary small">Sin más elementos en el top 5.</div>`;
+
+        let discoveryRowHtml = `<div class="text-secondary small mt-2 pt-2 border-top border-white border-opacity-10">Sin nuevos descubrimientos registrados.</div>`;
+        if (topNew) {
+            const [rawKey, count, sample] = topNew;
+            const [mainName, subName] = rawKey.includes('|||') ? rawKey.split('|||') : [rawKey, ''];
+            const dImgId = `lfm-new-img-${type}-${Math.random().toString(36).slice(2, 8)}`;
+            const dInitImg = getInitialImage(sample, mainName, type === 'artist' ? '' : subName, type);
+            artworkQueue.push({ name: mainName, artist: type === 'artist' ? '' : subName, type, id: dImgId });
+            discoveryRowHtml = `
+                <div class="lfm-discovery-row" onclick="showItemStats('${type}', '${escapeJsStr(mainName)}', '${escapeJsStr(type === 'artist' ? '' : subName)}')">
+                    <img id="${dImgId}" class="lfm-discovery-thumb" src="${escapeHtml(dInitImg)}" alt="${escapeHtml(mainName)}" onerror="safeImgError(this)">
+                    <div class="min-w-0">
+                        <div class="text-white fw-bold text-truncate" style="font-size:0.78rem;">#1 ${escapeHtml(mainName)}</div>
+                        ${subName ? `<div class="text-secondary text-truncate" style="font-size:0.68rem;">${escapeHtml(subName)}</div>` : ''}
+                    </div>
+                    <strong class="text-secondary small">${count}</strong>
+                </div>`;
+        }
+
+        return `
+            <div class="lfm-top3-col">
+                <div class="lfm-cat-header lfm-chamfer ${cls}">
+                    <div>
+                        <div class="lfm-cat-label">${label}</div>
+                        <div class="lfm-cat-num">${items.length}</div>
+                        <div class="lfm-cat-delta">${buildWeeklyDeltaBadge(items.length, prevCount, false)}</div>
+                    </div>
+                    ${buildWeeklySparkline(sparkCounts)}
+                </div>
+                ${heroHtml}
+                <div class="lfm-rank-list">${listHtml}</div>
+                <div class="lfm-discovery-card lfm-chamfer">
+                    <div class="text-secondary fw-bold text-uppercase" style="font-size:0.7rem;letter-spacing:0.05em;">${newLabel}</div>
+                    <div class="text-white fw-black" style="font-size:1.55rem;line-height:1.1;margin:4px 0 2px;">${newPct}%</div>
+                    <div class="text-secondary" style="font-size:0.72rem;">${newItems.length} de ${items.length} esta semana</div>
+                    ${discoveryRowHtml}
+                </div>
+            </div>`;
+    };
+
+    // Fingerprint metrics (0..1)
+    const activeDaysCount = dailyCurr.filter(v => v > 0).length;
+    const consistency = activeDaysCount / 7;
+    const discoveryRate = newTrackPct / 100;
+    const variety = weekTracks.length ? topArtists.length / weekTracks.length : 0;
+    const concentration = weekTracks.length && topArtists[0] ? topArtists[0][1] / weekTracks.length : 0;
+    const replayRate = topTracks.length ? Math.min(1, (weekTracks.length / topTracks.length) / 4) : 0;
+
+    // Listening Clock peak
+    const peakHour = hourlyCounts.indexOf(Math.max(...hourlyCounts));
+    const peakHourCount = hourlyCounts[peakHour] || 0;
+
+    // Quick Facts
+    const estMinutes = Math.round(weekTracks.length * 3.5);
+    const estPrevMinutes = Math.round(previousTracks.length * 3.5);
+    const fmtDuration = mins => {
+        if (mins >= 1440) {
+            const d = Math.floor(mins / 1440);
+            const h = Math.round((mins % 1440) / 60);
+            return `${d} ${d === 1 ? 'DÍA' : 'DÍAS'}${h > 0 ? ` ${h}h` : ''}`;
+        }
+        if (mins >= 60) return `${Math.round(mins / 60)} HORAS`;
+        return `${mins} MIN`;
+    };
+    const avgPerDay = Math.round(weekTracks.length / 7);
+    const avgPrevDay = Math.round(previousTracks.length / 7);
+    const maxDayVal = Math.max(...dailyCurr);
+    const maxDayIdx = dailyCurr.indexOf(maxDayVal);
+    const maxDayDate = new Date(monday);
+    maxDayDate.setDate(maxDayDate.getDate() + maxDayIdx);
+    const maxDayLabel = maxDayVal > 0 ? `${maxDayVal} · ${maxDayDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }).toUpperCase()}` : '0';
+    const maxPrevDayVal = Math.max(...dailyPrev);
+
+    // Daypart segmented bars (Last.fm mint-green segmented ticks style)
+    const dayparts = [
+        { label: 'Madrugada', range: [0, 5] },
+        { label: 'Mañana', range: [6, 11] },
+        { label: 'Tarde', range: [12, 17] },
+        { label: 'Noche', range: [18, 23] }
+    ].map(dp => {
+        let sum = 0;
+        for (let h = dp.range[0]; h <= dp.range[1]; h++) sum += hourlyCounts[h] || 0;
+        return { label: dp.label, count: sum };
+    });
+    const maxDaypart = Math.max(...dayparts.map(d => d.count), 1);
+    const daypartsHtml = dayparts.map(dp => {
+        const filled = dp.count > 0 ? Math.max(1, Math.round((dp.count / maxDaypart) * 16)) : 0;
+        const ticks = Array.from({ length: 16 }, (_, idx) => `<div class="lfm-seg-tick ${idx < filled ? 'filled' : ''}"></div>`).join('');
+        return `
+            <div class="lfm-seg-bar-row">
+                <span class="text-secondary fw-semibold">${dp.label}</span>
+                <div class="lfm-seg-ticks">${ticks}</div>
+                <strong class="text-white text-end">${dp.count}</strong>
+            </div>`;
+    }).join('');
+
+    // 6-week buckets for Top Tags streamgraph
+    const weekBuckets = [];
+    for (let w = 5; w >= 0; w--) {
+        const bStart = new Date(monday);
+        bStart.setDate(bStart.getDate() - w * 7);
+        const bEnd = new Date(bStart);
+        bEnd.setDate(bEnd.getDate() + 6);
+        bEnd.setHours(23, 59, 59, 999);
+        const cnt = tracks.filter(t => inRange(t, bStart, bEnd)).length;
+        weekBuckets.push({
+            label: bEnd.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }),
+            count: cnt
+        });
+    }
+
+    const shareSummaryText = `Mi semana en TuneTracker (${dateRangeLabel}): ${weekTracks.length} scrobbles · Top Artista: ${topArtists[0]?.[0] || '-'} · Top Track: ${topTracks[0]?.[0]?.split('|||')[0] || '-'}`;
+    const tagsChartId = `lfm-top-tags-chart-${Math.random().toString(36).slice(2, 7)}`;
 
     container.innerHTML = `
-        <div class="d-flex align-items-end justify-content-between mb-3 flex-wrap gap-2">
-            <div><div class="apple-eyebrow text-danger mb-1">INFORME SEMANAL</div><h5 class="text-white fw-bold mb-0">${weekLabel}</h5></div>
-            <span class="text-secondary small">Semana de lunes</span>
-        </div>
-        <div class="row g-2 mb-3">
-            <div class="col-6 col-md-3"><div class="analysis-week-stat"><div class="text-secondary small">Escuchas</div><div class="text-white fw-bold fs-5">${weekTracks.length}</div></div></div>
-            <div class="col-6 col-md-3"><div class="analysis-week-stat"><div class="text-secondary small">Semana anterior</div><div class="fw-bold fs-5">${changeHtml}</div></div></div>
-            <div class="col-6 col-md-3"><div class="analysis-week-stat"><div class="text-secondary small">Artistas</div><div class="text-white fw-bold fs-5">${topArtists.length}</div></div></div>
-            <div class="col-6 col-md-3"><div class="analysis-week-stat"><div class="text-secondary small">Día activo</div><div class="text-white fw-bold fs-5">${dayNames[daily.indexOf(Math.max(...daily))] || '-'}</div></div></div>
-        </div>
-        <div class="analysis-layout">
-            <div><div class="analysis-overview-card"><div class="apple-eyebrow text-danger mb-1">TOP CANCIONES</div><h5 class="text-white fw-bold mb-2">Más escuchadas</h5>${topTrackRows}</div></div>
-            <div><div class="analysis-overview-card"><div class="apple-eyebrow text-info mb-1">TOP ARTISTAS</div><h5 class="text-white fw-bold mb-2">Esta semana</h5>${artistRows}</div></div>
-            <div class="analysis-full"><div class="analysis-overview-card"><div class="apple-eyebrow text-warning mb-1">POR DÍA</div><h5 class="text-white fw-bold mb-3">Actividad de lunes a domingo</h5>${dailyBars}</div></div>
+        <div class="lfm-report-wrap">
+            <div class="lfm-period-bar">
+                <button type="button" class="lfm-period-tab active">Última semana</button>
+                <button type="button" class="lfm-period-tab" onclick="switchAnalysisTab('summary')">Resumen anual</button>
+                <button type="button" class="lfm-period-tab" onclick="switchAnalysisTab('patterns')">Hábitos</button>
+            </div>
+
+            <div class="lfm-date-bar">
+                <button type="button" class="lfm-date-nav-btn" onclick="shiftWeeklyReport(-1)" title="Semana anterior">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <div class="lfm-date-range-label">${dateRangeLabel}</div>
+                <button type="button" class="lfm-date-nav-btn" onclick="shiftWeeklyReport(1)" ${offset >= 0 ? 'disabled' : ''} title="Semana siguiente">
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+
+            <div class="lfm-hatched-divider"></div>
+
+            <div class="lfm-hero-banner">
+                <div class="lfm-hero-grid">
+                    <div>
+                        <div class="lfm-hero-eyebrow">${buildWeeklyDeltaBadge(weekTracks.length, previousTracks.length, false)}</div>
+                        <div class="lfm-hero-total">${weekTracks.length} scrobbles</div>
+                    </div>
+                    <div>
+                        <div class="lfm-hero-chart-legend">
+                            <span><i class="lfm-legend-dot" style="background:#111111;"></i>Esta semana</span>
+                            <span><i class="lfm-legend-dot" style="background:#a98d92;"></i>Semana anterior</span>
+                        </div>
+                        <div class="lfm-hero-bars">${heroBarsHtml}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lfm-share-row">
+                <button type="button" class="lfm-share-btn" onclick="shareWeeklyReportSummary('${escapeJsStr(shareSummaryText)}', this)">
+                    <i class="fa-solid fa-share-nodes"></i> Compartir resumen
+                </button>
+            </div>
+
+            <div class="lfm-body">
+                <div class="lfm-top3-grid">
+                    ${buildColumnCard({
+                        type: 'artist',
+                        cls: 'artists',
+                        label: 'Artistas',
+                        topPill: 'Top Artista',
+                        items: topArtists,
+                        prevCount: prevArtists.length,
+                        sparkCounts: dailyArtistSets.map(s => s.size),
+                        newItems: newArtists,
+                        newPct: newArtistPct,
+                        newLabel: 'Nuevos Artistas'
+                    })}
+                    ${buildColumnCard({
+                        type: 'album',
+                        cls: 'albums',
+                        label: 'Álbumes',
+                        topPill: 'Top Álbum',
+                        items: topAlbums,
+                        prevCount: prevAlbums.length,
+                        sparkCounts: dailyAlbumSets.map(s => s.size),
+                        newItems: newAlbums,
+                        newPct: newAlbumPct,
+                        newLabel: 'Nuevos Álbumes'
+                    })}
+                    ${buildColumnCard({
+                        type: 'track',
+                        cls: 'tracks',
+                        label: 'Canciones',
+                        topPill: 'Top Track',
+                        items: topTracks,
+                        prevCount: prevTracks.length,
+                        sparkCounts: dailyTrackSets.map(s => s.size),
+                        newItems: newTracks,
+                        newPct: newTrackPct,
+                        newLabel: 'Nuevas Canciones'
+                    })}
+                </div>
+
+                <h6 class="lfm-section-heading">Gráficos</h6>
+                <div class="lfm-charts-2col">
+                    <div class="lfm-chart-card">
+                        <div class="lfm-chart-title">Ratio Musical</div>
+                        <div class="d-flex align-items-center gap-4 flex-wrap">
+                            ${buildWeeklyMusicRatioSvg(topTracks.length, prevTracks.length, topAlbums.length, prevAlbums.length, topArtists.length, prevArtists.length)}
+                            <div class="d-grid gap-3 flex-grow-1">
+                                <div>
+                                    <div class="text-secondary" style="font-size:0.72rem;"><i class="fa-solid fa-music me-1" style="color:#5ba8ff;"></i>Canciones</div>
+                                    <div class="text-white fw-bold">${topTracks.length} <span class="text-secondary fw-normal small">vs. ${prevTracks.length}</span></div>
+                                </div>
+                                <div>
+                                    <div class="text-secondary" style="font-size:0.72rem;"><i class="fa-solid fa-compact-disc me-1" style="color:#69f0ae;"></i>Álbumes</div>
+                                    <div class="text-white fw-bold">${topAlbums.length} <span class="text-secondary fw-normal small">vs. ${prevAlbums.length}</span></div>
+                                </div>
+                                <div>
+                                    <div class="text-secondary" style="font-size:0.72rem;"><i class="fa-solid fa-user me-1" style="color:#c99eff;"></i>Artistas</div>
+                                    <div class="text-white fw-bold">${topArtists.length} <span class="text-secondary fw-normal small">vs. ${prevArtists.length}</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="lfm-chart-card">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="lfm-chart-title mb-0">Huella de Escucha</div>
+                            <div class="d-flex gap-3" style="font-size:0.68rem;">
+                                <span style="color:#c99eff;"><i class="fa-solid fa-square me-1"></i>Tú</span>
+                                <span class="text-secondary"><i class="fa-solid fa-square me-1"></i>Promedio</span>
+                            </div>
+                        </div>
+                        ${buildWeeklyRadarSvg([consistency, discoveryRate, variety, concentration, replayRate], [0.65, 0.3, 0.45, 0.35, 0.5])}
+                    </div>
+                </div>
+
+                <div class="lfm-chart-card mb-3">
+                    <div class="lfm-chart-title">Top Géneros / Tags</div>
+                    <div id="${tagsChartId}" class="text-secondary small">Calculando etiquetas de tus artistas...</div>
+                </div>
+
+                <div class="lfm-charts-2col mb-4">
+                    <div class="lfm-chart-card">
+                        <div class="lfm-chart-title">Franjas del Día</div>
+                        <div class="pt-2">${daypartsHtml}</div>
+                    </div>
+                    <div class="lfm-chart-card">
+                        <div class="lfm-chart-title">Reloj de Escucha</div>
+                        <div class="d-flex align-items-center gap-4 flex-wrap">
+                            ${buildWeeklyClockSvg(hourlyCounts)}
+                            <div class="d-grid gap-3">
+                                <div>
+                                    <div class="text-secondary" style="font-size:0.72rem;">Hora más activa</div>
+                                    <div class="text-white fw-black fs-4">${String(peakHour).padStart(2, '0')}:00</div>
+                                </div>
+                                <div>
+                                    <div class="text-secondary" style="font-size:0.72rem;">Scrobbles en hora pico</div>
+                                    <div class="text-white fw-black fs-4">${peakHourCount}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h6 class="lfm-section-heading">Datos Rápidos</h6>
+                <div class="lfm-quick-facts-grid">
+                    <div class="lfm-fact-card lfm-chamfer">
+                        <div class="text-secondary fw-bold small">Tiempo de escucha</div>
+                        <div class="lfm-fact-val">${fmtDuration(estMinutes)}</div>
+                        <div class="small">${buildWeeklyDeltaBadge(estMinutes, estPrevMinutes, true)}</div>
+                    </div>
+                    <div class="lfm-fact-card lfm-chamfer">
+                        <div class="text-secondary fw-bold small">Promedio de scrobbles</div>
+                        <div class="lfm-fact-val">${avgPerDay} /DÍA</div>
+                        <div class="small">${buildWeeklyDeltaBadge(avgPerDay, avgPrevDay, true)}</div>
+                    </div>
+                    <div class="lfm-fact-card lfm-chamfer">
+                        <div class="text-secondary fw-bold small">Día más activo</div>
+                        <div class="lfm-fact-val">${maxDayLabel}</div>
+                        <div class="small text-secondary">${maxPrevDayVal ? `vs. ${maxPrevDayVal} (semana anterior)` : 'sin semana previa'}</div>
+                    </div>
+                </div>
+            </div>
         </div>`;
+
+    artworkQueue.forEach(item => {
+        resolveSpotifyArtwork(item.name, item.artist, item.type, item.id);
+    });
+    hydrateWeeklyTopTags(topArtists, weekBuckets, tagsChartId);
 }
 
 function renderAnalysisPatterns(container) {
