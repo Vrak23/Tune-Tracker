@@ -2006,6 +2006,56 @@
             border-radius: 20px;
             background: linear-gradient(145deg, rgba(28, 28, 34, 0.9), rgba(15, 15, 20, 0.96));
         }
+        .analysis-secondary-tabs {
+            display: flex;
+            gap: 5px;
+            overflow-x: auto;
+            padding: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.025);
+        }
+        .analysis-secondary-tab {
+            flex: 0 0 auto;
+            border: 0;
+            border-radius: 10px;
+            background: transparent;
+            color: var(--text-secondary);
+            padding: 8px 11px;
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+        .analysis-secondary-tab.active {
+            background: rgba(255, 255, 255, 0.09);
+            color: #fff;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+        }
+        .analysis-timeline-row {
+            display: grid;
+            grid-template-columns: 44px minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 10px;
+            min-height: 58px;
+            padding: 7px 4px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.055);
+        }
+        .analysis-timeline-row:last-child {
+            border-bottom: 0;
+        }
+        .analysis-timeline-art {
+            width: 44px;
+            height: 44px;
+            border-radius: 9px;
+            object-fit: cover;
+            background: #18181c;
+        }
+        .analysis-week-stat {
+            min-width: 0;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.075);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.022);
+        }
         .analysis-bar-row {
             display: flex;
             align-items: center;
@@ -3345,65 +3395,30 @@
             <div id="section-hub" class="dashboard-section d-none">
                 <div class="d-flex align-items-end justify-content-between mb-3 flex-wrap gap-2">
                     <div>
-                        <div class="apple-eyebrow"><i class="fa-solid fa-chart-pie text-primary me-1"></i> Estadísticas Avanzadas</div>
+                        <div class="apple-eyebrow"><i class="fa-solid fa-chart-pie text-primary me-1"></i>Tu evolución musical</div>
                         <h4 class="apple-headline-gradient mb-0">Análisis & Historial</h4>
                     </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill text-secondary" onclick="openCapsuleModal()">
+                        <i class="fa-solid fa-clock-rotate-left me-1"></i>Cápsula
+                    </button>
                 </div>
 
-                <div class="row g-3">
-                    <!-- 1: Cápsula del Tiempo -->
-                    <div class="col-12 col-md-6">
-                        <div class="apple-bento-card interactive h-100 d-flex flex-column justify-content-between p-3.5" style="cursor: pointer; background: radial-gradient(circle at top right, rgba(6, 182, 212, 0.16), rgba(18, 18, 22, 0.96));" onclick="openCapsuleModal()">
-                            <div>
-                                <div class="d-flex align-items-center justify-content-between mb-2.5">
-                                    <div class="d-flex align-items-center gap-2.5">
-                                        <div class="rounded-3 p-2.5" style="background: rgba(6,182,212,0.18); color: #22d3ee;">
-                                            <i class="fa-solid fa-clock-rotate-left fs-4"></i>
-                                        </div>
-                                        <div>
-                                            <div class="fw-bold text-white fs-6">Cápsula del Tiempo</div>
-                                            <small class="text-info" style="font-size: 0.70rem; font-weight: 600;">ESTE MES EN LA HISTORIA</small>
-                                        </div>
-                                    </div>
-                                    <span class="badge rounded-pill bg-info text-dark fw-bold" style="font-size: 0.64rem;">HISTÓRICO</span>
-                                </div>
-                                <p class="text-secondary mb-3" style="font-size: 0.80rem; line-height: 1.45;">
-                                    Revive exactamente qué canciones y artistas dominaban tu biblioteca en este mismo mes desde 2019 hasta hoy, año tras año.
-                                </p>
-                            </div>
-                            <button class="btn btn-sm btn-outline-info rounded-pill w-100 py-2 fw-semibold" style="font-size: 0.80rem;">
-                                <i class="fa-solid fa-clock-rotate-left me-1.5"></i> Abrir Cápsula del Tiempo
-                            </button>
-                        </div>
-                    </div>
+                <nav class="analysis-secondary-tabs mb-3" aria-label="Secciones de análisis">
+                    <button type="button" class="analysis-secondary-tab active" data-analysis-tab="timeline" onclick="switchAnalysisTab('timeline')">
+                        <i class="fa-solid fa-timeline me-1"></i>Timeline
+                    </button>
+                    <button type="button" class="analysis-secondary-tab" data-analysis-tab="summary" onclick="switchAnalysisTab('summary')">
+                        <i class="fa-solid fa-chart-simple me-1"></i>Resumen
+                    </button>
+                    <button type="button" class="analysis-secondary-tab" data-analysis-tab="weekly" onclick="switchAnalysisTab('weekly')">
+                        <i class="fa-solid fa-calendar-week me-1"></i>Semanal
+                    </button>
+                    <button type="button" class="analysis-secondary-tab" data-analysis-tab="patterns" onclick="switchAnalysisTab('patterns')">
+                        <i class="fa-solid fa-chart-column me-1"></i>Hábitos
+                    </button>
+                </nav>
 
-                    <!-- 2: Hábitos de Escucha -->
-                    <div class="col-12 col-md-6">
-                        <div class="apple-bento-card interactive h-100 d-flex flex-column justify-content-between p-3.5" style="cursor: pointer; background: radial-gradient(circle at top right, rgba(234, 179, 8, 0.16), rgba(18, 18, 22, 0.96));" onclick="openHabitsModal()">
-                            <div>
-                                <div class="d-flex align-items-center justify-content-between mb-2.5">
-                                    <div class="d-flex align-items-center gap-2.5">
-                                        <div class="rounded-3 p-2.5" style="background: rgba(234,179,8,0.18); color: #fbbf24;">
-                                            <i class="fa-solid fa-chart-column fs-4"></i>
-                                        </div>
-                                        <div>
-                                            <div class="fw-bold text-white fs-6">Hábitos y Horarios de Escucha</div>
-                                            <small class="text-warning" style="font-size: 0.70rem; font-weight: 600;">PATRONES MUSICALES</small>
-                                        </div>
-                                    </div>
-                                    <span class="badge rounded-pill bg-warning text-dark fw-bold" style="font-size: 0.64rem;">PATRONES</span>
-                                </div>
-                                <p class="text-secondary mb-3" style="font-size: 0.80rem; line-height: 1.45;">
-                                    Analiza tus momentos más activos del día, tus horas pico de reproducción y qué días de la semana escuchas más música.
-                                </p>
-                            </div>
-                            <button class="btn btn-sm btn-outline-warning rounded-pill w-100 py-2 fw-semibold" style="font-size: 0.80rem;">
-                                <i class="fa-solid fa-chart-column me-1.5"></i> Ver Hábitos y Horarios
-                            </button>
-                        </div>
-                    </div>
-                    <div id="analysis-overview" class="col-12 mt-3"></div>
-                </div>
+                <div id="analysis-overview"></div>
             </div>
 
             <!-- ============================================== -->

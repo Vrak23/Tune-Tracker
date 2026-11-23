@@ -9733,12 +9733,265 @@ async function renderAnalysisOverview() {
     if (!container) return;
     container.innerHTML = '<div class="text-center py-4 text-secondary"><span class="spinner-border spinner-border-sm me-2 text-info"></span>Construyendo tu evolución musical...</div>';
 
-    const [db, insights] = await Promise.all([getActiveDatabase(), loadInsightsData()]);
+    const [db, insights, recent] = await Promise.all([
+        getActiveDatabase(true),
+        loadInsightsData(),
+        fetchLastFmDelta()
+    ]);
     if (!db) {
         container.innerHTML = '<div class="text-center py-4 text-secondary">No hay suficientes datos para mostrar el análisis.</div>';
         return;
     }
 
+    window.__analysisTimeline = Array.isArray(recent) ? recent : [];
+    window.__analysisDb = db;
+    window.__analysisInsights = insights;
+    switchAnalysisTab(window.__analysisActiveTab || 'timeline');
+}
+window.renderAnalysisOverview = renderAnalysisOverview;
+
+function getMondayStart(date = new Date()) {
+    const result = new Date(date);
+    const day = result.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    result.setHours(0, 0, 0, 0);
+    result.setDate(result.getDate() + diff);
+    return result;
+}
+
+function getIsoWeekKey(date) {
+    const monday = getMondayStart(date);
+    return monday.toISOString().slice(0, 10);
+}
+
+function getAnalysisTrackArtist(track) {
+    if (!track) return '';
+    if (track.artist?.['#text']) return track.artist['#text'];
+    if (track.artist?.name) return track.artist.name;
+    return typeof track.artist === 'string' ? track.artist : '';
+}
+
+function switchAnalysisTab(tabName) {
+    window.__analysisActiveTab = tabName;
+    document.querySelectorAll('.analysis-secondary-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.analysisTab === tabName);
+    });
+
+    const container = document.getElementById('analysis-overview');
+    if (!container) return;
+    if (tabName === 'timeline') renderAnalysisTimeline(container);
+    else if (tabName === 'weekly') renderAnalysisWeekly(container);
+    else if (tabName === 'patterns') renderAnalysisPatterns(container);
+    else renderAnalysisSummary(container);
+}
+window.switchAnalysisTab = switchAnalysisTab;
+
+function renderAnalysisTimeline(container) {
+    const tracks = window.__analysisTimeline || [];
+    const db = window.__analysisDb;
+    const nowPlaying = tracks.find(track => track['@attr']?.nowplaying === 'true');
+    const recent = tracks.filter(track => track['@attr']?.nowplaying !== 'true').slice(0, 12);
+
+    const dailyCounts = {};
+    tracks.forEach(track => {
+        const uts = parseInt(track.date?.uts || track.uts, 10);
+        if (!uts) return;
+        const date = new Date(uts * 1000);
+        const key = date.toISOString().slice(0, 10);
+        dailyCounts[key] = (dailyCounts[key] || 0) + 1;
+    });
+    const activeDays = Object.entries(dailyCounts)
+        .sort((a, b) => b[0].localeCompare(a[0]))
+        .slice(0, 7);
+    const maxDay = Math.max(...activeDays.map(([, count]) => count), 1);
+    const dayBars = activeDays.map(([day, count]) => {
+        const label = new Date(`${day}T12:00:00Z`).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' });
+        return `<div class="analysis-bar-row"><span class="analysis-bar-label">${escapeHtml(label)}</span><div class="analysis-bar-track"><div class="analysis-bar-fill" style="width:${Math.round((count / maxDay) * 100)}%; background:linear-gradient(90deg,#ef4444,#fb7185);"></div></div><span class="text-secondary" style="width:32px;text-align:right;">${count}</span></div>`;
+    }).join('');
+
+    const liveHtml = nowPlaying ? `
+        <div class="analysis-overview-card mb-3" style="border-color:rgba(239,68,68,.24);background:linear-gradient(145deg,rgba(239,68,68,.09),rgba(15,15,20,.96));">
+            <div class="text-danger apple-eyebrow mb-2"><i class="fa-solid fa-signal me-1"></i>REPRODUCIENDO AHORA</div>
+            <div class="d-flex align-items-center gap-3">
+                <img src="${escapeHtml(getInitialImage(nowPlaying, nowPlaying.name, getAnalysisTrackArtist(nowPlaying), 'track'))}" class="analysis-timeline-art" style="width:52px;height:52px;" onerror="safeImgError(this)">
+                <div class="min-w-0"><div class="text-white fw-bold text-truncate">${escapeHtml(nowPlaying.name || '')}</div><div class="text-secondary small text-truncate">${escapeHtml(getAnalysisTrackArtist(nowPlaying))}</div></div>
+            </div>
+        </div>` : '';
+
+    const timelineRows = recent.length ? recent.map(track => {
+        const artist = getAnalysisTrackArtist(track);
+        const uts = parseInt(track.date?.uts || track.uts, 10);
+        const date = uts ? new Date(uts * 1000) : null;
+        const time = date ? date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '';
+        const dateLabel = date ? date.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }) : '';
+        return `
+            <div class="analysis-timeline-row">
+                <img src="${escapeHtml(getInitialImage(track, track.name, artist, 'track'))}" class="analysis-timeline-art" alt="" onerror="safeImgError(this)">
+                <div class="min-w-0"><div class="text-white fw-semibold text-truncate" style="font-size:.78rem;">${escapeHtml(track.name || '')}</div><div class="text-secondary text-truncate" style="font-size:.68rem;">${escapeHtml(artist)}</div></div>
+                <div class="text-end"><div class="text-secondary" style="font-size:.68rem;">${escapeHtml(time)}</div><div class="text-secondary" style="font-size:.62rem;">${escapeHtml(dateLabel)}</div></div>
+            </div>`;
+    }).join('') : '<div class="text-center text-secondary py-4">Conecta Last.fm para ver tu actividad reciente.</div>';
+
+    container.innerHTML = `
+        ${liveHtml}
+        <div class="row g-3">
+            <div class="col-12 col-lg-7">
+                <div class="analysis-overview-card">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div><div class="apple-eyebrow text-danger mb-1">ACTIVIDAD RECIENTE</div><h5 class="text-white fw-bold mb-0">Últimos scrobbles</h5></div>
+                        <span class="badge rounded-pill" style="background:rgba(239,68,68,.12);color:#fca5a5;">${tracks.length} registrados</span>
+                    </div>
+                    ${timelineRows}
+                </div>
+            </div>
+            <div class="col-12 col-lg-5">
+                <div class="analysis-overview-card">
+                    <div class="apple-eyebrow text-info mb-1">ÚLTIMOS DÍAS</div>
+                    <h5 class="text-white fw-bold mb-3">Actividad diaria</h5>
+                    ${dayBars || '<div class="text-secondary small">Aún no hay actividad disponible.</div>'}
+                    <div class="d-flex justify-content-between mt-3 pt-3 border-top border-white border-opacity-10">
+                        <span class="text-secondary small">Historial completo</span>
+                        <strong class="text-white">${formatNumber(db?.summary?.validStreams || 0)}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+}
+
+function renderAnalysisWeekly(container) {
+    const tracks = window.__analysisTimeline || [];
+    const monday = getMondayStart(new Date());
+    const sunday = new Date(monday);
+    sunday.setDate(sunday.getDate() + 6);
+    sunday.setHours(23, 59, 59, 999);
+
+    const previousMonday = new Date(monday);
+    previousMonday.setDate(previousMonday.getDate() - 7);
+    const previousSunday = new Date(monday);
+    previousSunday.setMilliseconds(-1);
+
+    const weekTracks = tracks.filter(track => {
+        const uts = parseInt(track.date?.uts || track.uts, 10);
+        if (!uts) return false;
+        const date = new Date(uts * 1000);
+        return date >= monday && date <= sunday;
+    });
+    const previousTracks = tracks.filter(track => {
+        const uts = parseInt(track.date?.uts || track.uts, 10);
+        if (!uts) return false;
+        const date = new Date(uts * 1000);
+        return date >= previousMonday && date <= previousSunday;
+    });
+
+    const aggregate = (items, keyFn) => {
+        const map = new Map();
+        items.forEach(item => {
+            const key = keyFn(item);
+            if (!key) return;
+            map.set(key, (map.get(key) || 0) + 1);
+        });
+        return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+    };
+
+    const topTracks = aggregate(weekTracks, track => `${track.name || ''}|||${getAnalysisTrackArtist(track)}`).slice(0, 5);
+    const topArtists = aggregate(weekTracks, track => getAnalysisTrackArtist(track)).slice(0, 5);
+    const previousCount = previousTracks.length;
+    const change = previousCount ? Math.round(((weekTracks.length - previousCount) / previousCount) * 100) : null;
+    const changeHtml = change === null
+        ? '<span class="text-secondary">sin semana previa</span>'
+        : `<span class="${change >= 0 ? 'text-success' : 'text-danger'}">${change >= 0 ? '+' : ''}${change}%</span>`;
+
+    const daily = Array(7).fill(0);
+    weekTracks.forEach(track => {
+        const uts = parseInt(track.date?.uts || track.uts, 10);
+        if (!uts) return;
+        const date = new Date(uts * 1000);
+        const index = (date.getDay() + 6) % 7;
+        daily[index]++;
+    });
+    const maxDaily = Math.max(...daily, 1);
+    const dayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+    const dailyBars = daily.map((count, index) => `
+        <div class="analysis-bar-row">
+            <span class="analysis-bar-label">${dayNames[index]}</span>
+            <div class="analysis-bar-track"><div class="analysis-bar-fill" style="width:${Math.round((count / maxDaily) * 100)}%;"></div></div>
+            <span class="text-secondary" style="width:32px;text-align:right;">${count}</span>
+        </div>`).join('');
+
+    const weekLabel = `${monday.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} - ${sunday.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+    const topTrackRows = topTracks.length ? topTracks.map(([key, count], index) => {
+        const [name, artist] = key.split('|||');
+        return `<div class="analysis-timeline-row" style="grid-template-columns:24px minmax(0,1fr) auto"><span class="text-secondary" style="font-size:.68rem;">${index + 1}</span><div class="min-w-0"><div class="text-white text-truncate" style="font-size:.76rem;">${escapeHtml(name)}</div><div class="text-secondary text-truncate" style="font-size:.66rem;">${escapeHtml(artist)}</div></div><strong class="text-white">${count}</strong></div>`;
+    }).join('') : '<div class="text-secondary small py-3">Sin scrobbles en esta semana.</div>';
+    const artistRows = topArtists.length ? topArtists.map(([name, count], index) => `
+        <div class="d-flex align-items-center gap-2 py-2 border-bottom border-white border-opacity-10">
+            <span class="text-secondary" style="width:18px;font-size:.68rem;">${index + 1}</span>
+            <span class="text-white flex-grow-1 text-truncate" style="font-size:.76rem;">${escapeHtml(name)}</span>
+            <strong class="text-secondary" style="font-size:.72rem;">${count}</strong>
+        </div>`).join('') : '<div class="text-secondary small py-3">Sin artistas esta semana.</div>';
+
+    container.innerHTML = `
+        <div class="d-flex align-items-end justify-content-between mb-3 flex-wrap gap-2">
+            <div><div class="apple-eyebrow text-danger mb-1">INFORME SEMANAL</div><h5 class="text-white fw-bold mb-0">${weekLabel}</h5></div>
+            <span class="text-secondary small">Semana de lunes</span>
+        </div>
+        <div class="row g-2 mb-3">
+            <div class="col-6 col-md-3"><div class="analysis-week-stat"><div class="text-secondary small">Escuchas</div><div class="text-white fw-bold fs-5">${weekTracks.length}</div></div></div>
+            <div class="col-6 col-md-3"><div class="analysis-week-stat"><div class="text-secondary small">Semana anterior</div><div class="fw-bold fs-5">${changeHtml}</div></div></div>
+            <div class="col-6 col-md-3"><div class="analysis-week-stat"><div class="text-secondary small">Artistas</div><div class="text-white fw-bold fs-5">${topArtists.length}</div></div></div>
+            <div class="col-6 col-md-3"><div class="analysis-week-stat"><div class="text-secondary small">Día activo</div><div class="text-white fw-bold fs-5">${dayNames[daily.indexOf(Math.max(...daily))] || '-'}</div></div></div>
+        </div>
+        <div class="row g-3">
+            <div class="col-12 col-lg-7"><div class="analysis-overview-card"><div class="apple-eyebrow text-danger mb-1">TOP CANCIONES</div><h5 class="text-white fw-bold mb-2">Más escuchadas</h5>${topTrackRows}</div></div>
+            <div class="col-12 col-lg-5"><div class="analysis-overview-card"><div class="apple-eyebrow text-info mb-1">TOP ARTISTAS</div><h5 class="text-white fw-bold mb-2">Esta semana</h5>${artistRows}</div></div>
+            <div class="col-12"><div class="analysis-overview-card"><div class="apple-eyebrow text-warning mb-1">POR DÍA</div><h5 class="text-white fw-bold mb-3">Actividad de lunes a domingo</h5>${dailyBars}</div></div>
+        </div>`;
+}
+
+function renderAnalysisPatterns(container) {
+    const insights = window.__analysisInsights;
+    const habits = insights?.habits || {};
+    const hourly = Array.isArray(habits.hourly) ? habits.hourly : [];
+    const weekdayValues = Array.isArray(habits.weekday) ? habits.weekday : [];
+    const weekdayNames = habits.weekdayNames || ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const records = insights?.records || {};
+
+    const maxHour = Math.max(...hourly, 1);
+    const hourlyBars = hourly.map((count, hour) => `
+        <div class="analysis-bar-row">
+            <span class="analysis-bar-label">${String(hour).padStart(2, '0')}h</span>
+            <div class="analysis-bar-track"><div class="analysis-bar-fill" style="width:${Math.round((count / maxHour) * 100)}%;"></div></div>
+            <span class="text-secondary" style="width:38px;text-align:right;font-size:.62rem;">${formatNumber(count)}</span>
+        </div>`).join('');
+    const maxWeekday = Math.max(...weekdayValues, 1);
+    const dayBars = weekdayValues.map((count, index) => `
+        <div class="analysis-bar-row">
+            <span class="analysis-bar-label">${escapeHtml(weekdayNames[index]?.slice(0, 3) || '')}</span>
+            <div class="analysis-bar-track"><div class="analysis-bar-fill" style="width:${Math.round((count / maxWeekday) * 100)}%;background:linear-gradient(90deg,#06b6d4,#38bdf8);"></div></div>
+            <span class="text-secondary" style="width:38px;text-align:right;font-size:.62rem;">${formatNumber(count)}</span>
+        </div>`).join('');
+    const topDayDate = records.topDay?.date
+        ? new Date(`${records.topDay.date}T12:00:00Z`).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })
+        : 'Sin datos';
+
+    container.innerHTML = `
+        <div class="row g-3">
+            <div class="col-12 col-lg-7"><div class="analysis-overview-card"><div class="apple-eyebrow text-warning mb-1">HORARIOS</div><h5 class="text-white fw-bold mb-3">Actividad por hora</h5><div style="max-height:390px;overflow-y:auto;padding-right:4px;">${hourlyBars || '<div class="text-secondary">Sin datos.</div>'}</div></div></div>
+            <div class="col-12 col-lg-5">
+                <div class="analysis-overview-card mb-3"><div class="apple-eyebrow text-info mb-1">DÍAS</div><h5 class="text-white fw-bold mb-3">Tu semana habitual</h5>${dayBars || '<div class="text-secondary">Sin datos.</div>'}</div>
+                <div class="analysis-overview-card"><div class="apple-eyebrow text-warning mb-1">RÉCORDS</div><div class="d-grid gap-2">
+                    <div class="d-flex justify-content-between"><span class="text-secondary small">Día récord</span><strong class="text-white">${formatNumber(records.topDay?.count || 0)}</strong></div>
+                    <div class="d-flex justify-content-between"><span class="text-secondary small">Fecha</span><strong class="text-white small">${topDayDate}</strong></div>
+                    <div class="d-flex justify-content-between"><span class="text-secondary small">Días activos</span><strong class="text-white">${formatNumber(records.totalDaysActive || 0)}</strong></div>
+                    <div class="d-flex justify-content-between"><button type="button" class="btn btn-sm btn-outline-secondary rounded-pill text-secondary" onclick="openRecordsModal()">Ver récords</button><button type="button" class="btn btn-sm btn-outline-secondary rounded-pill text-secondary" onclick="openHabitsModal()">Detalle</button></div>
+                </div></div>
+            </div>
+        </div>`;
+}
+
+function renderAnalysisSummary(container) {
+    const db = window.__analysisDb;
+    const insights = window.__analysisInsights;
     const yearlyEntries = Object.keys(db.yearlyTops || {})
         .filter(year => /^\d{4}$/.test(year) && db.yearlyTops[year]?.artists?.[0])
         .sort((a, b) => Number(a) - Number(b));
@@ -9790,6 +10043,12 @@ async function renderAnalysisOverview() {
     const topDayLabel = topDay?.date ? new Date(`${topDay.date}T12:00:00Z`).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Sin datos';
 
     container.innerHTML = `
+        <div class="row g-2 mb-3">
+            <div class="col-6 col-md-3"><div class="analysis-week-stat"><div class="text-secondary small">Scrobbles</div><div class="text-white fw-bold fs-5">${formatNumber(db.summary?.validStreams || 0)}</div></div></div>
+            <div class="col-6 col-md-3"><div class="analysis-week-stat"><div class="text-secondary small">Tiempo</div><div class="text-white fw-bold fs-5">${formatNumber(db.summary?.totalHours)} h</div></div></div>
+            <div class="col-6 col-md-3"><div class="analysis-week-stat"><div class="text-secondary small">Artistas</div><div class="text-white fw-bold fs-5">${formatNumber(db.summary?.totalArtists || 0)}</div></div></div>
+            <div class="col-6 col-md-3"><div class="analysis-week-stat"><div class="text-secondary small">Álbumes</div><div class="text-white fw-bold fs-5">${formatNumber(db.summary?.totalAlbums || 0)}</div></div></div>
+        </div>
         <div class="row g-3">
             <div class="col-12 col-lg-5">
                 <div class="analysis-overview-card">
