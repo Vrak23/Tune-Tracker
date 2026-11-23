@@ -10186,9 +10186,11 @@ function getMonthReportDataForOffset(db, offset = -1) {
     const sortedTracks = [...trackMap.values()].filter(i => i.plays > 0).sort((a, b) => b.plays - a.plays);
     const sortedArtists = [...artistMap.values()].filter(i => i.plays > 0).sort((a, b) => b.plays - a.plays);
     const sortedAlbums = [...albumMap.values()].filter(i => i.plays > 0).sort((a, b) => b.plays - a.plays);
-    const computedPlays = sortedTracks.reduce((sum, i) => sum + (i.plays || 0), 0);
-    const plays = monthData.plays || computedPlays;
-    const hours = monthData.hours || (plays * 3.5 / 60);
+    const basePlays = monthData.plays || 0;
+    const deltaPlays = monthTimestamps.length;
+    const plays = basePlays > 0 ? (basePlays + deltaPlays) : sortedTracks.reduce((sum, i) => sum + (i.plays || 0), 0);
+    const baseHours = monthData.hours ? parseFloat(monthData.hours) : (basePlays * 3.5 / 60);
+    const hours = basePlays > 0 ? (baseHours + (deltaPlays * 3.5 / 60)) : (plays * 3.5 / 60);
 
     return {
         targetDate,
@@ -10197,6 +10199,8 @@ function getMonthReportDataForOffset(db, offset = -1) {
         monthName: MESES_ES[targetDate.getMonth()],
         daysInMonth: new Date(targetDate.getFullYear(), monthNum, 0).getDate(),
         plays,
+        basePlays,
+        deltaPlays,
         hours,
         tracks: sortedTracks,
         artists: sortedArtists,
@@ -10213,27 +10217,28 @@ function renderAnalysisMonthlyReport(container) {
 
     const dateRangeLabel = `${curr.monthName.toUpperCase()} ${curr.year}`;
 
-    // Weekly buckets (Sem 1..Sem 4/5) from timestamps if available, else uniform fallback
-    const weekCurr = [0, 0, 0, 0];
-    const weekPrev = [0, 0, 0, 0];
-    if (curr.timestamps.length) {
-        curr.timestamps.forEach(d => {
-            const w = Math.min(3, Math.floor((d.getDate() - 1) / 8));
-            weekCurr[w]++;
-        });
-    } else if (curr.plays > 0) {
-        const perW = Math.round(curr.plays / 4);
-        weekCurr.fill(perW);
-    }
-    if (prev.timestamps.length) {
-        prev.timestamps.forEach(d => {
-            const w = Math.min(3, Math.floor((d.getDate() - 1) / 8));
-            weekPrev[w]++;
-        });
-    } else if (prev.plays > 0) {
-        const perW = Math.round(prev.plays / 4);
-        weekPrev.fill(perW);
-    }
+    // Weekly buckets (Sem 1..Sem 4) combining timestamps + historical basePlays
+    const fillMonthWeekBuckets = (mObj) => {
+        const buckets = [0, 0, 0, 0];
+        if (mObj.timestamps.length) {
+            mObj.timestamps.forEach(d => {
+                const w = Math.min(3, Math.floor((d.getDate() - 1) / 8));
+                buckets[w]++;
+            });
+            if (mObj.basePlays > 0) {
+                // Historical basePlays (e.g. Oct 1-14 before delta cutoff) belong to Sem 1 & Sem 2
+                const half = Math.round(mObj.basePlays / 2);
+                buckets[0] += half;
+                buckets[1] += (mObj.basePlays - half);
+            }
+        } else if (mObj.plays > 0) {
+            const perW = Math.round(mObj.plays / 4);
+            buckets.fill(perW);
+        }
+        return buckets;
+    };
+    const weekCurr = fillMonthWeekBuckets(curr);
+    const weekPrev = fillMonthWeekBuckets(prev);
     const maxHeroBar = Math.max(...weekCurr, ...weekPrev, 1);
     const weekLabels = ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'];
     const heroBarsHtml = weekLabels.map((lbl, idx) => {
