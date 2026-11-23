@@ -10067,7 +10067,7 @@ function renderAnalysisSummary(container) {
                     </div>
                 </div>
             </div>
-            <div class="col-12 analysis-full">
+            <div class="col-12">
                 <div class="analysis-overview-card">
                     <div class="apple-eyebrow text-warning mb-1"><i class="fa-solid fa-fire me-1"></i>PERIODOS MÁS INTENSOS</div>
                     <h5 class="text-white fw-bold mb-3">Tus picos de escucha</h5>
