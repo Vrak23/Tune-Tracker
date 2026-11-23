@@ -2518,6 +2518,91 @@ function applyCustomDateRange() {
 }
 window.applyCustomDateRange = applyCustomDateRange;
 
+window.__dailyMonthCache = window.__dailyMonthCache || {};
+window.__dailyMonthInFlight = window.__dailyMonthInFlight || {};
+
+function getCachedMonthDailyCounts(year, month) {
+    const { user } = getLastFmCredentials();
+    const memKey = `${user || 'anon'}_${year}_${month}`;
+    if (window.__dailyMonthCache[memKey]) return window.__dailyMonthCache[memKey];
+    try {
+        const raw = localStorage.getItem(`tunetracker_daily_${memKey}`);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && typeof parsed === 'object') {
+                window.__dailyMonthCache[memKey] = parsed;
+                return parsed;
+            }
+        }
+    } catch (e) {}
+    return null;
+}
+
+async function fetchMonthlyDailyCountsFromLastFm(year, month, periodRange, db) {
+    const { user, key } = getLastFmCredentials();
+    if (!user || !key) return;
+    const memKey = `${user}_${year}_${month}`;
+    if (window.__dailyMonthInFlight[memKey]) return;
+    window.__dailyMonthInFlight[memKey] = true;
+
+    try {
+        const fromUTS = Math.floor(new Date(year, month - 1, 1, 0, 0, 0).getTime() / 1000);
+        const daysInMonth = new Date(year, month, 0).getDate();
+        const toUTS = Math.floor(new Date(year, month - 1, daysInMonth, 23, 59, 59).getTime() / 1000);
+
+        const fetchPage = async (page) => {
+            const res = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${encodeURIComponent(user)}&from=${fromUTS}&to=${toUTS}&limit=200&page=${page}&api_key=${encodeURIComponent(key)}&format=json`);
+            if (!res.ok) return null;
+            return res.json();
+        };
+
+        const first = await fetchPage(1);
+        if (!first?.recenttracks) return;
+
+        const counts = {};
+        for (let d = 1; d <= daysInMonth; d++) counts[d] = 0;
+
+        const addTracks = (data) => {
+            const raw = data?.recenttracks?.track || [];
+            const list = Array.isArray(raw) ? raw : (raw ? [raw] : []);
+            list.forEach(t => {
+                const uts = parseInt(t?.date?.uts, 10);
+                if (!uts) return;
+                const d = new Date(uts * 1000);
+                if (d.getFullYear() === year && (d.getMonth() + 1) === month) {
+                    const day = d.getDate();
+                    counts[day] = (counts[day] || 0) + 1;
+                }
+            });
+        };
+
+        addTracks(first);
+        const totalPages = Math.min(30, parseInt(first?.recenttracks?.['@attr']?.totalPages || '1', 10) || 1);
+
+        for (let p = 2; p <= totalPages; p += 4) {
+            const batch = [];
+            for (let j = p; j < p + 4 && j <= totalPages; j++) batch.push(fetchPage(j));
+            const results = await Promise.all(batch);
+            results.forEach(r => { if (r) addTracks(r); });
+        }
+
+        const totalFetched = Object.values(counts).reduce((a, b) => a + b, 0);
+        if (totalFetched > 0) {
+            window.__dailyMonthCache[memKey] = counts;
+            try {
+                localStorage.setItem(`tunetracker_daily_${memKey}`, JSON.stringify(counts));
+            } catch (e) {}
+            if (currentRange === periodRange) {
+                renderCatalogActivityChart(periodRange, db);
+            }
+        }
+    } catch (e) {
+        console.warn('Error al cargar días desde Last.fm:', e);
+    } finally {
+        delete window.__dailyMonthInFlight[memKey];
+    }
+}
+
 function renderCatalogActivityChart(periodRange, db) {
     const container = document.getElementById('catalog-activity-chart-container');
     if (!container) return;
@@ -2626,12 +2711,24 @@ function renderCatalogActivityChart(periodRange, db) {
 
         const baseMonthPlays = db.yearlyTops[String(targetY)]?.months?.[String(targetM)]?.plays || 0;
         const recordedLivePlays = Object.values(dailyCounts).reduce((a, b) => a + b, 0);
+        const cachedDaily = getCachedMonthDailyCounts(targetY, targetM);
+        const needsHistoricalDailyFetch = (recordedLivePlays === 0 && baseMonthPlays > 0) || (baseMonthPlays > 0 && recordedLivePlays > 0 && !dailyCounts[1] && !dailyCounts[2]);
+
+        if (cachedDaily) {
+            for (let d = 1; d <= daysInMonth; d++) {
+                if (cachedDaily[d] !== undefined) dailyCounts[d] = cachedDaily[d];
+            }
+        } else if (needsHistoricalDailyFetch) {
+            fetchMonthlyDailyCountsFromLastFm(targetY, targetM, periodRange, db);
+        }
+
+        const finalRecorded = Object.values(dailyCounts).reduce((a, b) => a + b, 0);
         const maxDayToShow = (targetY === curYear && targetM === curMonth) ? Math.min(daysInMonth, now.getDate()) : daysInMonth;
 
         dataPoints = Array.from({ length: maxDayToShow }, (_, i) => {
             const dayNum = i + 1;
             let p = dailyCounts[dayNum] || 0;
-            if (recordedLivePlays === 0 && baseMonthPlays > 0) {
+            if (!cachedDaily && finalRecorded === 0 && baseMonthPlays > 0) {
                 p = Math.round(baseMonthPlays / daysInMonth);
             }
             return {
@@ -2672,12 +2769,16 @@ function renderCatalogActivityChart(periodRange, db) {
         periodTitle = `Mes Pasado (${mNames[lm.prevM - 1]} ${lm.prevY})`;
         const daysInMonth = new Date(lm.prevY, lm.prevM, 0).getDate();
         const mPlays = db.yearlyTops[String(lm.prevY)]?.months?.[String(lm.prevM)]?.plays || 0;
+        const cachedDaily = getCachedMonthDailyCounts(lm.prevY, lm.prevM);
+        if (!cachedDaily && mPlays > 0) {
+            fetchMonthlyDailyCountsFromLastFm(lm.prevY, lm.prevM, periodRange, db);
+        }
         dataPoints = Array.from({ length: daysInMonth }, (_, i) => {
             const dayNum = i + 1;
             return {
                 label: `Día ${dayNum}`,
                 fullLabel: `${dayNum} ${mNames[lm.prevM - 1]}`,
-                plays: Math.round(mPlays / daysInMonth),
+                plays: cachedDaily ? (cachedDaily[dayNum] || 0) : Math.round(mPlays / daysInMonth),
                 isActive: false
             };
         });
@@ -2906,7 +3007,7 @@ function updateStatStrip() {
         const extra = mDelta.length;
         const extraH = extra * (3.5 / 60);
         const baseP = mData ? (mData.plays || 0) : 0;
-        const baseH = mData ? parseFloat(mData.hours || 0) : 0;
+        const baseH = mData ? (mData.hours ? parseFloat(mData.hours) : (baseP * 3.5 / 60)) : 0;
         const deltaArtists = new Set(mDelta.map(t => t.artist?.['#text'] || t.artist?.name).filter(Boolean)).size;
         const deltaAlbums = new Set(mDelta.map(t => t.album?.['#text'] || t.album?.name).filter(Boolean)).size;
         const artCount = (mData?.artists?.length || 0) + deltaArtists;
@@ -3004,7 +3105,7 @@ function updateStatStrip() {
         const extra = mDelta.length;
         const extraH = extra * (3.5 / 60);
         const baseP = mData ? (mData.plays || 0) : 0;
-        const baseH = mData ? parseFloat(mData.hours || 0) : 0;
+        const baseH = mData ? (mData.hours ? parseFloat(mData.hours) : (baseP * 3.5 / 60)) : 0;
         const baseArt = mData?.artists?.length || 0;
         const baseAlb = mData?.albums?.length || 0;
         const deltaArtists = new Set(mDelta.map(t => t.artist?.['#text'] || t.artist?.name).filter(Boolean)).size;
