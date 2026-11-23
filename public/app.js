@@ -9866,7 +9866,16 @@ function getAnalysisTrackAlbum(track) {
 }
 
 window.__weeklyReportOffset = window.__weeklyReportOffset || 0;
+window.__monthlyReportOffset = (typeof window.__monthlyReportOffset === 'number') ? window.__monthlyReportOffset : -1;
+window.__lfmReportPeriod = window.__lfmReportPeriod || 'week';
 window.__weeklyTagCache = window.__weeklyTagCache || {};
+
+window.setLfmReportPeriod = function (period) {
+    if (period === 'year') return;
+    window.__lfmReportPeriod = period;
+    const container = document.getElementById('analysis-overview');
+    if (container) renderAnalysisWeekly(container);
+};
 
 window.shiftWeeklyReport = function (delta) {
     const next = (window.__weeklyReportOffset || 0) + delta;
@@ -9875,6 +9884,25 @@ window.shiftWeeklyReport = function (delta) {
     const container = document.getElementById('analysis-overview');
     if (container) renderAnalysisWeekly(container);
 };
+
+window.shiftMonthlyReport = function (delta) {
+    const next = (window.__monthlyReportOffset ?? -1) + delta;
+    if (next > 0) return;
+    window.__monthlyReportOffset = next;
+    const container = document.getElementById('analysis-overview');
+    if (container) renderAnalysisWeekly(container);
+};
+
+function buildLfmPeriodBarHtml(activePeriod) {
+    return `
+        <div class="lfm-period-bar">
+            <button type="button" class="lfm-period-tab ${activePeriod === 'week' ? 'active' : ''}" onclick="setLfmReportPeriod('week')">Semanal</button>
+            <button type="button" class="lfm-period-tab ${activePeriod === 'month' ? 'active' : ''}" onclick="setLfmReportPeriod('month')">Mensual</button>
+            <button type="button" class="lfm-period-tab locked" disabled title="Resumen anual aún bloqueado">
+                <i class="fa-solid fa-lock me-1" style="font-size:0.7rem;"></i>Anual
+            </button>
+        </div>`;
+}
 
 window.shareWeeklyReportSummary = async function (summaryText, btnEl) {
     try {
@@ -10107,7 +10135,296 @@ async function hydrateWeeklyTopTags(topArtists, weekBuckets, targetElId) {
     `;
 }
 
+function getMonthReportDataForOffset(db, offset = -1) {
+    const now = new Date();
+    const targetDate = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+    const year = String(targetDate.getFullYear());
+    const monthNum = targetDate.getMonth() + 1;
+    const month = String(monthNum);
+    const monthData = db?.yearlyTops?.[year]?.months?.[month] || {};
+
+    const trackMap = new Map((monthData.tracks || []).map(t => [
+        `${normalizeKey(t.name)}:::${normalizeKey(t.artist)}`,
+        { ...t }
+    ]));
+    const artistMap = new Map((monthData.artists || []).map(a => [
+        normalizeKey(a.name),
+        { ...a }
+    ]));
+    const albumMap = new Map((monthData.albums || []).map(al => [
+        `${normalizeKey(al.name)}:::${normalizeKey(al.artist)}`,
+        { ...al }
+    ]));
+
+    const monthTimestamps = [];
+    (window.__analysisTimeline || lastFmRecentDelta || []).forEach(track => {
+        const uts = parseInt(track?.date?.uts || track?.uts, 10);
+        if (!uts) return;
+        const playedAt = new Date(uts * 1000);
+        if (playedAt.getFullYear() !== Number(year) || playedAt.getMonth() + 1 !== monthNum) return;
+        monthTimestamps.push(playedAt);
+        const name = entryName(track);
+        const artist = entryArtist(track);
+        const album = entryName(track.album);
+        if (!name || !artist) return;
+        const trackKey = `${normalizeKey(name)}:::${normalizeKey(artist)}`;
+        const artistKey = normalizeKey(artist);
+        const albumKey = `${normalizeKey(album)}:::${artistKey}`;
+        const curT = trackMap.get(trackKey) || { name, artist, album, plays: 0 };
+        curT.plays = (curT.plays || 0) + 1;
+        trackMap.set(trackKey, curT);
+        const curA = artistMap.get(artistKey) || { name: artist, plays: 0 };
+        curA.plays = (curA.plays || 0) + 1;
+        artistMap.set(artistKey, curA);
+        if (album) {
+            const curAl = albumMap.get(albumKey) || { name: album, artist, plays: 0 };
+            curAl.plays = (curAl.plays || 0) + 1;
+            albumMap.set(albumKey, curAl);
+        }
+    });
+
+    const sortedTracks = [...trackMap.values()].filter(i => i.plays > 0).sort((a, b) => b.plays - a.plays);
+    const sortedArtists = [...artistMap.values()].filter(i => i.plays > 0).sort((a, b) => b.plays - a.plays);
+    const sortedAlbums = [...albumMap.values()].filter(i => i.plays > 0).sort((a, b) => b.plays - a.plays);
+    const computedPlays = sortedTracks.reduce((sum, i) => sum + (i.plays || 0), 0);
+    const plays = monthData.plays || computedPlays;
+    const hours = monthData.hours || (plays * 3.5 / 60);
+
+    return {
+        targetDate,
+        year,
+        monthNum,
+        monthName: MESES_ES[targetDate.getMonth()],
+        daysInMonth: new Date(targetDate.getFullYear(), monthNum, 0).getDate(),
+        plays,
+        hours,
+        tracks: sortedTracks,
+        artists: sortedArtists,
+        albums: sortedAlbums,
+        timestamps: monthTimestamps
+    };
+}
+
+function renderAnalysisMonthlyReport(container) {
+    const db = window.__analysisDb;
+    const offset = window.__monthlyReportOffset ?? -1;
+    const curr = getMonthReportDataForOffset(db, offset);
+    const prev = getMonthReportDataForOffset(db, offset - 1);
+
+    const dateRangeLabel = `${curr.monthName.toUpperCase()} ${curr.year}`;
+
+    // Weekly buckets (Sem 1..Sem 4/5) from timestamps if available, else uniform fallback
+    const weekCurr = [0, 0, 0, 0];
+    const weekPrev = [0, 0, 0, 0];
+    if (curr.timestamps.length) {
+        curr.timestamps.forEach(d => {
+            const w = Math.min(3, Math.floor((d.getDate() - 1) / 8));
+            weekCurr[w]++;
+        });
+    } else if (curr.plays > 0) {
+        const perW = Math.round(curr.plays / 4);
+        weekCurr.fill(perW);
+    }
+    if (prev.timestamps.length) {
+        prev.timestamps.forEach(d => {
+            const w = Math.min(3, Math.floor((d.getDate() - 1) / 8));
+            weekPrev[w]++;
+        });
+    } else if (prev.plays > 0) {
+        const perW = Math.round(prev.plays / 4);
+        weekPrev.fill(perW);
+    }
+    const maxHeroBar = Math.max(...weekCurr, ...weekPrev, 1);
+    const weekLabels = ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'];
+    const heroBarsHtml = weekLabels.map((lbl, idx) => {
+        const cH = weekCurr[idx] > 0 ? Math.max(8, Math.round((weekCurr[idx] / maxHeroBar) * 100)) : 2;
+        const pH = weekPrev[idx] > 0 ? Math.max(8, Math.round((weekPrev[idx] / maxHeroBar) * 100)) : 2;
+        return `
+            <div class="lfm-hero-day-col" title="${lbl}: ${weekCurr[idx]} este mes · ${weekPrev[idx]} mes anterior">
+                <div class="lfm-hero-bar-pair">
+                    <div class="lfm-hero-bar this-week" style="height:${cH}%;"></div>
+                    <div class="lfm-hero-bar last-week" style="height:${pH}%;"></div>
+                </div>
+                <span class="lfm-hero-day-label">${lbl}</span>
+            </div>`;
+    }).join('');
+
+    const artworkQueue = [];
+    const buildMonthCol = ({ type, cls, label, topPill, items, prevCount, totalLabel }) => {
+        const top1 = items[0];
+        const rest = items.slice(1, 5);
+        let heroHtml = `<div class="lfm-hero-item-card d-flex align-items-center justify-content-center text-secondary small">Sin datos este mes</div>`;
+        if (top1) {
+            const mainName = top1.name || '';
+            const subName = type === 'artist' ? 'Artista #1 del mes' : (top1.artist || '');
+            const imgId = `lfm-m-hero-${type}-${Math.random().toString(36).slice(2, 8)}`;
+            const initImg = getInitialImage(top1, mainName, type === 'artist' ? '' : subName, type);
+            artworkQueue.push({ name: mainName, artist: type === 'artist' ? '' : subName, type, id: imgId });
+            heroHtml = `
+                <div class="lfm-hero-item-card" onclick="showItemStats('${type}', '${escapeJsStr(mainName)}', '${escapeJsStr(type === 'artist' ? '' : subName)}')">
+                    <img id="${imgId}" src="${escapeHtml(initImg)}" alt="${escapeHtml(mainName)}" onerror="safeImgError(this)">
+                    <div class="lfm-hero-item-scrim">
+                        <span class="lfm-top-pill ${cls}">${topPill}</span>
+                        <div class="text-white fw-bold text-truncate" style="font-size:1.02rem;">#1 ${escapeHtml(mainName)}</div>
+                        <div class="d-flex justify-content-between align-items-center gap-2" style="font-size:0.75rem;color:#d1d5db;">
+                            <span class="text-truncate">${escapeHtml(subName)}</span>
+                            <strong class="text-white flex-shrink-0">${formatNumber(top1.plays)}</strong>
+                        </div>
+                    </div>
+                </div>`;
+        }
+        const listHtml = rest.length ? rest.map((it, i) => `
+            <div class="lfm-rank-row" onclick="showItemStats('${type}', '${escapeJsStr(it.name)}', '${escapeJsStr(type === 'artist' ? '' : (it.artist || ''))}')">
+                <span class="text-secondary fw-bold">#${i + 2}</span>
+                <div class="min-w-0">
+                    <div class="text-white fw-semibold text-truncate">${escapeHtml(it.name)}</div>
+                    ${type !== 'artist' && it.artist ? `<div class="text-secondary text-truncate" style="font-size:0.68rem;">${escapeHtml(it.artist)}</div>` : ''}
+                </div>
+                <strong class="text-secondary">${formatNumber(it.plays)}</strong>
+            </div>`).join('') : `<div class="p-3 text-secondary small">Sin más elementos en el top 5.</div>`;
+
+        const sharePct = curr.plays && top1 ? Math.round((top1.plays / curr.plays) * 100) : 0;
+        return `
+            <div class="lfm-top3-col">
+                <div class="lfm-cat-header lfm-chamfer ${cls}">
+                    <div>
+                        <div class="lfm-cat-label">${label}</div>
+                        <div class="lfm-cat-num">${formatNumber(items.length)}</div>
+                        <div class="lfm-cat-delta">${buildWeeklyDeltaBadge(items.length, prevCount, false).replace('semana anterior', 'mes anterior')}</div>
+                    </div>
+                    ${buildWeeklySparkline(weekCurr)}
+                </div>
+                ${heroHtml}
+                <div class="lfm-rank-list">${listHtml}</div>
+                <div class="lfm-discovery-card lfm-chamfer">
+                    <div class="text-secondary fw-bold text-uppercase" style="font-size:0.7rem;letter-spacing:0.05em;">${totalLabel}</div>
+                    <div class="text-white fw-black" style="font-size:1.55rem;line-height:1.1;margin:4px 0 2px;">${sharePct}%</div>
+                    <div class="text-secondary" style="font-size:0.72rem;">del total de escuchas en ${escapeHtml(curr.monthName)}</div>
+                </div>
+            </div>`;
+    };
+
+    const avgPerDay = Math.round(curr.plays / curr.daysInMonth);
+    const avgPrevDay = Math.round(prev.plays / prev.daysInMonth);
+    const shareSummaryText = `Mi mes en TuneTracker (${dateRangeLabel}): ${formatNumber(curr.plays)} scrobbles · Top Artista: ${curr.artists[0]?.name || '-'} · Top Track: ${curr.tracks[0]?.name || '-'}`;
+
+    container.innerHTML = `
+        <div class="lfm-report-wrap">
+            ${buildLfmPeriodBarHtml('month')}
+
+            <div class="lfm-date-bar">
+                <button type="button" class="lfm-date-nav-btn" onclick="shiftMonthlyReport(-1)" title="Mes anterior">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <div class="lfm-date-range-label">${dateRangeLabel}</div>
+                <button type="button" class="lfm-date-nav-btn" onclick="shiftMonthlyReport(1)" ${offset >= 0 ? 'disabled' : ''} title="Mes siguiente">
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+
+            <div class="lfm-hatched-divider"></div>
+
+            <div class="lfm-hero-banner">
+                <div class="lfm-hero-grid">
+                    <div>
+                        <div class="lfm-hero-eyebrow">${buildWeeklyDeltaBadge(curr.plays, prev.plays, false).replace('semana anterior', 'mes anterior')}</div>
+                        <div class="lfm-hero-total">${formatNumber(curr.plays)} scrobbles</div>
+                    </div>
+                    <div>
+                        <div class="lfm-hero-chart-legend">
+                            <span><i class="lfm-legend-dot" style="background:#111111;"></i>Este mes</span>
+                            <span><i class="lfm-legend-dot" style="background:#a98d92;"></i>Mes anterior</span>
+                        </div>
+                        <div class="lfm-hero-bars" style="grid-template-columns:repeat(4,1fr);">${heroBarsHtml}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lfm-share-row">
+                <button type="button" class="lfm-share-btn" onclick="shareWeeklyReportSummary('${escapeJsStr(shareSummaryText)}', this)">
+                    <i class="fa-solid fa-share-nodes"></i> Compartir resumen
+                </button>
+            </div>
+
+            <div class="lfm-body">
+                <div class="lfm-top3-grid">
+                    ${buildMonthCol({ type: 'artist', cls: 'artists', label: 'Artistas', topPill: 'Top Artista', items: curr.artists, prevCount: prev.artists.length, totalLabel: 'Dominio del #1' })}
+                    ${buildMonthCol({ type: 'album', cls: 'albums', label: 'Álbumes', topPill: 'Top Álbum', items: curr.albums, prevCount: prev.albums.length, totalLabel: 'Peso del #1' })}
+                    ${buildMonthCol({ type: 'track', cls: 'tracks', label: 'Canciones', topPill: 'Top Track', items: curr.tracks, prevCount: prev.tracks.length, totalLabel: 'Repetición del #1' })}
+                </div>
+
+                <h6 class="lfm-section-heading">Gráficos</h6>
+                <div class="lfm-charts-2col mb-4">
+                    <div class="lfm-chart-card">
+                        <div class="lfm-chart-title">Ratio Musical</div>
+                        <div class="d-flex align-items-center gap-4 flex-wrap">
+                            ${buildWeeklyMusicRatioSvg(curr.tracks.length, prev.tracks.length, curr.albums.length, prev.albums.length, curr.artists.length, prev.artists.length)}
+                            <div class="d-grid gap-3 flex-grow-1">
+                                <div>
+                                    <div class="text-secondary" style="font-size:0.72rem;"><i class="fa-solid fa-music me-1" style="color:#5ba8ff;"></i>Canciones</div>
+                                    <div class="text-white fw-bold">${formatNumber(curr.tracks.length)} <span class="text-secondary fw-normal small">vs. ${formatNumber(prev.tracks.length)}</span></div>
+                                </div>
+                                <div>
+                                    <div class="text-secondary" style="font-size:0.72rem;"><i class="fa-solid fa-compact-disc me-1" style="color:#69f0ae;"></i>Álbumes</div>
+                                    <div class="text-white fw-bold">${formatNumber(curr.albums.length)} <span class="text-secondary fw-normal small">vs. ${formatNumber(prev.albums.length)}</span></div>
+                                </div>
+                                <div>
+                                    <div class="text-secondary" style="font-size:0.72rem;"><i class="fa-solid fa-user me-1" style="color:#c99eff;"></i>Artistas</div>
+                                    <div class="text-white fw-bold">${formatNumber(curr.artists.length)} <span class="text-secondary fw-normal small">vs. ${formatNumber(prev.artists.length)}</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="lfm-chart-card">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="lfm-chart-title mb-0">Huella de Escucha</div>
+                            <div class="d-flex gap-3" style="font-size:0.68rem;">
+                                <span style="color:#c99eff;"><i class="fa-solid fa-square me-1"></i>Tú</span>
+                                <span class="text-secondary"><i class="fa-solid fa-square me-1"></i>Promedio</span>
+                            </div>
+                        </div>
+                        ${buildWeeklyRadarSvg([
+                            Math.min(1, curr.plays / Math.max(curr.daysInMonth * 30, 1)),
+                            curr.tracks.length && curr.plays ? Math.min(1, curr.tracks.length / curr.plays) : 0.3,
+                            curr.artists.length && curr.plays ? Math.min(1, (curr.artists.length / curr.plays) * 3) : 0.3,
+                            curr.artists[0] && curr.plays ? curr.artists[0].plays / curr.plays : 0.25,
+                            curr.tracks.length ? Math.min(1, (curr.plays / curr.tracks.length) / 5) : 0.3
+                        ], [0.65, 0.35, 0.45, 0.35, 0.5])}
+                    </div>
+                </div>
+
+                <h6 class="lfm-section-heading">Datos Rápidos</h6>
+                <div class="lfm-quick-facts-grid">
+                    <div class="lfm-fact-card lfm-chamfer">
+                        <div class="text-secondary fw-bold small">Tiempo de escucha</div>
+                        <div class="lfm-fact-val">${Number(curr.hours).toFixed(1)} HORAS</div>
+                        <div class="small">${buildWeeklyDeltaBadge(Math.round(curr.hours), Math.round(prev.hours), true).replace('semana anterior', 'mes anterior')}</div>
+                    </div>
+                    <div class="lfm-fact-card lfm-chamfer">
+                        <div class="text-secondary fw-bold small">Promedio diario</div>
+                        <div class="lfm-fact-val">${avgPerDay} /DÍA</div>
+                        <div class="small">${buildWeeklyDeltaBadge(avgPerDay, avgPrevDay, true).replace('semana anterior', 'mes anterior')}</div>
+                    </div>
+                    <div class="lfm-fact-card lfm-chamfer">
+                        <div class="text-secondary fw-bold small">Artista #1 del mes</div>
+                        <div class="lfm-fact-val text-truncate" style="font-size:1.35rem;">${escapeHtml(curr.artists[0]?.name || '—')}</div>
+                        <div class="small text-secondary">${curr.artists[0] ? `${formatNumber(curr.artists[0].plays)} scrobbles` : 'Sin datos'}</div>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+
+    artworkQueue.forEach(item => {
+        resolveSpotifyArtwork(item.name, item.artist, item.type, item.id);
+    });
+}
+
 function renderAnalysisWeekly(container) {
+    if (window.__lfmReportPeriod === 'month') {
+        renderAnalysisMonthlyReport(container);
+        return;
+    }
     const tracks = window.__analysisTimeline || [];
     const offset = window.__weeklyReportOffset || 0;
 
@@ -10383,11 +10700,7 @@ function renderAnalysisWeekly(container) {
 
     container.innerHTML = `
         <div class="lfm-report-wrap">
-            <div class="lfm-period-bar">
-                <button type="button" class="lfm-period-tab active">Última semana</button>
-                <button type="button" class="lfm-period-tab" onclick="switchAnalysisTab('summary')">Resumen anual</button>
-                <button type="button" class="lfm-period-tab" onclick="switchAnalysisTab('patterns')">Hábitos</button>
-            </div>
+            ${buildLfmPeriodBarHtml('week')}
 
             <div class="lfm-date-bar">
                 <button type="button" class="lfm-date-nav-btn" onclick="shiftWeeklyReport(-1)" title="Semana anterior">
