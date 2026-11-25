@@ -3148,7 +3148,7 @@
             transform: none;
         }
 
-        /* Home: summary, then tops. Utility challenge moves to the end and stays quiet. */
+        /* Home: summary, then tops. */
         .apple-bento-grid > .bento-span-5 {
             order: 1;
         }
@@ -3157,14 +3157,6 @@
         }
         .apple-bento-grid > .bento-span-6 {
             order: 3;
-        }
-        .apple-bento-grid > #home-interactive-hook {
-            order: 4;
-            max-height: 180px;
-            opacity: .72;
-        }
-        #home-interactive-hook:hover {
-            opacity: 1;
         }
         #home-top-mini-list,
         #home-top-tracks-mini-list {
@@ -3265,10 +3257,6 @@
             }
             #stat-strip {
                 gap: 14px !important;
-            }
-            #home-interactive-hook {
-                max-height: none;
-                opacity: 1;
             }
             #section-hub .apple-bento-card,
             #section-profile .home-card,
@@ -3594,29 +3582,6 @@
                                     </div>
                                 </div>
                                 <div class="apple-skeleton-shimmer rounded-pill" style="width: 45px; height: 18px; flex-shrink: 0;"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Bento 5 (12 cols): Mini Reto Interactivo -->
-                    <div id="home-interactive-hook" class="apple-bento-card bento-span-12 d-flex flex-column justify-content-between">
-                        <div class="d-flex align-items-center justify-content-between mb-2">
-                            <span class="apple-eyebrow" style="color: #c084fc;">
-                                <i class="fa-solid fa-gamepad"></i> DESAFÍO RÁPIDO
-                            </span>
-                            <button type="button" class="btn btn-sm btn-link text-secondary p-0 text-decoration-none" style="font-size: 0.74rem;" onclick="generateHomeHookGame()">
-                                <i class="fa-solid fa-rotate-right me-1"></i> Otra
-                            </button>
-                        </div>
-                        <div id="home-hook-body" class="my-auto">
-                            <div class="d-flex flex-column gap-2 py-1">
-                                <div class="apple-skeleton-shimmer" style="width: 82%; height: 16px; border-radius: 6px;"></div>
-                                <div class="apple-skeleton-shimmer" style="width: 58%; height: 13px; border-radius: 6px;"></div>
-                                <div class="d-grid gap-2 hook-options-grid mt-2">
-                                    <div class="apple-skeleton-shimmer rounded-3" style="width: 100%; height: 38px;"></div>
-                                    <div class="apple-skeleton-shimmer rounded-3" style="width: 100%; height: 38px;"></div>
-                                    <div class="apple-skeleton-shimmer rounded-3" style="width: 100%; height: 38px;"></div>
-                                </div>
                             </div>
                         </div>
                     </div>
