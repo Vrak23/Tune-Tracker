@@ -6223,24 +6223,140 @@ async function executeFilterSearch(q) {
 // ----------------------------------------------------
 // CARGA Y CACHÉ DE INSIGHTS (HÁBITOS, RÉCORDS, OLVIDADOS)
 // ----------------------------------------------------
+let baseInsightsCache = null;
 let cachedInsights = null;
+let cachedInsightsDeltaLen = -1;
+
+// Fusiona los scrobbles recientes de Last.fm (posteriores al corte del ZIP 2026-10-14)
+// con los récords y hábitos base para que cualquier marca rota se refleje en vivo.
+function mergeLastFmDeltaIntoInsights(baseInsights, deltaTracks) {
+    if (!baseInsights) return null;
+    if (!Array.isArray(deltaTracks) || deltaTracks.length === 0) return baseInsights;
+
+    const merged = JSON.parse(JSON.stringify(baseInsights));
+    const rec = merged.records || (merged.records = {});
+    const habits = merged.habits || (merged.habits = {});
+
+    const hourly = Array.isArray(habits.hourly) && habits.hourly.length === 24
+        ? [...habits.hourly]
+        : Array(24).fill(0);
+    const weekday = Array.isArray(habits.weekday) && habits.weekday.length === 7
+        ? [...habits.weekday]
+        : Array(7).fill(0);
+    const weekdayNames = Array.isArray(habits.weekdayNames) && habits.weekdayNames.length === 7
+        ? habits.weekdayNames
+        : ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+    const baseTotalPlays = hourly.reduce((acc, n) => acc + (n || 0), 0);
+    const dailyCounts = {};
+    const dailyArtistCounts = {};
+    const newDaysAfterCutoff = new Set();
+
+    for (const t of deltaTracks) {
+        const uts = parseInt(t?.date?.uts || t?.uts, 10);
+        if (!uts) continue;
+
+        // Misma zona horaria UTC-5 que compute_insights.js
+        const localDate = new Date(uts * 1000 - 5 * 60 * 60 * 1000);
+        const dateKey = localDate.toISOString().substring(0, 10);
+        const localHour = localDate.getUTCHours();
+        const dayOfWeek = localDate.getUTCDay();
+
+        hourly[localHour] = (hourly[localHour] || 0) + 1;
+        weekday[dayOfWeek] = (weekday[dayOfWeek] || 0) + 1;
+
+        dailyCounts[dateKey] = (dailyCounts[dateKey] || 0) + 1;
+        if (dateKey > '2026-10-14') {
+            newDaysAfterCutoff.add(dateKey);
+        }
+
+        const artist = (t?.artist?.['#text'] || t?.artist?.name || (typeof t?.artist === 'string' ? t.artist : '') || '').trim();
+        if (artist) {
+            const daKey = `${dateKey}:::${artist}`;
+            dailyArtistCounts[daKey] = (dailyArtistCounts[daKey] || 0) + 1;
+        }
+    }
+
+    // 1. Actualizar Top 5 días y Día Récord Histórico
+    const dayMap = new Map();
+    (rec.topDaysList || []).forEach(d => {
+        if (d?.date) dayMap.set(d.date, d.count || 0);
+    });
+    Object.entries(dailyCounts).forEach(([date, count]) => {
+        const prev = dayMap.get(date) || 0;
+        if (count > prev) dayMap.set(date, count);
+    });
+
+    const topDaysList = Array.from(dayMap.entries())
+        .map(([date, count]) => ({ date, count }))
+        .sort((a, b) => b.count - a.count || b.date.localeCompare(a.date))
+        .slice(0, 5);
+
+    if (topDaysList.length > 0) {
+        rec.topDaysList = topDaysList;
+        rec.topDay = { ...topDaysList[0] };
+    }
+
+    // 2. Actualizar Artista Más Maratoneado si se supera la marca
+    let bestMarathon = rec.marathonArtist ? { ...rec.marathonArtist } : { artist: '', date: '', count: 0 };
+    Object.entries(dailyArtistCounts).forEach(([daKey, count]) => {
+        if (count > (bestMarathon.count || 0)) {
+            const [date, artist] = daKey.split(':::');
+            bestMarathon = { artist, date, count };
+        }
+    });
+    if (bestMarathon.artist) {
+        rec.marathonArtist = bestMarathon;
+    }
+
+    // 3. Actualizar días activos y promedio diario
+    const baseDays = rec.totalDaysActive || 0;
+    const totalDaysActive = baseDays + newDaysAfterCutoff.size;
+    if (totalDaysActive > 0) {
+        rec.totalDaysActive = totalDaysActive;
+        const totalPlays = (baseTotalPlays > 0 ? baseTotalPlays : Math.round(baseDays * (parseFloat(rec.avgPlaysPerDay) || 0))) + deltaTracks.length;
+        rec.avgPlaysPerDay = (totalPlays / totalDaysActive).toFixed(1);
+    }
+
+    // 4. Actualizar hábitos horarios y semanales
+    habits.hourly = hourly;
+    habits.weekday = weekday;
+    habits.peakHour = hourly.indexOf(Math.max(...hourly));
+    habits.peakWeekday = weekdayNames[weekday.indexOf(Math.max(...weekday))];
+
+    return merged;
+}
 
 async function loadInsightsData() {
-    if (cachedInsights) return cachedInsights;
-    if (unifiedDb && unifiedDb.insights) {
-        cachedInsights = unifiedDb.insights;
+    if (!hasFetchedLastFmDelta && typeof fetchLastFmDelta === 'function') {
+        await fetchLastFmDelta();
+    }
+
+    const deltaLen = Array.isArray(lastFmRecentDelta) ? lastFmRecentDelta.length : 0;
+    if (cachedInsights && cachedInsightsDeltaLen === deltaLen) {
         return cachedInsights;
     }
-    try {
-        const res = await fetch('/data/insights.json');
-        if (res.ok) {
-            cachedInsights = await res.json();
-            return cachedInsights;
+
+    if (!baseInsightsCache) {
+        if (unifiedDb && unifiedDb.insights) {
+            baseInsightsCache = unifiedDb.insights;
+        } else {
+            try {
+                const res = await fetch('/data/insights.json');
+                if (res.ok) {
+                    baseInsightsCache = await res.json();
+                }
+            } catch (e) {
+                console.warn('Error al cargar insights.json:', e);
+            }
         }
-    } catch (e) {
-        console.warn('Error al cargar insights.json:', e);
     }
-    return null;
+
+    if (!baseInsightsCache) return null;
+
+    cachedInsights = mergeLastFmDeltaIntoInsights(baseInsightsCache, lastFmRecentDelta);
+    cachedInsightsDeltaLen = deltaLen;
+    return cachedInsights;
 }
 
 // ----------------------------------------------------
