@@ -5,6 +5,7 @@
 let firebaseApp = null;
 let firestoreDb = null;
 let firebaseMessaging = null;
+let isFirestoreBlocked = false;
 
 async function initFirebase() {
     if (typeof firebase === 'undefined' || firebaseApp) return;
@@ -313,13 +314,15 @@ async function syncAccessRequestsFromCloud(forceRender = false) {
 
     // 1. Pull from Firebase Firestore
     try {
-        if (firestoreDb) {
+        if (firestoreDb && !isFirestoreBlocked) {
             const docSnap = await firestoreDb.collection('spotitracker_profile').doc('access_requests').get();
             if (docSnap.exists && docSnap.data()?.users) {
                 remoteUsers = docSnap.data().users;
             }
         }
-    } catch (e) {}
+    } catch (e) {
+        isFirestoreBlocked = true;
+    }
 
     // 2. Pull from Supabase if available
     if (!remoteUsers && typeof SUPABASE_PROJECT_URL !== 'undefined' && typeof SUPABASE_ANON_KEY !== 'undefined') {
@@ -368,13 +371,15 @@ async function pushAccessRequestsToCloud() {
     };
 
     try {
-        if (firestoreDb) {
+        if (firestoreDb && !isFirestoreBlocked) {
             await firestoreDb.collection('spotitracker_profile').doc('access_requests').set({
                 users: stateObj.users,
                 updated_at: payload.updated_at
             }, { merge: true });
         }
-    } catch (e) {}
+    } catch (e) {
+        isFirestoreBlocked = true;
+    }
 
     if (typeof SUPABASE_PROJECT_URL !== 'undefined' && typeof SUPABASE_ANON_KEY !== 'undefined') {
         try {
@@ -3551,9 +3556,12 @@ async function syncUserProfile() {
 // ----------------------------------------------------
 let currentlyPlayingTimer = null;
 let lastPlayingTrackKey = null;
+let lastFmPlayingFailureCount = 0;
+let lastFmPlayingCooldownUntil = 0;
 
 async function fetchCurrentlyPlaying() {
     if (!navigator.onLine) return;
+    if (Date.now() < lastFmPlayingCooldownUntil) return;
 
     if (isDemoMode()) {
         if (currentlyPlayingContainer) {
@@ -3598,7 +3606,17 @@ async function fetchCurrentlyPlaying() {
         currentlyPlayingContainer.classList.remove('d-none');
     }
     try {
-            const lfRes = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.getRecentTracks&user=${encodeURIComponent(user)}&api_key=${encodeURIComponent(key)}&limit=2&format=json`);
+            const lfRes = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${encodeURIComponent(user)}&api_key=${encodeURIComponent(key)}&limit=2&format=json`);
+            if (!lfRes.ok) {
+                lastFmPlayingFailureCount++;
+                // Backoff progresivo: 30s -> 60s -> 120s -> máx 5 min si Last.fm está caído con error 500
+                const delay = Math.min(30000 * Math.pow(2, Math.min(lastFmPlayingFailureCount - 1, 3)), 300000);
+                lastFmPlayingCooldownUntil = Date.now() + delay;
+                return;
+            }
+            lastFmPlayingFailureCount = 0;
+            lastFmPlayingCooldownUntil = 0;
+
             const lfData = await lfRes.json();
             const tracksArr = Array.isArray(lfData?.recenttracks?.track) ? lfData.recenttracks.track : (lfData?.recenttracks?.track ? [lfData.recenttracks.track] : []);
             const firstTrack = tracksArr[0];
@@ -3653,7 +3671,10 @@ async function fetchCurrentlyPlaying() {
                 }
                 return;
             }
-    } catch (e) {}
+    } catch (e) {
+        lastFmPlayingFailureCount++;
+        lastFmPlayingCooldownUntil = Date.now() + 30000;
+    }
 }
 
 // Detecta scrobbles nuevos y refresca home, listados y modales sin recargar la página
@@ -4514,7 +4535,12 @@ async function loadStats(silent = false) {
 
         // 1. TOP CANCIONES (Ordenado por scrobbles)
         if (currentType === 'tracks') {
-            const res = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.getTopTracks&user=${encodeURIComponent(user)}&period=${apiPeriod}&limit=${currentLimit}&api_key=${encodeURIComponent(key)}&format=json`);
+            const res = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.gettoptracks&user=${encodeURIComponent(user)}&period=${apiPeriod}&limit=${currentLimit}&api_key=${encodeURIComponent(key)}&format=json`);
+            if (!res.ok) {
+                loader.classList.add('d-none');
+                statsList.innerHTML = '<div class="text-center text-secondary py-5">No se pudo consultar Last.fm en este momento. Intenta de nuevo más tarde.</div>';
+                return;
+            }
             const data = await res.json();
             loader.classList.add('d-none');
             const tracks = data?.toptracks?.track || [];
@@ -4529,7 +4555,12 @@ async function loadStats(silent = false) {
 
         // 2. TOP ARTISTAS (Ordenado por scrobbles)
         if (currentType === 'artists') {
-            const res = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.getTopArtists&user=${encodeURIComponent(user)}&period=${apiPeriod}&limit=${currentLimit}&api_key=${encodeURIComponent(key)}&format=json`);
+            const res = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.gettopartists&user=${encodeURIComponent(user)}&period=${apiPeriod}&limit=${currentLimit}&api_key=${encodeURIComponent(key)}&format=json`);
+            if (!res.ok) {
+                loader.classList.add('d-none');
+                statsList.innerHTML = '<div class="text-center text-secondary py-5">No se pudo consultar Last.fm en este momento. Intenta de nuevo más tarde.</div>';
+                return;
+            }
             const data = await res.json();
             loader.classList.add('d-none');
             const artists = data?.topartists?.artist || [];
@@ -4544,7 +4575,12 @@ async function loadStats(silent = false) {
 
         // 3. TOP ÁLBUMES (Ordenado por scrobbles)
         if (currentType === 'albums') {
-            const res = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.getTopAlbums&user=${encodeURIComponent(user)}&period=${apiPeriod}&limit=${currentLimit}&api_key=${encodeURIComponent(key)}&format=json`);
+            const res = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.gettopalbums&user=${encodeURIComponent(user)}&period=${apiPeriod}&limit=${currentLimit}&api_key=${encodeURIComponent(key)}&format=json`);
+            if (!res.ok) {
+                loader.classList.add('d-none');
+                statsList.innerHTML = '<div class="text-center text-secondary py-5">No se pudo consultar Last.fm en este momento. Intenta de nuevo más tarde.</div>';
+                return;
+            }
             const data = await res.json();
             loader.classList.add('d-none');
             const albums = data?.topalbums?.album || [];
@@ -4559,7 +4595,12 @@ async function loadStats(silent = false) {
 
         // 4. RECIENTES (Historial cronológico)
         if (currentType === 'recent') {
-            const res = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.getRecentTracks&user=${encodeURIComponent(user)}&limit=${currentLimit}&api_key=${encodeURIComponent(key)}&format=json`);
+            const res = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${encodeURIComponent(user)}&limit=${currentLimit}&api_key=${encodeURIComponent(key)}&format=json`);
+            if (!res.ok) {
+                loader.classList.add('d-none');
+                statsList.innerHTML = '<div class="text-center text-secondary py-5">No se pudo consultar el historial en Last.fm en este momento. Intenta de nuevo más tarde.</div>';
+                return;
+            }
             const data = await res.json();
             loader.classList.add('d-none');
             const rawTracks = data?.recenttracks?.track || [];
@@ -4692,6 +4733,11 @@ async function loadTimestampRangeStats(user, key, fromUTS, toUTS, emptyLabel) {
         // 1. TOP CANCIONES (user.getweeklytrackchart)
         if (currentType === 'tracks') {
             const res = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.getweeklytrackchart&user=${encodeURIComponent(user)}&from=${fromUTS}&to=${toUTS}&api_key=${encodeURIComponent(key)}&format=json`);
+            if (!res.ok) {
+                loader.classList.add('d-none');
+                statsList.innerHTML = `<div class="text-center text-secondary py-5">No se pudieron consultar canciones para ${emptyLabel}. Intenta de nuevo más tarde.</div>`;
+                return;
+            }
             const data = await res.json();
             loader.classList.add('d-none');
             const tracks = data?.weeklytrackchart?.track || [];
@@ -4708,6 +4754,11 @@ async function loadTimestampRangeStats(user, key, fromUTS, toUTS, emptyLabel) {
         // 2. TOP ARTISTAS (user.getweeklyartistchart)
         if (currentType === 'artists') {
             const res = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.getweeklyartistchart&user=${encodeURIComponent(user)}&from=${fromUTS}&to=${toUTS}&api_key=${encodeURIComponent(key)}&format=json`);
+            if (!res.ok) {
+                loader.classList.add('d-none');
+                statsList.innerHTML = `<div class="text-center text-secondary py-5">No se pudieron consultar artistas para ${emptyLabel}. Intenta de nuevo más tarde.</div>`;
+                return;
+            }
             const data = await res.json();
             loader.classList.add('d-none');
             const artists = data?.weeklyartistchart?.artist || [];
@@ -4724,6 +4775,11 @@ async function loadTimestampRangeStats(user, key, fromUTS, toUTS, emptyLabel) {
         // 3. TOP ÁLBUMES (user.getweeklyalbumchart)
         if (currentType === 'albums') {
             const res = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.getweeklyalbumchart&user=${encodeURIComponent(user)}&from=${fromUTS}&to=${toUTS}&api_key=${encodeURIComponent(key)}&format=json`);
+            if (!res.ok) {
+                loader.classList.add('d-none');
+                statsList.innerHTML = `<div class="text-center text-secondary py-5">No se pudieron consultar álbumes para ${emptyLabel}. Intenta de nuevo más tarde.</div>`;
+                return;
+            }
             const data = await res.json();
             loader.classList.add('d-none');
             const albums = data?.weeklyalbumchart?.album || [];
@@ -4740,6 +4796,11 @@ async function loadTimestampRangeStats(user, key, fromUTS, toUTS, emptyLabel) {
         // 4. HISTORIAL RECIENTE (user.getrecenttracks con from y to)
         if (currentType === 'recent') {
             const res = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${encodeURIComponent(user)}&from=${fromUTS}&to=${toUTS}&limit=${currentLimit}&api_key=${encodeURIComponent(key)}&format=json`);
+            if (!res.ok) {
+                loader.classList.add('d-none');
+                statsList.innerHTML = `<div class="text-center text-secondary py-5">No se pudo consultar el historial en ${emptyLabel} (servicio de Last.fm no disponible temporalmente).</div>`;
+                return;
+            }
             const data = await res.json();
             loader.classList.add('d-none');
             const rawTracks = data?.recenttracks?.track || [];
@@ -9255,10 +9316,11 @@ async function pushProfileToCloud() {
 
     // 2. Push to Firebase Firestore (spotitracker-87628) if initialized
     try {
-        if (firestoreDb) {
+        if (firestoreDb && !isFirestoreBlocked) {
             await firestoreDb.collection('spotitracker_profile').doc('default').set(payload, { merge: true });
         }
     } catch (e) {
+        isFirestoreBlocked = true;
         console.warn('Firebase Firestore push warning:', e);
     }
 }
@@ -9284,7 +9346,7 @@ async function pullProfileFromCloud() {
 
     // 2. Also check Firebase Firestore
     try {
-        if (firestoreDb) {
+        if (firestoreDb && !isFirestoreBlocked) {
             const docSnap = await firestoreDb.collection('spotitracker_profile').doc('default').get();
             if (docSnap.exists) {
                 const fbState = docSnap.data()?.state;
@@ -9297,7 +9359,9 @@ async function pullProfileFromCloud() {
                 }
             }
         }
-    } catch (e) {}
+    } catch (e) {
+        isFirestoreBlocked = true;
+    }
 
     if (!remote || typeof remote !== 'object') return;
 
