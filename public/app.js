@@ -397,9 +397,170 @@ async function pushAccessRequestsToCloud() {
     }
 }
 
+const AUTH_ACCOUNTS_KEY = 'tunetracker_auth_accounts_v1';
+const AUTH_SESSION_KEY = 'tunetracker_auth_user';
+
+function getCurrentAuthUser() {
+    try {
+        const raw = localStorage.getItem(AUTH_SESSION_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        return (parsed && parsed.username) ? parsed : null;
+    } catch (e) {
+        return null;
+    }
+}
+window.getCurrentAuthUser = getCurrentAuthUser;
+
+function setCurrentAuthUser(sessionObj) {
+    if (!sessionObj) {
+        localStorage.removeItem(AUTH_SESSION_KEY);
+        return;
+    }
+    localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(sessionObj));
+}
+
+function getLocalAuthAccounts() {
+    try {
+        const raw = localStorage.getItem(AUTH_ACCOUNTS_KEY);
+        const parsed = raw ? JSON.parse(raw) : {};
+        return (parsed && typeof parsed === 'object') ? parsed : {};
+    } catch (e) {
+        return {};
+    }
+}
+
+function saveLocalAuthAccount(usernameKey, accountObj) {
+    const accounts = getLocalAuthAccounts();
+    accounts[usernameKey] = accountObj;
+    try {
+        localStorage.setItem(AUTH_ACCOUNTS_KEY, JSON.stringify(accounts));
+    } catch (e) {}
+}
+
+function toHex(buffer) {
+    return Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function fromHex(hex) {
+    const bytes = new Uint8Array(hex.length / 2);
+    for (let i = 0; i < bytes.length; i++) {
+        bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
+    }
+    return bytes;
+}
+
+function generateSaltHex(byteLength = 16) {
+    const arr = new Uint8Array(byteLength);
+    window.crypto.getRandomValues(arr);
+    return toHex(arr);
+}
+
+async function hashPasswordWithSalt(password, saltHex) {
+    if (window.crypto && window.crypto.subtle) {
+        const enc = new TextEncoder();
+        const keyMaterial = await window.crypto.subtle.importKey(
+            'raw',
+            enc.encode(password),
+            'PBKDF2',
+            false,
+            ['deriveBits']
+        );
+        const bits = await window.crypto.subtle.deriveBits(
+            {
+                name: 'PBKDF2',
+                salt: fromHex(saltHex),
+                iterations: 100000,
+                hash: 'SHA-256'
+            },
+            keyMaterial,
+            256
+        );
+        return toHex(bits);
+    }
+    // Fallback determinista si WebCrypto subtle no está disponible
+    let h = 2166136261;
+    const input = `${saltHex}:${password}`;
+    for (let i = 0; i < input.length; i++) {
+        h ^= input.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+    }
+    return (h >>> 0).toString(16).padStart(8, '0');
+}
+
+async function fetchAuthAccountFromCloud(usernameKey) {
+    const docId = `auth_user_${usernameKey}`;
+    try {
+        if (typeof SUPABASE_PROJECT_URL !== 'undefined' && typeof SUPABASE_ANON_KEY !== 'undefined') {
+            const res = await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/spotitracker_profile?id=eq.${encodeURIComponent(docId)}&select=state`, {
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                }
+            });
+            if (res.ok) {
+                const rows = await res.json();
+                if (rows?.[0]?.state?.usernameKey) {
+                    return rows[0].state;
+                }
+            }
+        }
+    } catch (e) {}
+
+    try {
+        if (firestoreDb && !isFirestoreBlocked) {
+            const docSnap = await firestoreDb.collection('spotitracker_profile').doc(docId).get();
+            if (docSnap.exists && docSnap.data()?.usernameKey) {
+                return docSnap.data();
+            }
+        }
+    } catch (e) {
+        isFirestoreBlocked = true;
+    }
+    return null;
+}
+
+async function pushAuthAccountToCloud(usernameKey, accountObj) {
+    const docId = `auth_user_${usernameKey}`;
+    const payload = {
+        id: docId,
+        user_id: usernameKey,
+        state: accountObj,
+        updated_at: new Date().toISOString()
+    };
+
+    try {
+        if (typeof SUPABASE_PROJECT_URL !== 'undefined' && typeof SUPABASE_ANON_KEY !== 'undefined') {
+            await fetch(`${SUPABASE_PROJECT_URL}/rest/v1/spotitracker_profile`, {
+                method: 'POST',
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'resolution=merge-duplicates'
+                },
+                body: JSON.stringify(payload)
+            });
+        }
+    } catch (e) {}
+
+    try {
+        if (firestoreDb && !isFirestoreBlocked) {
+            await firestoreDb.collection('spotitracker_profile').doc(docId).set(accountObj, { merge: true });
+        }
+    } catch (e) {
+        isFirestoreBlocked = true;
+    }
+}
+
 function getCurrentNormalizedUser() {
     const u = (localStorage.getItem('lastfm_user') || '').trim();
-    return { raw: u, key: u.toLowerCase() };
+    if (u) return { raw: u, key: u.toLowerCase() };
+    const authUser = getCurrentAuthUser();
+    if (authUser && authUser.username) {
+        return { raw: authUser.username, key: authUser.username.toLowerCase() };
+    }
+    return { raw: '', key: '' };
 }
 
 function getUserFeatureStatus(feature) {
@@ -1062,6 +1223,7 @@ if ('serviceWorker' in navigator) {
 const loginView = document.getElementById('login-view');
 const dashboardView = document.getElementById('dashboard-view');
 const navActions = document.getElementById('nav-actions');
+const desktopNavTabs = document.getElementById('desktop-nav-tabs');
 const userImg = document.getElementById('user-img');
 const drawerUserImg = document.getElementById('drawer-user-img');
 const drawerUserName = document.getElementById('drawer-user-name');
@@ -1441,9 +1603,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const authLoadingView = document.getElementById('auth-loading-view');
     const isLoggedOut = localStorage.getItem('spoti_logged_out') === 'true';
 
+    const hasAuthAccount = !!getCurrentAuthUser();
     const hasLastFm = !!(localStorage.getItem('lastfm_user') && localStorage.getItem('lastfm_user').trim());
     const hasOwner = localStorage.getItem('tunetracker_owner_mode') === 'true';
-    const isAuthenticated = !isLoggedOut && (hasLastFm || hasOwner);
+    const isAuthenticated = !isLoggedOut && (hasAuthAccount || hasLastFm || hasOwner);
 
     if (authLoadingView) authLoadingView.classList.add('d-none');
 
@@ -1465,77 +1628,239 @@ function setupEventListeners() {
         });
     });
 
-    // Login con Last.fm directo en pantalla de bienvenida
-    const loginLastFmInput = document.getElementById('login-lastfm-input');
-    const btnLoginLastFmSubmit = document.getElementById('btn-login-lastfm-submit');
-    const loginLastFmError = document.getElementById('login-lastfm-error');
+    // Sistema de Login con Contraseña, Registro (sin Last.fm obligatorio) y Botón Last.fm
+    const tabAuthLogin = document.getElementById('tab-auth-login');
+    const tabAuthRegister = document.getElementById('tab-auth-register');
+    const loginAuthForm = document.getElementById('login-auth-form');
+    const registerAuthForm = document.getElementById('register-auth-form');
+    const loginUsernameInput = document.getElementById('login-username-input');
+    const loginPasswordInput = document.getElementById('login-password-input');
+    const loginAuthError = document.getElementById('login-auth-error');
+    const btnLoginSubmit = document.getElementById('btn-login-submit');
 
-    async function processLastFmLogin() {
-        const user = loginLastFmInput ? loginLastFmInput.value.trim() : '';
-        if (!user) {
-            if (loginLastFmError) {
-                loginLastFmError.textContent = 'Por favor ingresa tu nombre de usuario de Last.fm.';
-                loginLastFmError.classList.remove('d-none');
-            }
-            if (loginLastFmInput) loginLastFmInput.focus();
-            return;
+    const registerUsernameInput = document.getElementById('register-username-input');
+    const registerPasswordInput = document.getElementById('register-password-input');
+    const registerLastFmInput = document.getElementById('register-lastfm-input');
+    const registerAuthError = document.getElementById('register-auth-error');
+    const btnRegisterSubmit = document.getElementById('btn-register-submit');
+    const btnLoginWithLastFm = document.getElementById('btn-login-with-lastfm');
+
+    function switchAuthMode(mode) {
+        const isRegister = mode === 'register';
+        const loginPortal = document.getElementById('login-view');
+        if (loginPortal) loginPortal.classList.toggle('is-register-mode', isRegister);
+        if (tabAuthLogin) {
+            tabAuthLogin.classList.toggle('active', !isRegister);
+            tabAuthLogin.setAttribute('aria-selected', String(!isRegister));
         }
-
-        if (btnLoginLastFmSubmit) {
-            btnLoginLastFmSubmit.disabled = true;
-            btnLoginLastFmSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-1.5"></span> Conectando...';
+        if (tabAuthRegister) {
+            tabAuthRegister.classList.toggle('active', isRegister);
+            tabAuthRegister.setAttribute('aria-selected', String(isRegister));
         }
-        if (loginLastFmError) loginLastFmError.classList.add('d-none');
+        if (loginAuthForm) loginAuthForm.classList.toggle('d-none', isRegister);
+        if (registerAuthForm) registerAuthForm.classList.toggle('d-none', !isRegister);
+        if (loginAuthError) loginAuthError.classList.add('d-none');
+        if (registerAuthError) registerAuthError.classList.add('d-none');
 
-        try {
-            let testRes = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.getinfo&user=${encodeURIComponent(user)}&api_key=${encodeURIComponent(DEFAULT_LASTFM_KEY)}&format=json`);
-            let testData = await testRes.json();
+        const focusTarget = isRegister ? registerUsernameInput : loginUsernameInput;
+        if (focusTarget) focusTarget.focus();
+    }
 
-            if (testData.error === 8) {
-                await new Promise(r => setTimeout(r, 1200));
-                testRes = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.getinfo&user=${encodeURIComponent(user)}&api_key=${encodeURIComponent(DEFAULT_LASTFM_KEY)}&format=json`);
-                testData = await testRes.json();
+    if (tabAuthLogin) tabAuthLogin.addEventListener('click', () => switchAuthMode('login'));
+    if (tabAuthRegister) tabAuthRegister.addEventListener('click', () => switchAuthMode('register'));
+
+    document.querySelectorAll('.btn-toggle-password').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const targetId = btn.getAttribute('data-target');
+            const input = targetId ? document.getElementById(targetId) : null;
+            if (!input) return;
+            const isHidden = input.type === 'password';
+            input.type = isHidden ? 'text' : 'password';
+            btn.setAttribute('aria-pressed', String(isHidden));
+            btn.setAttribute('aria-label', isHidden ? 'Ocultar contraseña' : 'Mostrar contraseña');
+            const icon = btn.querySelector('i');
+            if (icon) {
+                icon.className = isHidden ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye';
             }
+        });
+    });
 
-            if (testData.error) {
-                if (loginLastFmError) {
-                    loginLastFmError.textContent = `No se encontró el usuario "${user}" en Last.fm. Verifica que esté bien escrito.`;
-                    loginLastFmError.classList.remove('d-none');
-                }
+    function showAuthFormError(el, msg, focusEl) {
+        if (el) {
+            el.textContent = msg;
+            el.classList.remove('d-none');
+        }
+        if (focusEl) focusEl.focus();
+    }
+
+    if (loginAuthForm) {
+        loginAuthForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (loginAuthError) loginAuthError.classList.add('d-none');
+
+            const rawUsername = (loginUsernameInput?.value || '').trim();
+            const password = loginPasswordInput?.value || '';
+
+            if (!rawUsername) {
+                showAuthFormError(loginAuthError, 'Por favor ingresa tu nombre de usuario.', loginUsernameInput);
+                return;
+            }
+            if (!password) {
+                showAuthFormError(loginAuthError, 'Por favor ingresa tu contraseña.', loginPasswordInput);
                 return;
             }
 
-            localStorage.removeItem('spoti_logged_out');
-            localStorage.setItem('lastfm_user', user);
-            localStorage.setItem('lastfm_key', DEFAULT_LASTFM_KEY);
-            isDemoSession = false;
-            sessionStorage.removeItem('tunetracker_demo_session');
-            unifiedDb = null;
-            applyRoleBasedUI();
-            showDashboard();
-        } catch (e) {
-            if (loginLastFmError) {
-                loginLastFmError.textContent = 'Error al conectar con los servidores de Last.fm. Intenta de nuevo.';
-                loginLastFmError.classList.remove('d-none');
+            const usernameKey = rawUsername.toLowerCase();
+            if (btnLoginSubmit) {
+                btnLoginSubmit.disabled = true;
+                btnLoginSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-1.5"></span> Verificando...';
             }
-        } finally {
-            if (btnLoginLastFmSubmit) {
-                btnLoginLastFmSubmit.disabled = false;
-                btnLoginLastFmSubmit.innerHTML = '<i class="fa-brands fa-lastfm me-1.5"></i> Conectar y Entrar';
-            }
-        }
-    }
 
-    if (btnLoginLastFmSubmit) {
-        btnLoginLastFmSubmit.addEventListener('click', processLastFmLogin);
-    }
-    if (loginLastFmInput) {
-        loginLastFmInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                processLastFmLogin();
+            try {
+                const localAccounts = getLocalAuthAccounts();
+                let account = localAccounts[usernameKey] || null;
+                if (!account) {
+                    account = await fetchAuthAccountFromCloud(usernameKey);
+                    if (account) saveLocalAuthAccount(usernameKey, account);
+                }
+
+                if (!account || !account.passwordHash || !account.salt) {
+                    showAuthFormError(loginAuthError, 'Usuario o contraseña incorrectos. Si aún no tienes cuenta, créala en "Crear cuenta".', loginUsernameInput);
+                    return;
+                }
+
+                const computedHash = await hashPasswordWithSalt(password, account.salt);
+                if (computedHash !== account.passwordHash) {
+                    showAuthFormError(loginAuthError, 'Usuario o contraseña incorrectos.', loginPasswordInput);
+                    return;
+                }
+
+                localStorage.removeItem('spoti_logged_out');
+                setCurrentAuthUser({
+                    username: account.username || rawUsername,
+                    lastfmUser: account.lastfmUser || null,
+                    loggedInAt: new Date().toISOString()
+                });
+
+                if (account.lastfmUser) {
+                    localStorage.setItem('lastfm_user', account.lastfmUser);
+                    localStorage.setItem('lastfm_key', DEFAULT_LASTFM_KEY);
+                } else {
+                    localStorage.removeItem('lastfm_user');
+                    localStorage.removeItem('lastfm_key');
+                }
+
+                isDemoSession = false;
+                sessionStorage.removeItem('tunetracker_demo_session');
+                unifiedDb = null;
+                applyRoleBasedUI();
+                showDashboard();
+            } catch (err) {
+                showAuthFormError(loginAuthError, 'No se pudo verificar la cuenta. Intenta de nuevo.');
+            } finally {
+                if (btnLoginSubmit) {
+                    btnLoginSubmit.disabled = false;
+                    btnLoginSubmit.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i><span>Iniciar sesión</span>';
+                }
             }
         });
+    }
+
+    if (registerAuthForm) {
+        registerAuthForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (registerAuthError) registerAuthError.classList.add('d-none');
+
+            const rawUsername = (registerUsernameInput?.value || '').trim();
+            const password = registerPasswordInput?.value || '';
+            const optionalLastFm = (registerLastFmInput?.value || '').trim();
+
+            if (rawUsername.length < 3) {
+                showAuthFormError(registerAuthError, 'El nombre de usuario debe tener al menos 3 caracteres.', registerUsernameInput);
+                return;
+            }
+            if (!/^[a-zA-Z0-9._-]+$/.test(rawUsername)) {
+                showAuthFormError(registerAuthError, 'El usuario solo puede contener letras, números, puntos, guiones o guion bajo.', registerUsernameInput);
+                return;
+            }
+            if (password.length < 6) {
+                showAuthFormError(registerAuthError, 'La contraseña debe tener al menos 6 caracteres.', registerPasswordInput);
+                return;
+            }
+
+            const usernameKey = rawUsername.toLowerCase();
+            if (btnRegisterSubmit) {
+                btnRegisterSubmit.disabled = true;
+                btnRegisterSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-1.5"></span> Creando cuenta...';
+            }
+
+            try {
+                const localAccounts = getLocalAuthAccounts();
+                const existing = localAccounts[usernameKey] || await fetchAuthAccountFromCloud(usernameKey);
+                if (existing) {
+                    showAuthFormError(registerAuthError, `El usuario "${rawUsername}" ya existe. Inicia sesión o elige otro nombre.`, registerUsernameInput);
+                    return;
+                }
+
+                if (optionalLastFm) {
+                    const testRes = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.getinfo&user=${encodeURIComponent(optionalLastFm)}&api_key=${encodeURIComponent(DEFAULT_LASTFM_KEY)}&format=json`);
+                    const testData = await testRes.json();
+                    if (testData.error) {
+                        showAuthFormError(registerAuthError, `No se encontró "${optionalLastFm}" en Last.fm. Puedes dejar ese campo vacío para registrarte sin Last.fm.`, registerLastFmInput);
+                        return;
+                    }
+                }
+
+                const salt = generateSaltHex(16);
+                const passwordHash = await hashPasswordWithSalt(password, salt);
+                const nowIso = new Date().toISOString();
+                const accountObj = {
+                    username: rawUsername,
+                    usernameKey,
+                    passwordHash,
+                    salt,
+                    algo: 'pbkdf2-sha256-v1',
+                    lastfmUser: optionalLastFm || null,
+                    createdAt: nowIso,
+                    updatedAt: nowIso
+                };
+
+                saveLocalAuthAccount(usernameKey, accountObj);
+                pushAuthAccountToCloud(usernameKey, accountObj);
+
+                localStorage.removeItem('spoti_logged_out');
+                setCurrentAuthUser({
+                    username: rawUsername,
+                    lastfmUser: optionalLastFm || null,
+                    loggedInAt: nowIso
+                });
+
+                if (optionalLastFm) {
+                    localStorage.setItem('lastfm_user', optionalLastFm);
+                    localStorage.setItem('lastfm_key', DEFAULT_LASTFM_KEY);
+                } else {
+                    localStorage.removeItem('lastfm_user');
+                    localStorage.removeItem('lastfm_key');
+                }
+
+                isDemoSession = false;
+                sessionStorage.removeItem('tunetracker_demo_session');
+                unifiedDb = null;
+                applyRoleBasedUI();
+                showDashboard();
+            } catch (err) {
+                showAuthFormError(registerAuthError, 'Ocurrió un error al crear la cuenta. Intenta de nuevo.');
+            } finally {
+                if (btnRegisterSubmit) {
+                    btnRegisterSubmit.disabled = false;
+                    btnRegisterSubmit.innerHTML = '<i class="fa-solid fa-user-check"></i><span>Crear cuenta</span>';
+                }
+            }
+        });
+    }
+
+    if (btnLoginWithLastFm) {
+        btnLoginWithLastFm.addEventListener('click', openLastFmModal);
     }
 
     const btnLoginDemo = document.getElementById('btn-login-demo');
@@ -3169,7 +3494,12 @@ function handleLogout() {
     localStorage.removeItem('lastfm_user');
     localStorage.removeItem('lastfm_key');
     localStorage.removeItem('tunetracker_owner_mode');
+    localStorage.removeItem(AUTH_SESSION_KEY);
     localStorage.setItem('spoti_logged_out', 'true');
+    const lPass = document.getElementById('login-password-input');
+    const rPass = document.getElementById('register-password-input');
+    if (lPass) lPass.value = '';
+    if (rPass) rPass.value = '';
     isDemoSession = false;
     sessionStorage.removeItem('tunetracker_demo_session');
     accessToken = null;
@@ -3205,6 +3535,7 @@ function showLogin() {
     loginView.classList.remove('d-none');
     dashboardView.classList.add('d-none');
     navActions.classList.add('d-none');
+    if (desktopNavTabs) desktopNavTabs.classList.add('d-none');
 
     const bottomNav = document.getElementById('bottom-nav-bar');
     if (bottomNav) bottomNav.classList.add('d-none');
@@ -3225,6 +3556,7 @@ async function showDashboard() {
     loginView.classList.add('d-none');
     dashboardView.classList.remove('d-none');
     navActions.classList.remove('d-none');
+    if (desktopNavTabs) desktopNavTabs.classList.remove('d-none');
 
     // Mostrar Bottom Navigation Bar y añadir padding inferior al body
     const bottomNav = document.getElementById('bottom-nav-bar');
@@ -3549,7 +3881,19 @@ async function syncUserProfile() {
         return;
     }
 
-    await fetchLastFmGlobalStats({ updateProfileUI: true });
+    const { user, key } = getLastFmCredentials();
+    if (user && key) {
+        await fetchLastFmGlobalStats({ updateProfileUI: true });
+        return;
+    }
+
+    const authUser = getCurrentAuthUser();
+    if (authUser && authUser.username) {
+        if (drawerUserName) drawerUserName.textContent = `@${authUser.username}`;
+        if (drawerUserFollowers) drawerUserFollowers.textContent = 'Cuenta Tune Tracker • Sin Last.fm';
+        if (userImg) userImg.src = DEFAULT_AVATAR_SVG;
+        if (drawerUserImg) drawerUserImg.src = DEFAULT_AVATAR_SVG;
+    }
 }
 
 // ----------------------------------------------------
@@ -5805,6 +6149,21 @@ async function handleSaveLastFm() {
         unifiedDb = null;
         localStorage.setItem('lastfm_user', user);
         localStorage.setItem('lastfm_key', key);
+
+        const activeAuth = getCurrentAuthUser();
+        if (activeAuth && activeAuth.username) {
+            activeAuth.lastfmUser = user;
+            setCurrentAuthUser(activeAuth);
+            const uKey = activeAuth.username.toLowerCase();
+            const localAccounts = getLocalAuthAccounts();
+            if (localAccounts[uKey]) {
+                localAccounts[uKey].lastfmUser = user;
+                localAccounts[uKey].updatedAt = new Date().toISOString();
+                saveLocalAuthAccount(uKey, localAccounts[uKey]);
+                pushAuthAccountToCloud(uKey, localAccounts[uKey]);
+            }
+        }
+
         applyRoleBasedUI();
         showDashboard();
         initLastFmState();
@@ -11336,6 +11695,9 @@ async function refreshHomeView() {
                 name = `@${lfmUser}`;
             } else if (userProfileData && userProfileData.display_name) {
                 name = userProfileData.display_name.split(' ')[0];
+            } else {
+                const authU = getCurrentAuthUser();
+                if (authU && authU.username) name = `@${authU.username}`;
             }
             greetingEl.innerHTML = `${greeting}, <span style="color: var(--brand-primary);">${escapeHtml(name)}</span>`;
         }

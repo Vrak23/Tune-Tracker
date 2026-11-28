@@ -1541,17 +1541,33 @@
             transform: scale(0.92);
         }
 
-        /* Desktop Top Tabs Navigation (Complemento para PC en app-container) */
+        /* Navbar Desktop Tabs Navigation (>= 768px) */
+        .navbar .app-container {
+            padding-top: 0 !important;
+            max-width: 100% !important;
+            padding-left: 20px !important;
+            padding-right: 20px !important;
+        }
+
         .desktop-nav-tabs {
-            display: none;
+            display: none !important;
+            align-items: center;
             gap: 6px;
-            margin-bottom: 14px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            padding-bottom: 8px;
+            margin: 0 auto;
+            padding: 0;
+            border: none;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            min-width: 0;
+        }
+
+        .desktop-nav-tabs::-webkit-scrollbar {
+            display: none;
         }
 
         @media (min-width: 768px) {
-            .desktop-nav-tabs {
+            .desktop-nav-tabs:not(.d-none) {
                 display: flex !important;
             }
             .bottom-nav-bar {
@@ -1562,11 +1578,17 @@
             }
         }
 
+        @media (max-width: 767px) {
+            .desktop-nav-tabs {
+                display: none !important;
+            }
+        }
+
         .desktop-nav-btn {
             background: rgba(255, 255, 255, 0.04);
             border: 1px solid rgba(255, 255, 255, 0.08);
             color: var(--text-secondary);
-            padding: 6px 16px;
+            padding: 5px 14px;
             border-radius: 980px;
             font-size: 0.80rem;
             font-weight: 500;
@@ -1575,20 +1597,37 @@
             gap: 6px;
             cursor: pointer;
             transition: all 0.22s var(--ease-spring);
+            flex-shrink: 0;
+            white-space: nowrap;
+            text-decoration: none;
+            outline: none;
+            user-select: none;
+            line-height: 1.4;
         }
 
         .desktop-nav-btn:hover {
             color: #ffffff;
             background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(255, 255, 255, 0.16);
+            border-color: rgba(255, 255, 255, 0.18);
         }
 
         .desktop-nav-btn.active {
             color: #ffffff !important;
-            background: rgba(255, 255, 255, 0.18) !important;
-            border-color: rgba(255, 255, 255, 0.22) !important;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+            background: rgba(255, 255, 255, 0.16) !important;
+            border-color: rgba(255, 255, 255, 0.28) !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
             font-weight: 600;
+        }
+
+        @media (min-width: 768px) and (max-width: 1024px) {
+            .desktop-nav-tabs {
+                gap: 4px !important;
+            }
+            .desktop-nav-btn {
+                padding: 4px 9px !important;
+                font-size: 0.72rem !important;
+                gap: 4px !important;
+            }
         }
 
         /* Estilos Tarjetas del Hub de Inicio */
@@ -2805,9 +2844,10 @@
             background: transparent !important;
             border: none !important;
             color: #ffffff !important;
-            font-size: 0.95rem;
+            font-size: max(1rem, 1em);
             font-weight: 500;
             padding: 10px 8px;
+            min-height: 44px;
             width: 100%;
             outline: none !important;
             box-shadow: none !important;
@@ -2816,6 +2856,91 @@
             color: #6b7280;
             font-weight: 400;
             font-size: 0.88rem;
+        }
+        .btn-toggle-password {
+            background: transparent;
+            border: none;
+            color: #9ca3af;
+            min-width: 44px;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: color 0.18s ease, background-color 0.18s ease;
+            flex-shrink: 0;
+        }
+        .btn-toggle-password:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.06);
+        }
+        .btn-toggle-password:focus-visible,
+        .auth-mode-tab:focus-visible,
+        .btn-lastfm-brand:focus-visible {
+            outline: 2px solid #c99eff;
+            outline-offset: 2px;
+        }
+        .auth-mode-tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            padding: 4px;
+            background: rgba(255, 255, 255, 0.045);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+        }
+        .auth-mode-tab {
+            border: none;
+            background: transparent;
+            color: #9ca3af;
+            font-size: 0.84rem;
+            font-weight: 600;
+            min-height: 40px;
+            border-radius: 10px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .auth-mode-tab:hover {
+            color: #f4f4f5;
+        }
+        .auth-mode-tab.active {
+            background: rgba(255, 255, 255, 0.12);
+            color: #ffffff;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.28);
+        }
+        .auth-divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #71717a;
+            font-size: 0.74rem;
+            font-weight: 500;
+        }
+        .auth-divider::before,
+        .auth-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .btn-lastfm-brand {
+            background: linear-gradient(135deg, rgba(225, 29, 72, 0.2) 0%, rgba(190, 18, 60, 0.28) 100%);
+            border: 1px solid rgba(244, 63, 94, 0.42);
+            color: #ffe4e6;
+            font-weight: 600;
+            font-size: 0.88rem;
+            border-radius: 16px;
+            min-height: 48px;
+            padding: 10px 18px;
+            transition: all 0.22s ease;
+        }
+        .btn-lastfm-brand:hover, .btn-lastfm-brand:focus {
+            background: linear-gradient(135deg, rgba(225, 29, 72, 0.34) 0%, rgba(190, 18, 60, 0.42) 100%);
+            border-color: rgba(244, 63, 94, 0.7);
+            color: #ffffff;
+            transform: translateY(-1px);
+            box-shadow: 0 10px 26px rgba(225, 29, 72, 0.26);
         }
         .btn-lastfm-cta {
             background: linear-gradient(135deg, #f43f5e 0%, #e11d48 50%, #be123c 100%);
@@ -2853,59 +2978,84 @@
 
         /* Liquid glass landing surface */
         .login-portal-wrapper {
-            min-height: calc(100svh - 72px);
-            padding: clamp(2.5rem, 8vw, 6rem) 1rem;
+            min-height: calc(100svh - 88px);
+            align-items: center;
+            padding: 0.5rem 1rem;
             isolation: isolate;
         }
-        .login-portal-wrapper::before {
-            content: '';
-            position: absolute;
-            inset: 4% 8%;
-            z-index: -1;
-            border-radius: 48px;
-            background:
-                radial-gradient(circle at 22% 20%, rgba(255,255,255,.13), transparent 30%),
-                radial-gradient(circle at 80% 75%, rgba(99,102,241,.13), transparent 28%),
-                linear-gradient(135deg, rgba(255,255,255,.06), transparent 58%);
-            filter: blur(1px);
-            pointer-events: none;
+        .login-portal-wrapper.is-register-mode {
+            align-items: flex-start;
+            padding: clamp(0.75rem, 2.5vh, 1.5rem) 1rem 2.5rem;
         }
         .login-auth-card {
-            max-width: 520px;
-            padding: clamp(2rem, 5vw, 3.25rem);
-            border-radius: 32px;
+            max-width: 460px;
+            padding: 1.25rem 1.75rem;
+            border-radius: 28px;
             background: linear-gradient(145deg, rgba(35, 38, 48, .72), rgba(11, 13, 18, .78));
             border-color: rgba(255, 255, 255, .18);
             box-shadow: 0 32px 90px rgba(0,0,0,.62), inset 0 1px 0 rgba(255,255,255,.16);
             backdrop-filter: blur(38px) saturate(145%);
             -webkit-backdrop-filter: blur(38px) saturate(145%);
         }
+        .login-portal-wrapper.is-register-mode .login-auth-card {
+            max-width: 480px;
+            padding: clamp(1.5rem, 3vw, 2.25rem);
+            border-radius: 32px;
+        }
         .login-auth-card::after {
             content: '';
             position: absolute;
             inset: 1px;
-            border-radius: 31px;
+            border-radius: 27px;
             border: 1px solid rgba(255,255,255,.06);
             pointer-events: none;
         }
+        .login-portal-wrapper.is-register-mode .login-auth-card::after {
+            border-radius: 31px;
+        }
         .login-auth-card h2 {
-            font-size: clamp(1.7rem, 4vw, 2.35rem) !important;
-            letter-spacing: -.055em !important;
+            font-size: clamp(1.35rem, 2.6vw, 1.75rem) !important;
+            letter-spacing: -.05em !important;
+        }
+        .login-portal-wrapper.is-register-mode .login-auth-card h2 {
+            font-size: clamp(1.55rem, 3.2vw, 2.05rem) !important;
         }
         .login-auth-card .brand-mark {
-            width: 76px !important;
-            height: 76px !important;
+            width: 50px !important;
+            height: 50px !important;
             padding: 0 !important;
-            border-radius: 22px !important;
+            border-radius: 15px !important;
             background: rgba(255,255,255,.08) !important;
             border-color: rgba(255,255,255,.18) !important;
             box-shadow: 0 12px 32px rgba(0,0,0,.28);
         }
         .login-auth-card .brand-mark img {
-            width: 76px !important;
-            height: 76px !important;
-            border-radius: 22px !important;
+            width: 50px !important;
+            height: 50px !important;
+            border-radius: 15px !important;
             filter: none !important;
+        }
+        .login-portal-wrapper.is-register-mode .login-auth-card .brand-mark,
+        .login-portal-wrapper.is-register-mode .login-auth-card .brand-mark img {
+            width: 62px !important;
+            height: 62px !important;
+            border-radius: 18px !important;
+        }
+        .login-portal-wrapper:not(.is-register-mode) .login-input-wrapper input {
+            padding: 7px 8px;
+            min-height: 38px;
+        }
+        .login-portal-wrapper:not(.is-register-mode) .btn-toggle-password {
+            min-width: 38px;
+            min-height: 38px;
+        }
+        .login-portal-wrapper:not(.is-register-mode) .btn-lastfm-cta,
+        .login-portal-wrapper:not(.is-register-mode) .btn-lastfm-brand {
+            min-height: 44px !important;
+            padding: 9px 16px;
+        }
+        .login-portal-wrapper:not(.is-register-mode) .btn-demo-cta {
+            padding: 8px 16px;
         }
         .login-input-wrapper,
         .btn-demo-cta {
@@ -2965,51 +3115,6 @@
             border-color: rgba(255, 255, 255, .12) !important;
             backdrop-filter: blur(28px) saturate(135%) !important;
             -webkit-backdrop-filter: blur(28px) saturate(135%) !important;
-        }
-        .desktop-nav-tabs {
-            display: none;
-            gap: 6px;
-            margin-bottom: 14px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            padding-bottom: 8px;
-            max-width: none;
-        }
-        @media (min-width: 768px) {
-            .desktop-nav-tabs {
-                display: flex !important;
-            }
-            .bottom-nav-bar {
-                display: none !important;
-            }
-            body.with-bottom-nav {
-                padding-bottom: 24px !important;
-            }
-        }
-        .desktop-nav-btn {
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            color: var(--text-secondary);
-            padding: 6px 16px;
-            border-radius: 980px;
-            font-size: 0.80rem;
-            font-weight: 500;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
-            transition: all 0.22s var(--ease-spring);
-        }
-        .desktop-nav-btn:hover {
-            color: #ffffff;
-            background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(255, 255, 255, 0.16);
-        }
-        .desktop-nav-btn.active {
-            color: #ffffff !important;
-            background: rgba(255, 255, 255, 0.18) !important;
-            border-color: rgba(255, 255, 255, 0.22) !important;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
-            font-weight: 600;
         }
         .bottom-nav-item.active,
         .bottom-nav-item.active i {
@@ -3130,11 +3235,6 @@
         .dashboard-section > .home-card,
         .dashboard-section > .apple-bento-grid {
             margin-top: 0;
-        }
-        .desktop-nav-tabs {
-            max-width: none;
-            margin-left: 0 !important;
-            margin-right: 0 !important;
         }
         .apple-bento-grid {
             gap: 18px;
@@ -3276,14 +3376,38 @@
 
     <!-- Header / Navbar -->
     <nav class="navbar border-bottom border-secondary border-opacity-10 py-2 sticky-top" style="background-color: rgba(0, 0, 0, 0.94) !important; border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;">
-        <div class="app-container d-flex align-items-center justify-content-between">
-            <a class="navbar-brand d-flex align-items-center gap-2 fw-bold text-white text-decoration-none" href="javascript:void(0)" onclick="handleSecretLogoTap(event)">
+        <div class="app-container d-flex align-items-center justify-content-between gap-3">
+            <a class="navbar-brand d-flex align-items-center gap-2 fw-bold text-white text-decoration-none flex-shrink-0" href="javascript:void(0)" onclick="handleSecretLogoTap(event)">
                 <img src="/logo.svg" alt="Tune Tracker Logo">
                 <span class="fs-6 tracking-wide">Tune<span style="color: var(--brand-primary);">Tracker</span></span>
             </a>
 
+            <!-- Navegación por Pestañas Principales en Navbar (Desktop >= 768px) -->
+            <div id="desktop-nav-tabs" class="desktop-nav-tabs d-none">
+                <button class="desktop-nav-btn active" data-tab="home" type="button">
+                    <i class="fa-solid fa-house"></i>
+                    <span>Inicio</span>
+                </button>
+                <button class="desktop-nav-btn" data-tab="catalog" type="button">
+                    <i class="fa-solid fa-chart-simple"></i>
+                    <span>Tops & Catálogo</span>
+                </button>
+                <button class="desktop-nav-btn" data-tab="hub" type="button">
+                    <i class="fa-solid fa-chart-pie text-primary"></i>
+                    <span>Análisis & Historial</span>
+                </button>
+                <button class="desktop-nav-btn owner-only-element d-none" data-tab="curator" id="desktop-tab-curator" type="button">
+                    <i class="fa-solid fa-wand-magic-sparkles text-info"></i>
+                    <span>Playlists Semestrales</span>
+                </button>
+                <button class="desktop-nav-btn" data-tab="profile" type="button">
+                    <i class="fa-solid fa-user-astronaut text-warning"></i>
+                    <span>Mi Progreso</span>
+                </button>
+            </div>
+
             <!-- Right Navbar Controls (Avatar + Burger Menu Button) -->
-            <div id="nav-actions" class="d-none d-flex align-items-center gap-2">
+            <div id="nav-actions" class="d-none d-flex align-items-center gap-2 flex-shrink-0">
                 <button id="btn-open-progress-nav" class="btn btn-sm rounded-pill px-2.5 py-1 fw-semibold d-none align-items-center gap-1 text-white border-0" style="font-size: 0.76rem; background: rgba(168,85,247,0.14); border: 1px solid rgba(168,85,247,0.4) !important;" title="Mi progreso y racha diaria"></button>
                 <img id="user-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 44' width='44' height='44'%3E%3Crect width='44' height='44' fill='%2318181c' rx='22'/%3E%3Ccircle cx='22' cy='16' r='6' fill='%23a855f7'/%3E%3Cpath d='M10 34c0-5 5.5-8 12-8s12 3 12 8z' fill='%23a855f7'/%3E%3C/svg%3e" alt="Avatar" class="img-avatar rounded-circle border" style="width: 32px; height: 32px; object-fit: cover; border-color: var(--brand-primary) !important;" onerror="safeAvatarError(this)">
                 <button id="nav-burger-btn" class="btn btn-outline-brand rounded-pill px-2.5 py-1 d-inline-flex align-items-center justify-content-center" type="button" data-bs-toggle="offcanvas" data-bs-target="#burgerMenu" aria-controls="burgerMenu" title="Abrir Menú de Opciones" aria-label="Abrir Menú">
@@ -3318,71 +3442,125 @@
                     <div class="brand-mark d-inline-flex p-2 rounded-3 mb-2" style="background: rgba(168, 85, 247, 0.10); border: 1px solid rgba(168, 85, 247, 0.25);">
                         <img src="/logo.svg" alt="Tune Tracker Logo" style="cursor: pointer; transition: transform 0.2s ease;" class="rounded-2" onclick="handleSecretLogoTap(event)">
                     </div>
-                    <h2 class="fw-bold text-white mb-1" style="font-size: 1.4rem; letter-spacing: -0.02em;">Tu música, <span style="color: #cbd5e1;">a tu manera.</span></h2>
-                    <p class="text-secondary mx-auto mb-0" style="font-size: 0.82rem; max-width: 320px; line-height: 1.45;">
-                        Descubre tu historia musical con estadísticas reales, escucha en vivo y una vista que se siente tan personal como tu biblioteca.
-                    </p>
+                    <h2 class="fw-bold text-white mb-0" style="font-size: 1.4rem; letter-spacing: -0.02em;">Tu música, <span style="color: #cbd5e1;">a tu manera.</span></h2>
                 </div>
 
-                <!-- Input Section -->
-                <div class="text-start mb-3">
-                    <label for="login-lastfm-input" class="form-label text-white fw-semibold mb-1.5 d-flex align-items-center justify-content-between" style="font-size: 0.82rem;">
-                        <span class="d-flex align-items-center gap-1.5">
-                            <i class="fa-brands fa-lastfm text-danger"></i>
-                            <span>Usuario de Last.fm</span>
-                        </span>
-                        <span class="badge rounded-pill fw-medium" style="background: rgba(48, 209, 88, 0.12); color: #30d158; border: 1px solid rgba(48, 209, 88, 0.25); font-size: 0.64rem; padding: 2px 7px;">
-                            Perfil público
-                        </span>
-                    </label>
-                    <div class="login-input-wrapper">
-                        <i class="fa-solid fa-at text-secondary me-1" style="font-size: 0.9rem;"></i>
-                        <input type="text" id="login-lastfm-input" placeholder="Escribe tu usuario" autocomplete="username">
+                <!-- Auth Mode Switcher -->
+                <div class="auth-mode-tabs mb-3" role="tablist" aria-label="Modo de acceso">
+                    <button type="button" id="tab-auth-login" class="auth-mode-tab active" role="tab" aria-selected="true" aria-controls="login-auth-form">
+                        Iniciar sesión
+                    </button>
+                    <button type="button" id="tab-auth-register" class="auth-mode-tab" role="tab" aria-selected="false" aria-controls="register-auth-form">
+                        Crear cuenta
+                    </button>
+                </div>
+
+                <!-- Sign In Form (Username + Password) -->
+                <form id="login-auth-form" method="post" aria-labelledby="tab-auth-login">
+                    <div class="text-start mb-2.5">
+                        <label for="login-username-input" class="form-label text-white fw-semibold mb-1.5 d-flex align-items-center gap-1.5" style="font-size: 0.82rem;">
+                            <i class="fa-solid fa-user text-info"></i>
+                            <span>Usuario</span>
+                        </label>
+                        <div class="login-input-wrapper">
+                            <i class="fa-solid fa-at text-secondary me-1" style="font-size: 0.9rem;"></i>
+                            <input type="text" id="login-username-input" name="username" placeholder="Tu nombre de usuario" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="next" required>
+                        </div>
                     </div>
-                </div>
 
-                <!-- Error Alert -->
-                <div id="login-lastfm-error" class="alert alert-danger py-2 px-2.5 small d-none mb-2.5 text-start" style="font-size: 0.78rem; border-radius: 12px;"></div>
+                    <div class="text-start mb-3">
+                        <label for="login-password-input" class="form-label text-white fw-semibold mb-1.5 d-flex align-items-center gap-1.5" style="font-size: 0.82rem;">
+                            <i class="fa-solid fa-lock text-primary"></i>
+                            <span>Contraseña</span>
+                        </label>
+                        <div class="login-input-wrapper">
+                            <i class="fa-solid fa-key text-secondary me-1" style="font-size: 0.85rem;"></i>
+                            <input type="password" id="login-password-input" name="password" placeholder="Ingresa tu contraseña" autocomplete="current-password" enterkeyhint="done" required>
+                            <button type="button" class="btn-toggle-password" data-target="login-password-input" aria-pressed="false" aria-label="Mostrar contraseña">
+                                <i class="fa-regular fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
 
-                <!-- Submit Button -->
-                <button id="btn-login-lastfm-submit" class="btn btn-lastfm-cta w-100 d-flex align-items-center justify-content-center gap-2 mb-2.5">
-                    <i class="fa-brands fa-lastfm"></i>
-                    <span>Conectar y Entrar</span>
-                    <i class="fa-solid fa-arrow-right ms-1" style="font-size: 0.78rem;"></i>
+                    <div id="login-auth-error" class="alert alert-danger py-2 px-2.5 small d-none mb-2.5 text-start" role="alert" aria-live="polite" style="font-size: 0.78rem; border-radius: 12px;"></div>
+
+                    <button type="submit" id="btn-login-submit" class="btn btn-lastfm-cta w-100 d-flex align-items-center justify-content-center gap-2 mb-3" style="min-height: 48px;">
+                        <i class="fa-solid fa-right-to-bracket"></i>
+                        <span>Iniciar sesión</span>
+                    </button>
+                </form>
+
+                <!-- Sign Up Form (Sin necesidad de Last.fm) -->
+                <form id="register-auth-form" method="post" class="d-none" aria-labelledby="tab-auth-register">
+                    <div class="text-start mb-2.5">
+                        <label for="register-username-input" class="form-label text-white fw-semibold mb-1.5 d-flex align-items-center gap-1.5" style="font-size: 0.82rem;">
+                            <i class="fa-solid fa-user-plus text-info"></i>
+                            <span>Nombre de usuario</span>
+                        </label>
+                        <div class="login-input-wrapper">
+                            <i class="fa-solid fa-at text-secondary me-1" style="font-size: 0.9rem;"></i>
+                            <input type="text" id="register-username-input" name="username" placeholder="Mínimo 3 caracteres" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" minlength="3" maxlength="32" enterkeyhint="next" required>
+                        </div>
+                    </div>
+
+                    <div class="text-start mb-2.5">
+                        <label for="register-password-input" class="form-label text-white fw-semibold mb-1.5 d-flex align-items-center justify-content-between" style="font-size: 0.82rem;">
+                            <span class="d-flex align-items-center gap-1.5">
+                                <i class="fa-solid fa-lock text-primary"></i>
+                                <span>Contraseña</span>
+                            </span>
+                            <span class="text-secondary fw-normal" style="font-size: 0.7rem;">Mínimo 6 caracteres</span>
+                        </label>
+                        <div class="login-input-wrapper">
+                            <i class="fa-solid fa-key text-secondary me-1" style="font-size: 0.85rem;"></i>
+                            <input type="password" id="register-password-input" name="new-password" placeholder="Crea una contraseña segura" autocomplete="new-password" minlength="6" enterkeyhint="next" required>
+                            <button type="button" class="btn-toggle-password" data-target="register-password-input" aria-pressed="false" aria-label="Mostrar contraseña">
+                                <i class="fa-regular fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="text-start mb-3">
+                        <label for="register-lastfm-input" class="form-label text-white fw-semibold mb-1.5 d-flex align-items-center justify-content-between" style="font-size: 0.82rem;">
+                            <span class="d-flex align-items-center gap-1.5">
+                                <i class="fa-brands fa-lastfm text-danger"></i>
+                                <span>Usuario de Last.fm</span>
+                            </span>
+                            <span class="badge rounded-pill fw-medium" style="background: rgba(148, 163, 184, 0.14); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.25); font-size: 0.64rem; padding: 2px 7px;">
+                                Opcional
+                            </span>
+                        </label>
+                        <div class="login-input-wrapper">
+                            <i class="fa-brands fa-lastfm text-secondary me-1" style="font-size: 0.9rem;"></i>
+                            <input type="text" id="register-lastfm-input" name="lastfm_username" placeholder="Puedes dejarlo vacío" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="done">
+                        </div>
+                    </div>
+
+                    <div id="register-auth-error" class="alert alert-danger py-2 px-2.5 small d-none mb-2.5 text-start" role="alert" aria-live="polite" style="font-size: 0.78rem; border-radius: 12px;"></div>
+
+                    <button type="submit" id="btn-register-submit" class="btn btn-lastfm-cta w-100 d-flex align-items-center justify-content-center gap-2 mb-3" style="min-height: 48px;">
+                        <i class="fa-solid fa-user-check"></i>
+                        <span>Crear cuenta</span>
+                    </button>
+                </form>
+
+                <!-- Divider -->
+                <div class="auth-divider mb-3">o continúa con</div>
+
+                <!-- Last.fm Direct Login Button -->
+                <button type="button" id="btn-login-with-lastfm" class="btn btn-lastfm-brand w-100 d-flex align-items-center justify-content-center gap-2 mb-2.5">
+                    <i class="fa-brands fa-lastfm fs-5"></i>
+                    <span>Iniciar sesión con Last.fm</span>
                 </button>
 
-                <!-- Collapsible Guide -->
-                <div class="text-center mb-3">
-                    <button type="button" class="btn btn-link text-secondary text-decoration-none p-0 d-inline-flex align-items-center gap-1" style="font-size: 0.75rem;" onclick="document.getElementById('login-guide-box')?.classList.toggle('d-none')">
-                        <i class="fa-regular fa-circle-question text-info"></i>
-                        <span>¿Cómo conectar Spotify a Last.fm gratis?</span>
-                    </button>
-                    <div id="login-guide-box" class="d-none text-start mt-2 p-2.5 rounded-3 border border-secondary border-opacity-20" style="background: rgba(255,255,255,0.03); font-size: 0.74rem; line-height: 1.5;">
-                        <div class="text-white fw-semibold mb-1"><i class="fa-solid fa-bolt text-warning me-1"></i>Configuración en 3 pasos:</div>
-                        <ol class="text-secondary mb-0 ps-3">
-                            <li class="mb-0.5">Crea tu cuenta gratis en <a href="https://www.last.fm/join" target="_blank" rel="noopener" class="text-info fw-semibold">last.fm/join</a>.</li>
-                            <li class="mb-0.5">En <a href="https://www.last.fm/settings/applications" target="_blank" rel="noopener" class="text-info fw-semibold">Configuración → Aplicaciones</a> pulsa <strong>Conectar</strong> en <em>Spotify Scrobbling</em>.</li>
-                            <li>Escribe tu usuario aquí arriba y disfruta de tus estadísticas en vivo.</li>
-                        </ol>
-                    </div>
-                </div>
-
                 <!-- Demo Button -->
-                <button id="btn-login-demo" class="btn btn-demo-cta w-100 d-flex align-items-center justify-content-between mb-2.5">
+                <button type="button" id="btn-login-demo" class="btn btn-demo-cta w-100 d-flex align-items-center justify-content-between mb-0">
                     <span class="d-flex align-items-center gap-2">
                         <i class="fa-solid fa-compass text-info" style="font-size: 0.85rem;"></i>
                         <span class="fw-semibold">Explorar Modo Demo</span>
                     </span>
                     <span class="badge rounded-pill" style="background: rgba(56, 189, 248, 0.14); color: #38bdf8; font-size: 0.65rem; padding: 3px 8px;">Vista previa</span>
                 </button>
-
-                <!-- PWA Install Link -->
-                <div class="pt-2 border-top border-secondary border-opacity-10 text-center">
-                    <button id="btn-install-login" class="btn btn-link text-secondary text-decoration-none p-0 d-inline-flex align-items-center gap-1.5" style="font-size: 0.75rem;">
-                        <i class="fa-solid fa-mobile-screen-button text-primary"></i>
-                        <span>Instalar App en tu dispositivo (PWA)</span>
-                    </button>
-                </div>
             </div>
         </div>
 
@@ -3395,30 +3573,6 @@
                     <i class="fa-solid fa-arrows-rotate fa-spin me-2 text-info"></i>¡Nueva versión lista para instalar!
                 </span>
                 <button id="btn-apply-update" class="btn btn-sm btn-info py-0 px-2 fw-semibold" style="font-size: 0.74rem;">Actualizar ahora</button>
-            </div>
-
-            <!-- Navegación por Pestañas Principales en Desktop (>=768px) -->
-            <div class="desktop-nav-tabs">
-                <button class="desktop-nav-btn active" data-tab="home">
-                    <i class="fa-solid fa-house"></i>
-                    <span>Inicio</span>
-                </button>
-                <button class="desktop-nav-btn" data-tab="catalog">
-                    <i class="fa-solid fa-chart-simple"></i>
-                    <span>Tops & Catálogo</span>
-                </button>
-                <button class="desktop-nav-btn" data-tab="hub">
-                    <i class="fa-solid fa-chart-pie text-primary"></i>
-                    <span>Análisis & Historial</span>
-                </button>
-                <button class="desktop-nav-btn owner-only-element d-none" data-tab="curator" id="desktop-tab-curator">
-                    <i class="fa-solid fa-wand-magic-sparkles text-info"></i>
-                    <span>Playlists Semestrales</span>
-                </button>
-                <button class="desktop-nav-btn" data-tab="profile">
-                    <i class="fa-solid fa-user-astronaut text-warning"></i>
-                    <span>Mi Progreso</span>
-                </button>
             </div>
 
             <!-- ============================================== -->
@@ -4722,7 +4876,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
         <!-- App Logic -->
-    <script src="/app.js?v=89"></script>
+    <script src="/app.js?v=92"></script>
 
     <!-- Barra de Navegación Inferior Móvil (Bottom Navigation Bar) -->
     <nav id="bottom-nav-bar" class="bottom-nav-bar d-none">
