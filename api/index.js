@@ -103,8 +103,10 @@ async function searchSpotifyArtwork(type, name, artist) {
 // Endpoint universal de carátulas y fotos de artistas (Exclusivo Spotify sin login + Last.fm + CDN cache)
 app.get('/api/artwork', async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Cache-Control', 's-maxage=604800, stale-while-revalidate=86400');
     const { type, name, artist } = req.query;
+    // Para artistas: 24h de caché CDN para reflejar cambios de foto de perfil en Spotify; para tracks/álbumes: 7 días
+    const maxAge = type === 'artist' ? 86400 : 604800;
+    res.setHeader('Cache-Control', `s-maxage=${maxAge}, stale-while-revalidate=86400`);
     if (!name) return res.status(400).json({ url: null });
 
     const LASTFM_KEY = process.env.LASTFM_API_KEY || '82a251af624ca33e3d59215313af74c2';
