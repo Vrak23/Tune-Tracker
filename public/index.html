@@ -1481,6 +1481,88 @@
                 display: block !important;
             }
         }
+        .curator-upcoming-card {
+            background: rgba(168, 85, 247, 0.04);
+            border: 1px solid rgba(168, 85, 247, 0.22);
+            border-radius: 12px;
+            padding: 12px 14px;
+        }
+        .curator-upcoming-scroll {
+            max-height: 290px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #38384c #121218;
+        }
+        .curator-upcoming-scroll::-webkit-scrollbar {
+            width: 5px;
+        }
+        .curator-upcoming-scroll::-webkit-scrollbar-track {
+            background: #121218;
+            border-radius: 4px;
+        }
+        .curator-upcoming-scroll::-webkit-scrollbar-thumb {
+            background: #38384c;
+            border-radius: 4px;
+        }
+        .curator-upcoming-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 8px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.025);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            transition: background-color 0.15s, border-color 0.15s;
+        }
+        .curator-upcoming-row.is-in-cut {
+            border-color: rgba(168, 85, 247, 0.28);
+            background: rgba(168, 85, 247, 0.06);
+        }
+        .curator-upcoming-row.is-bubble {
+            opacity: 0.88;
+            border-style: dashed;
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+        .curator-rank-pill {
+            min-width: 28px;
+            height: 22px;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.72rem;
+            font-weight: 700;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            flex-shrink: 0;
+        }
+        .curator-rank-pill.in-cut {
+            background: rgba(168, 85, 247, 0.22);
+            color: #e9d5ff;
+            border: 1px solid rgba(168, 85, 247, 0.45);
+        }
+        .curator-rank-pill.bubble {
+            background: rgba(255, 255, 255, 0.06);
+            color: #94a3b8;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .curator-cut-divider {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 4px 0;
+            font-size: 0.68rem;
+            font-weight: 600;
+            color: #fbbf24;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .curator-cut-divider::before,
+        .curator-cut-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(251, 191, 36, 0.35);
+        }
     
         /* Bottom Navigation Bar & Views Navigation */
         body.with-bottom-nav {
@@ -3980,72 +4062,61 @@
                     <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom border-secondary border-opacity-10 flex-wrap gap-2">
                         <div class="d-flex align-items-center gap-2.5">
                             <div class="rounded-3 p-2 d-flex align-items-center justify-content-center" style="background: rgba(168,85,247,0.15); color: #c084fc;">
-                                <i class="fa-solid fa-wand-magic-sparkles fs-4"></i>
+                                <i class="fa-solid fa-layer-group fs-4"></i>
                             </div>
                             <div>
-                                <h5 class="fw-bold mb-0 text-white" style="font-size: 1.05rem;">Curador Semestral</h5>
-                                <small class="text-secondary d-block" style="font-size: 0.74rem;">Crea, ordena y exporta tu selección por etapa</small>
+                                <h5 class="fw-bold mb-0 text-white" style="font-size: 1.05rem;">Playlists Semestrales</h5>
+                                <small class="text-secondary d-block" style="font-size: 0.74rem;">Organizador personal de curaduría por etapas</small>
                             </div>
                         </div>
                         <div class="d-flex align-items-center gap-2 flex-wrap">
-                            <button type="button" id="curator-btn-save-cloud" class="btn btn-sm btn-brand rounded-pill px-3 py-1 fw-semibold text-white" style="font-size: 0.75rem;" onclick="promptAndSaveCuratorToCloud()" title="Guardar este tracklist en la base de datos">
+                            <button type="button" id="curator-btn-save-cloud" class="btn btn-sm btn-brand rounded-pill px-3 py-1 fw-semibold text-white" style="font-size: 0.75rem;" title="Guardar este tracklist en Supabase">
                                 <i class="fa-solid fa-cloud-arrow-up me-1"></i> Guardar en nube
                             </button>
-                            <button type="button" id="curator-btn-copy" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1 fw-semibold text-white" style="font-size: 0.75rem;" title="Copiar tracklist en texto para notas o redes">
+                            <button type="button" id="curator-btn-copy" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1 fw-semibold text-white" style="font-size: 0.75rem;" title="Copiar tracklist en texto">
                                 <i class="fa-regular fa-copy me-1"></i> Copiar tracklist
                             </button>
-                            <button type="button" id="curator-btn-clear" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1 text-secondary" style="font-size: 0.75rem;" title="Vaciar selección actual">
-                                <i class="fa-solid fa-eraser me-1"></i> Limpiar
-                            </button>
 
-                            <!-- Dropdown de Opciones Secundarias (Trofeos, Récords, Exportar) -->
                             <div class="dropdown">
-                                <button class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1 text-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Más opciones y estadísticas">
-                                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                                <button class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1 text-white dropdown-toggle" style="font-size: 0.75rem;" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Exportar playlist a plataformas">
+                                    <i class="fa-solid fa-arrow-up-from-bracket me-1"></i> Exportar
                                 </button>
-                                <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark shadow border border-secondary border-opacity-25" style="font-size: 0.78rem; background: #161622; min-width: 200px;">
+                                <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark shadow border border-secondary border-opacity-25" style="font-size: 0.78rem; background: #161622; min-width: 195px;">
                                     <li>
-                                        <a class="dropdown-item py-1.5" href="javascript:void(0)" onclick="openTrophiesModal()">
-                                            <i class="fa-solid fa-trophy text-warning me-2"></i> Sala de Trofeos (+100)
+                                        <a class="dropdown-item py-1.5" href="javascript:void(0)" id="curator-btn-spotify">
+                                            <i class="fa-brands fa-spotify text-success me-2"></i> Crear en Spotify
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item py-1.5" href="javascript:void(0)" onclick="openRecordsModal()">
-                                            <i class="fa-solid fa-medal text-info me-2"></i> Récords Históricos
+                                        <a class="dropdown-item py-1.5" href="javascript:void(0)" id="curator-btn-ytmusic">
+                                            <i class="fa-brands fa-youtube text-danger me-2"></i> Abrir en YouTube Music
                                         </a>
                                     </li>
-                                    <li><hr class="dropdown-divider border-secondary border-opacity-20 my-1"></li>
                                 </ul>
                             </div>
 
+                            <button type="button" id="curator-btn-clear" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1 text-secondary" style="font-size: 0.75rem;" title="Vaciar selección actual">
+                                <i class="fa-solid fa-eraser me-1"></i> Limpiar
+                            </button>
                             <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1 text-white" style="font-size: 0.74rem;" onclick="switchAppView('home')">
                                 <i class="fa-solid fa-arrow-left me-1"></i> Inicio
                             </button>
                         </div>
                     </div>
 
-                    <!-- Barra Compacta de Controles y Filtros -->
+                    <!-- Barra Limpia de Ciclo y Curaduría -->
                     <div class="p-2.5 p-md-3 mb-3 rounded-3 border border-secondary border-opacity-15" style="background: rgba(255, 255, 255, 0.02);">
-                        <!-- Fila 1: Nombre de la Playlist / Tracklist -->
-                        <div class="row g-2 align-items-end mb-2.5">
-                            <div class="col-12 col-md-8">
-                                <label class="filter-label"><i class="fa-solid fa-pen-to-square me-1 text-purple"></i> Nombre de la Playlist / Tracklist</label>
-                                <input type="text" id="curator-playlist-name" class="form-control form-control-sm bg-dark text-white border-secondary border-opacity-30" placeholder="Ej: Top 2026 - 1ra Mitad" style="font-size: 0.8rem; height: 32px;" autocomplete="off">
+                        <div class="row g-2 align-items-end">
+                            <div class="col-12 col-lg-4">
+                                <label class="filter-label"><i class="fa-solid fa-pen-to-square me-1 text-purple"></i> Nombre de la Playlist</label>
+                                <input type="text" id="curator-playlist-name" class="form-control form-control-sm bg-dark text-white border-secondary border-opacity-30" placeholder="Ej: Top 2027 - 1ra Mitad" style="font-size: 0.8rem; height: 32px;" autocomplete="off">
                             </div>
-                            <div class="col-12 col-md-4 d-flex justify-content-md-end">
-                                <button type="button" class="btn btn-sm btn-brand rounded-pill px-3 py-1 fw-semibold w-100 w-md-auto text-nowrap" style="font-size: 0.78rem; height: 32px;" onclick="promptAndSaveCuratorToCloud()">
-                                    <i class="fa-solid fa-cloud-arrow-up me-1"></i> Guardar en nube
-                                </button>
-                            </div>
-                        </div>
 
-                        <!-- Fila 2: Selectores de Ciclo y Objetivo -->
-                        <div class="row g-2 align-items-end pt-2 border-top border-secondary border-opacity-10">
-                            <!-- Selector de Año -->
-                            <div class="col-6 col-sm-3 col-md-2">
+                            <div class="col-5 col-sm-3 col-lg-2">
                                 <label class="filter-label"><i class="fa-regular fa-calendar me-1 text-primary"></i> Año</label>
                                 <select id="curator-year" class="form-select form-select-sm filter-select">
                                     <option value="" selected disabled>Año...</option>
+                                    <option value="2027">2027</option>
                                     <option value="2026">2026</option>
                                     <option value="2025">2025</option>
                                     <option value="2024">2024</option>
@@ -4057,78 +4128,48 @@
                                 </select>
                             </div>
 
-                            <!-- Selector de Periodo -->
-                            <div class="col-6 col-sm-4 col-md-4">
+                            <div class="col-7 col-sm-5 col-lg-3">
                                 <label class="filter-label"><i class="fa-solid fa-timeline me-1 text-info"></i> Periodo</label>
                                 <select id="curator-half" class="form-select form-select-sm filter-select">
                                     <option value="" selected disabled>Elegir periodo...</option>
-                                    <option value="1">1ra Mitad (1 Ene — 20 May)</option>
-                                    <option value="2">2da Mitad (1 Jun — 20 Nov)</option>
+                                    <option value="1">1ra Mitad (21 Nov — 20 May)</option>
+                                    <option value="2">2da Mitad (21 May — 20 Nov)</option>
                                 </select>
                             </div>
 
-                            <!-- Cantidad Objetivo -->
-                            <div class="col-6 col-sm-3 col-md-2">
-                                <label class="filter-label"><i class="fa-solid fa-list-ol me-1 text-warning"></i> Objetivo</label>
-                                <div class="input-group input-group-sm">
-                                    <input type="number" id="curator-target-count" class="form-control form-control-sm text-center bg-dark text-white border-secondary border-opacity-30" value="18" min="5" max="50" style="font-size: 0.8rem; height: 32px;">
-                                    <span class="input-group-text bg-dark text-secondary border-secondary border-opacity-30 small" style="font-size: 0.72rem;">temas</span>
-                                </div>
+                            <div class="col-6 col-sm-2 col-lg-1">
+                                <label class="filter-label"><i class="fa-solid fa-list-ol me-1 text-warning"></i> Meta</label>
+                                <input type="number" id="curator-target-count" class="form-control form-control-sm text-center bg-dark text-white border-secondary border-opacity-30" value="25" min="5" max="50" style="font-size: 0.8rem; height: 32px;" title="Cantidad objetivo de canciones">
                             </div>
 
-                            <!-- Botón Generar Selección -->
-                            <div class="col-6 col-sm-2 col-md-4 d-flex justify-content-sm-end">
-                                <button id="curator-btn-generate" class="btn btn-sm btn-outline-brand rounded-pill px-3 py-1 fw-semibold w-100 w-sm-auto text-nowrap" style="font-size: 0.78rem; height: 32px;">
-                                    <i class="fa-solid fa-wand-magic-sparkles me-1"></i> Generar tracklist
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Filtro de canciones pasadas y estado de ciclo -->
-                        <div class="d-flex align-items-center justify-content-between mt-2 pt-2 border-top border-secondary border-opacity-10 flex-wrap gap-2">
-                            <div class="form-check form-switch mb-0">
-                                <input class="form-check-input" type="checkbox" id="curator-exclude-past" checked>
-                                <label class="form-check-label text-secondary small" for="curator-exclude-past" style="font-size: 0.73rem; cursor: pointer;">
-                                    Excluir canciones de etapas pasadas <span class="text-muted d-none d-sm-inline">(prioriza música de esta etapa)</span>
-                                </label>
-                            </div>
-                            <div class="d-flex align-items-center gap-1.5 flex-wrap">
-                                <span id="curator-period-badge" class="curator-badge-period">
-                                    <i class="fa-regular fa-clock me-1 text-primary"></i> Sin periodo seleccionado
-                                </span>
-                                <span id="curator-counter-badge" class="curator-badge-counter">
-                                    0 / 18 seleccionadas
-                                </span>
-                                <button type="button" id="curator-btn-cloud" class="curator-badge-period border-0" style="cursor: pointer; background: rgba(16, 185, 129, 0.12) !important; color: #10b981 !important; border: 1px solid rgba(16, 185, 129, 0.28) !important;" title="SpotiTracker Cloud Sync (Supabase)">
-                                    <i class="fa-solid fa-cloud me-1 text-success"></i> <span id="curator-cloud-label">Nube Activa</span>
+                            <div class="col-6 col-sm-2 col-lg-2 d-flex align-items-center justify-content-end gap-2">
+                                <button id="curator-btn-generate" class="btn btn-sm btn-outline-brand rounded-pill px-3 py-1 fw-semibold w-100 text-nowrap" style="font-size: 0.78rem; height: 32px;">
+                                    <i class="fa-solid fa-wand-magic-sparkles me-1"></i> Generar
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                    <div class="curator-export-panel mb-3">
-                        <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap mb-2">
-                            <div>
-                                <div class="fw-bold text-white" style="font-size: 0.82rem;"><i class="fa-solid fa-arrow-up-from-bracket text-info me-1.5"></i>Exportar tracklist</div>
-                                <div class="text-secondary" style="font-size: 0.69rem;">Lleva esta selección a tu plataforma o a Molva.</div>
+                    <!-- Posicionamiento Próxima Playlist (Solo visible en el ciclo que se aproxima) -->
+                    <div id="curator-upcoming-panel" class="curator-upcoming-card mb-3 d-none">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2 pb-2 border-bottom border-secondary border-opacity-15">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge rounded-pill" style="background: rgba(168, 85, 247, 0.22); color: #e9d5ff; border: 1px solid rgba(168, 85, 247, 0.45); font-size: 0.68rem;">
+                                    <i class="fa-solid fa-bolt me-1"></i> Próxima Playlist
+                                </span>
+                                <span class="fw-bold text-white" style="font-size: 0.85rem;">Posicionamiento según streams (Top 25 candidatas)</span>
                             </div>
-                            <span id="curator-export-count" class="badge rounded-pill bg-light bg-opacity-10 text-secondary" style="font-size: 0.66rem;">0 canciones listas</span>
-                        </div>
-                        <div class="row g-2">
-                            <div class="col-12 col-sm-4">
-                                <a class="btn btn-sm btn-outline-danger rounded-pill w-100 fw-semibold" href="javascript:void(0)" id="curator-btn-ytmusic" title="Copiar y abrir YouTube Music">
-                                    <i class="fa-brands fa-youtube me-1"></i> Abrir en YouTube Music
-                                </a>
-                            </div>
-                            <div class="col-12 col-sm-4">
-                                <a class="btn btn-sm btn-outline-success rounded-pill w-100 fw-semibold" href="javascript:void(0)" id="curator-btn-spotify" title="Guardar la playlist en Spotify">
-                                    <i class="fa-brands fa-spotify me-1"></i> Crear en Spotify
-                                </a>
-                            </div>
-                            <div class="col-12 col-sm-4">
-                                <button type="button" class="btn btn-sm btn-outline-info rounded-pill w-100 fw-semibold" onclick="copyCuratorPlaylistText()" title="Copiar formato compatible con Molva">
-                                    <i class="fa-regular fa-copy me-1"></i> Copiar para Molva
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <span id="curator-upcoming-progress" class="text-secondary" style="font-size: 0.72rem;"></span>
+                                <span id="curator-upcoming-cut-badge" class="badge rounded-pill bg-dark border border-secondary border-opacity-30 text-warning" style="font-size: 0.7rem;"></span>
+                                <button type="button" id="curator-upcoming-toggle" class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-0 text-secondary" style="font-size: 0.68rem;" onclick="toggleCuratorUpcomingBody()">
+                                    Ocultar
                                 </button>
+                            </div>
+                        </div>
+                        <div id="curator-upcoming-body">
+                            <div id="curator-upcoming-list" class="curator-upcoming-scroll d-flex flex-column gap-1.5">
+                                <!-- Injected dynamically for upcoming cycle -->
                             </div>
                         </div>
                     </div>
@@ -4140,7 +4181,7 @@
                                 <i class="fa-solid fa-list-check me-1"></i> Mi Tracklist (<span id="curator-selected-num">0</span>)
                             </button>
                             <button type="button" id="curator-tab-bench" class="btn btn-sm btn-dark border border-secondary border-opacity-30" style="font-size: 0.78rem;">
-                                <i class="fa-solid fa-box-archive me-1"></i> Banco de Canciones (<span id="curator-bench-num">0</span>)
+                                <i class="fa-solid fa-box-archive me-1"></i> Banco (<span id="curator-bench-num">0</span>)
                             </button>
                         </div>
                     </div>
@@ -4150,14 +4191,20 @@
                         <!-- COLUMNA 1: BANCO DE CANCIONES Y BUSCADOR -->
                         <div id="curator-bench-view" class="col-12 col-lg-5 col-xl-5 d-none d-lg-block">
                             <div class="curator-pane-card h-100">
-                                <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom border-secondary border-opacity-15">
+                                <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom border-secondary border-opacity-15 gap-2 flex-wrap">
                                     <div class="d-flex align-items-center gap-1.5">
                                         <i class="fa-solid fa-box-archive text-purple opacity-75"></i>
                                         <span class="fw-bold text-white small">Banco de Candidatos</span>
+                                        <span class="badge bg-dark border border-secondary border-opacity-30 text-secondary" style="font-size: 0.68rem;">
+                                            <span id="curator-bench-count-badge">0</span>
+                                        </span>
                                     </div>
-                                    <span class="badge bg-dark border border-secondary border-opacity-30 text-secondary" style="font-size: 0.72rem;">
-                                        <span id="curator-bench-count-badge">0</span> disponibles
-                                    </span>
+                                    <div class="form-check form-switch mb-0" title="Excluir canciones que ya estuvieron en playlists guardadas en Molva / Supabase">
+                                        <input class="form-check-input" type="checkbox" id="curator-exclude-past" checked style="cursor: pointer;">
+                                        <label class="form-check-label text-secondary" for="curator-exclude-past" style="font-size: 0.70rem; cursor: pointer;">
+                                            Excluir ya en playlists
+                                        </label>
+                                    </div>
                                 </div>
 
                                 <!-- Buscador y Selección Múltiple -->
@@ -4204,13 +4251,11 @@
                                     <div class="d-flex align-items-center gap-1.5">
                                         <i class="fa-solid fa-list-check text-brand opacity-80"></i>
                                         <span class="fw-bold text-white small">Mi Tracklist</span>
-                                        <small class="text-muted ms-1" style="font-size: 0.70rem;">(Edita la posición o arrastra)</small>
+                                        <small class="text-muted ms-1 d-none d-sm-inline" style="font-size: 0.70rem;">(Arrastra o edita posición)</small>
                                     </div>
-                                    <div class="d-flex align-items-center gap-1">
-                                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-0.5 text-secondary" style="font-size: 0.70rem;" onclick="shuffleCuratorTracklist()" title="Mezclar aleatoriamente el orden">
-                                            <i class="fa-solid fa-shuffle me-1"></i> Mezclar
-                                        </button>
-                                    </div>
+                                    <span id="curator-counter-badge" class="curator-badge-counter">
+                                        0 / 25 en tracklist
+                                    </span>
                                 </div>
 
                                 <!-- Lista del Tracklist con Drag and Drop Container -->

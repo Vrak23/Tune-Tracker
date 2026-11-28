@@ -645,7 +645,7 @@ function openFeatureRequestModal(feature) {
     const title = isCurator ? 'Curador de Playlists Semestrales' : 'Wrapped & Pistas Musicales';
     const icon = isCurator ? 'fa-wand-magic-sparkles text-primary' : 'fa-gift text-warning';
     const desc = isCurator
-        ? 'Selecciona y organiza tus mejores ~18 canciones de cada semestre con filtros inteligentes.'
+        ? 'Selecciona y organiza tus mejores ~25 canciones de cada semestre con filtros inteligentes.'
         : 'Descubre pistas quincenales sobre tus artistas y canciones rumbo a tu Wrapped anual.';
 
     body.innerHTML = `
@@ -5185,7 +5185,9 @@ async function loadTimestampRangeStats(user, key, fromUTS, toUTS, emptyLabel) {
 // RESOLUCIÓN DE IMÁGENES (SPOTIFY SIN LOGIN + LAST.FM + FALLBACKS)
 // ----------------------------------------------------
 const ART_CACHE_VERSION = 'v80_spotify_hd';
+const ARTIST_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // Revalidar fotos de artistas cada 24 horas
 const artCache = JSON.parse(localStorage.getItem('spoti_art_cache') || '{}');
+const artCacheMeta = JSON.parse(localStorage.getItem('spoti_art_cache_meta') || '{}');
 
 // Migración y saneamiento: Si la caché contiene URLs no oficiales o previas (Deezer/iTunes/placeholders), se descartan
 (function sanitizeArtCache() {
@@ -5213,7 +5215,14 @@ const artCache = JSON.parse(localStorage.getItem('spoti_art_cache') || '{}');
 function saveArtCache() {
     try {
         localStorage.setItem('spoti_art_cache', JSON.stringify(artCache));
+        localStorage.setItem('spoti_art_cache_meta', JSON.stringify(artCacheMeta));
     } catch (e) {}
+}
+
+function isArtCacheStale(key, type) {
+    if (type !== 'artist') return false;
+    const ts = artCacheMeta[key];
+    return !ts || (Date.now() - ts) > ARTIST_CACHE_TTL_MS;
 }
 
 function extractLastFmImg(images) {
@@ -5233,11 +5242,14 @@ async function resolveSpotifyArtwork(name, artist, type = 'track', elementId) {
 
     const key = `${type}::${normalizeKey(name)}::${normalizeKey(artist || '')}`;
 
-    // Si ya existe en caché y es oficial de Spotify, reutilizarla directamente
-    if (artCache[key] && typeof artCache[key] === 'string' && artCache[key].includes('scdn.co')) {
+    // Si ya existe en caché y es oficial de Spotify, mostrarla de inmediato; si es artista y expiró el TTL, revalidar en segundo plano
+    const hasSpotifyCache = artCache[key] && typeof artCache[key] === 'string' && artCache[key].includes('scdn.co');
+    if (hasSpotifyCache) {
         const el = document.getElementById(elementId);
         if (el) el.src = artCache[key];
-        return artCache[key];
+        if (!isArtCacheStale(key, type)) {
+            return artCache[key];
+        }
     }
 
     // 1. PRIORIDAD: Consultar el endpoint serverless unificado /api/artwork (Spotify HD sin login + Last.fm + CDN cache)
@@ -5246,14 +5258,20 @@ async function resolveSpotifyArtwork(name, artist, type = 'track', elementId) {
         if (apiRes.ok) {
             const apiData = await apiRes.json();
             if (apiData && apiData.url) {
+                const changed = artCache[key] !== apiData.url;
                 artCache[key] = apiData.url;
+                artCacheMeta[key] = Date.now();
                 saveArtCache();
-                const el = document.getElementById(elementId);
-                if (el) el.src = apiData.url;
+                if (changed || !hasSpotifyCache) {
+                    const el = document.getElementById(elementId);
+                    if (el) el.src = apiData.url;
+                }
                 return apiData.url;
             }
         }
     } catch (e) {}
+
+    if (hasSpotifyCache) return artCache[key];
 
     // 2. Fallback Last.fm API directa en cliente
     const { key: lfKeyFromCreds } = (typeof getLastFmCredentials === 'function') ? getLastFmCredentials() : { key: null };
@@ -5449,7 +5467,7 @@ function renderArtists(artists) {
         statsList.appendChild(item);
 
         const key = `artist::${normalizeKey(artistName)}::`;
-        if (!artCache[key] || (typeof artCache[key] === 'string' && !artCache[key].includes('scdn.co'))) {
+        if (!artCache[key] || (typeof artCache[key] === 'string' && !artCache[key].includes('scdn.co')) || isArtCacheStale(key, 'artist')) {
             resolveSpotifyArtwork(artistName, '', 'artist', imgId);
         }
     });
@@ -7638,12 +7656,150 @@ async function renderTrophiesBadgesTab(db) {
 // ----------------------------------------------------
 let curatorSelectedTracks = [];
 let curatorBenchTracks = [];
+let curatorUpcomingCandidates = [];
+let curatorUpcomingCollapsed = false;
+let curatorSavedPlaylists = [];
+let curatorSavedPlaylistsLoaded = false;
+let curatorDefaultMolvaSettings = null;
 let curatorCurrentCycleInfo = {
     year: '',
     half: '',
     periodStr: 'Sin periodo seleccionado',
     cycleStart: ''
 };
+
+async function loadUsedPlaylistTracksFromSupabase(force = false) {
+    if (curatorSavedPlaylistsLoaded && !force) return curatorSavedPlaylists;
+    try {
+        const res = await fetch(`${SUPABASE_REST_URL}?select=id,cycle_year,cycle_half,selected_tracks,settings`, {
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+            }
+        });
+        if (res.ok) {
+            const rows = await res.json();
+            curatorSavedPlaylists = Array.isArray(rows) ? rows : [];
+            curatorSavedPlaylistsLoaded = true;
+            const defaultRow = curatorSavedPlaylists.find(r => r.id === 'default');
+            if (defaultRow?.settings?.molva) {
+                curatorDefaultMolvaSettings = defaultRow.settings.molva;
+            }
+        }
+    } catch (e) {
+        console.warn('No se pudieron cargar playlists previas de Supabase:', e);
+    }
+    return curatorSavedPlaylists;
+}
+
+function getUsedTracksFromSavedPlaylists(currentYear, currentHalf) {
+    const usedByKey = new Map();
+    const usedByUri = new Map();
+    let checkedPlaylistsCount = 0;
+
+    (curatorSavedPlaylists || []).forEach(row => {
+        if (!row || !Array.isArray(row.selected_tracks) || row.selected_tracks.length === 0) return;
+        const isSameCycle = Boolean(
+            currentYear &&
+            currentHalf &&
+            row.cycle_year &&
+            row.cycle_half &&
+            String(row.cycle_year) === String(currentYear) &&
+            String(row.cycle_half) === String(currentHalf)
+        );
+        if (isSameCycle) return;
+
+        checkedPlaylistsCount++;
+        const playlistName = (row.settings?.playlist_name || row.id || 'Playlist').trim();
+
+        row.selected_tracks.forEach(t => {
+            if (!t) return;
+            const tName = t.name || t.track || t.title || '';
+            const tArtist = t.artist || t.artistName || '';
+            const k = `${normalizeKey(tName)}:::${normalizeKey(tArtist)}`;
+            if (tName && !usedByKey.has(k)) {
+                usedByKey.set(k, playlistName);
+            }
+            const uri = t.uri || (t.spotify_track_id ? `spotify:track:${t.spotify_track_id}` : '');
+            if (uri && !usedByUri.has(uri)) {
+                usedByUri.set(uri, playlistName);
+            }
+        });
+    });
+
+    return { usedByKey, usedByUri, checkedPlaylistsCount };
+}
+
+function getUpcomingCuratorCycle(now = new Date()) {
+    const y = now.getFullYear();
+    const m = now.getMonth() + 1;
+    const d = now.getDate();
+
+    if ((m === 11 && d >= 21) || m === 12) {
+        return {
+            year: String(y + 1),
+            half: '1',
+            start: new Date(y, 10, 21, 0, 0, 0, 0),
+            end: new Date(y + 1, 4, 20, 23, 59, 59, 999)
+        };
+    }
+    if (m < 5 || (m === 5 && d <= 20)) {
+        return {
+            year: String(y),
+            half: '1',
+            start: new Date(y - 1, 10, 21, 0, 0, 0, 0),
+            end: new Date(y, 4, 20, 23, 59, 59, 999)
+        };
+    }
+    return {
+        year: String(y),
+        half: '2',
+        start: new Date(y, 4, 21, 0, 0, 0, 0),
+        end: new Date(y, 10, 20, 23, 59, 59, 999)
+    };
+}
+
+function isUpcomingCuratorCycle(year, half) {
+    if (!year || !half) return false;
+    const upcoming = getUpcomingCuratorCycle();
+    return String(year) === upcoming.year && String(half) === upcoming.half;
+}
+
+function syncCuratorCycleSelectors() {
+    const upcoming = getUpcomingCuratorCycle();
+    const maxYear = parseInt(upcoming.year, 10);
+
+    if (curatorYear) {
+        const existingValues = new Set(Array.from(curatorYear.options).map(o => o.value));
+        if (!existingValues.has(String(maxYear))) {
+            const opt = document.createElement('option');
+            opt.value = String(maxYear);
+            opt.textContent = `${maxYear} (Próxima)`;
+            const firstRealOpt = curatorYear.querySelector('option[value]:not([value=""])');
+            if (firstRealOpt) curatorYear.insertBefore(opt, firstRealOpt);
+            else curatorYear.appendChild(opt);
+        }
+        Array.from(curatorYear.options).forEach(opt => {
+            if (!opt.value) return;
+            opt.textContent = opt.value === upcoming.year ? `${opt.value} (Próxima)` : opt.value;
+        });
+    }
+
+    if (curatorHalf) {
+        const selectedYear = curatorYear?.value || '';
+        Array.from(curatorHalf.options).forEach(opt => {
+            if (opt.value === '1') {
+                opt.textContent = (selectedYear === upcoming.year && upcoming.half === '1')
+                    ? '1ra Mitad (21 Nov — 20 May) · Próxima'
+                    : '1ra Mitad (21 Nov — 20 May)';
+            } else if (opt.value === '2') {
+                opt.textContent = (selectedYear === upcoming.year && upcoming.half === '2')
+                    ? '2da Mitad (21 May — 20 Nov) · Próxima'
+                    : '2da Mitad (21 May — 20 Nov)';
+            }
+        });
+    }
+}
 
 async function openPlaylistCurator() {
     switchAppView('curator');
@@ -7653,6 +7809,8 @@ async function initCuratorSectionIfNeeded() {
         window._curatorInitialized = true;
         initCuratorEvents();
     }
+    syncCuratorCycleSelectors();
+
     if (curatorPlaylistName && !curatorPlaylistName.value) {
         const cached = localStorage.getItem('curator_playlist_name');
         if (cached) {
@@ -7661,18 +7819,21 @@ async function initCuratorSectionIfNeeded() {
             updateCuratorDefaultNameSuggestion();
         }
     }
-    const year = curatorYear?.value || '';
-    const half = curatorHalf?.value || '';
+    let year = curatorYear?.value || '';
+    let half = curatorHalf?.value || '';
     if (!year || !half) {
-        curatorCurrentCycleInfo = {
-            year: '',
-            half: '',
-            periodStr: 'Sin periodo seleccionado',
-            cycleStart: ''
-        };
-        curatorSelectedTracks = [];
-        curatorBenchTracks = [];
-        renderCuratorView();
+        const upcoming = getUpcomingCuratorCycle();
+        if (curatorYear) curatorYear.value = upcoming.year;
+        if (curatorHalf) curatorHalf.value = upcoming.half;
+        syncCuratorCycleSelectors();
+        updateCuratorDefaultNameSuggestion();
+        await Promise.all([
+            loadUsedPlaylistTracksFromSupabase(),
+            typeof fetchLastFmDelta === 'function' ? fetchLastFmDelta().catch(() => {}) : Promise.resolve()
+        ]);
+        await loadCuratorCandidates(false);
+    } else {
+        loadUsedPlaylistTracksFromSupabase().then(() => renderCuratorView()).catch(() => {});
     }
 }
 window.openPlaylistCurator = openPlaylistCurator;
@@ -7710,6 +7871,7 @@ function initCuratorEvents() {
     }
     if (curatorYear) {
         curatorYear.addEventListener('change', () => {
+            syncCuratorCycleSelectors();
             updateCuratorDefaultNameSuggestion();
             const shouldAutoSelect = curatorSelectedTracks.length > 0;
             loadCuratorCandidates(shouldAutoSelect);
@@ -7717,6 +7879,7 @@ function initCuratorEvents() {
     }
     if (curatorHalf) {
         curatorHalf.addEventListener('change', () => {
+            syncCuratorCycleSelectors();
             updateCuratorDefaultNameSuggestion();
             const shouldAutoSelect = curatorSelectedTracks.length > 0;
             loadCuratorCandidates(shouldAutoSelect);
@@ -7730,7 +7893,7 @@ function initCuratorEvents() {
     }
     if (curatorTargetCount) {
         curatorTargetCount.addEventListener('change', () => {
-            const newTarget = parseInt(curatorTargetCount.value, 10) || 18;
+            const newTarget = parseInt(curatorTargetCount.value, 10) || 25;
             if (newTarget < 5) curatorTargetCount.value = 5;
             if (newTarget > 50) curatorTargetCount.value = 50;
             renderCuratorView();
@@ -7823,7 +7986,7 @@ function getCuratorTrackPriorStageMax(t, currentYearNum, currentHalf) {
     return maxPlays;
 }
 
-async function loadCuratorCandidates(autoSelect = true) {
+async function loadCuratorCandidates(autoSelect = true, preserveSelected = false) {
     const year = curatorYear?.value || '';
     const half = curatorHalf?.value || '';
 
@@ -7834,52 +7997,80 @@ async function loadCuratorCandidates(autoSelect = true) {
             periodStr: 'Sin periodo seleccionado',
             cycleStart: ''
         };
-        curatorSelectedTracks = [];
+        if (!preserveSelected) curatorSelectedTracks = [];
         curatorBenchTracks = [];
+        curatorUpcomingCandidates = [];
         renderCuratorView();
         return;
     }
 
-    const activeDb = await getActiveDatabase();
+    const activeDb = await getActiveDatabase(true);
     if (!activeDb || !activeDb.tracksLookup) return;
 
-    if (curatorSelectedList && autoSelect) {
+    await loadUsedPlaylistTracksFromSupabase();
+    const { usedByKey, usedByUri, checkedPlaylistsCount } = getUsedTracksFromSavedPlaylists(year, half);
+
+    if (curatorSelectedList && autoSelect && !preserveSelected) {
         curatorSelectedList.innerHTML = '<div class="text-center text-secondary py-4"><i class="fa-solid fa-spinner fa-spin me-2"></i>Calculando candidatos de este periodo...</div>';
     }
 
-    const targetCount = parseInt(curatorTargetCount?.value, 10) || 18;
+    const targetCount = parseInt(curatorTargetCount?.value, 10) || 25;
     const excludePast = curatorExcludePast ? curatorExcludePast.checked : true;
 
     const yNum = parseInt(year, 10);
     const months = getCuratorStageMonths(year, half);
     let cycleStart = '';
     let periodStr = '';
+    let cycleWindowStartMs = 0;
+    let cycleWindowEndMs = 0;
 
     if (half === '1') {
-        cycleStart = `${yNum - 1}-11-01`;
+        cycleStart = `${yNum - 1}-11-21`;
         periodStr = `21 Nov ${yNum - 1} — 20 May ${year}`;
+        cycleWindowStartMs = new Date(yNum - 1, 10, 21, 0, 0, 0, 0).getTime();
+        cycleWindowEndMs = new Date(yNum, 4, 20, 23, 59, 59, 999).getTime();
     } else {
-        cycleStart = `${year}-05-01`;
-        periodStr = `21 May ${year} — 20 Nov ${year}`;
+        cycleStart = `${yNum}-05-21`;
+        periodStr = `21 May ${yNum} — 20 Nov ${yNum}`;
+        cycleWindowStartMs = new Date(yNum, 4, 21, 0, 0, 0, 0).getTime();
+        cycleWindowEndMs = new Date(yNum, 10, 20, 23, 59, 59, 999).getTime();
     }
 
     curatorCurrentCycleInfo = {
         year,
         half,
         periodStr,
-        cycleStart
+        cycleStart,
+        cycleWindowStartMs,
+        cycleWindowEndMs,
+        checkedPlaylistsCount
     };
 
     // Recorrer catálogo
     const allCandidates = [];
+    const seenTrackKeys = new Set();
     const tracksArray = Object.values(activeDb.tracksLookup);
 
-    // Integración de escuchas delta en tiempo real de Last.fm si aplica
+    // Integración de escuchas delta en tiempo real de Last.fm (solo streams dentro del ciclo)
     const deltaMap = new Map();
-    if (currentSource === 'unified' && year === '2026' && half === '2' && lastFmRecentDelta.length > 0) {
+    const deltaMetaMap = new Map();
+    if (currentSource === 'unified' && Array.isArray(lastFmRecentDelta) && lastFmRecentDelta.length > 0) {
         lastFmRecentDelta.forEach(t => {
-            const k = `${normalizeKey(t.name)}:::${normalizeKey(t.artist ? (t.artist['#text'] || t.artist.name || '') : '')}`;
+            const uts = t?.date?.uts ? parseInt(t.date.uts, 10) * 1000 : 0;
+            if (!uts || uts < cycleWindowStartMs || uts > cycleWindowEndMs) return;
+            const tName = t.name || '';
+            const tArtist = t.artist ? (t.artist['#text'] || t.artist.name || '') : '';
+            const k = `${normalizeKey(tName)}:::${normalizeKey(tArtist)}`;
+
             deltaMap.set(k, (deltaMap.get(k) || 0) + 1);
+            if (!deltaMetaMap.has(k)) {
+                deltaMetaMap.set(k, {
+                    name: tName,
+                    artist: tArtist,
+                    album: t.album ? (t.album['#text'] || t.album.name || '') : '',
+                    first: new Date(uts).toISOString().slice(0, 10)
+                });
+            }
         });
     }
 
@@ -7892,29 +8083,19 @@ async function loadCuratorCandidates(autoSelect = true) {
         }
 
         const trackKey = `${normalizeKey(t.name)}:::${normalizeKey(t.artist || '')}`;
+        seenTrackKeys.add(trackKey);
         if (deltaMap.has(trackKey)) {
             periodPlays += deltaMap.get(trackKey);
         }
 
         if (periodPlays > 0) {
+            const usedInPlaylistName = usedByKey.get(trackKey) || (t.uri ? usedByUri.get(t.uri) : '') || '';
+            const isUsedInPlaylist = Boolean(usedInPlaylistName);
             const firstDate = t.first || '';
-            const isPastDiscovered = Boolean(firstDate && firstDate < cycleStart);
-
-            let isTrulyPastYear = false;
-            let isSurgeOrPeak = false;
-            let priorMax = 0;
-
-            if (isPastDiscovered) {
-                priorMax = getCuratorTrackPriorStageMax(t, yNum, half);
-
-                // Criterio de picos de escuchas:
-                // Solo se considera pico si alcanzó su récord en su respectiva etapa semestral actual
-                if (periodPlays >= priorMax) {
-                    isSurgeOrPeak = true;
-                } else {
-                    isTrulyPastYear = true;
-                }
-            }
+            const firstMs = firstDate
+                ? Date.parse(firstDate.length === 10 ? `${firstDate}T00:00:00` : firstDate)
+                : NaN;
+            const isFromPastStage = Boolean(!isNaN(firstMs) && firstMs < cycleWindowStartMs);
 
             allCandidates.push({
                 name: t.name,
@@ -7923,32 +8104,70 @@ async function loadCuratorCandidates(autoSelect = true) {
                 uri: t.uri,
                 plays: periodPlays,
                 first: t.first,
-                isPastYear: isTrulyPastYear,
-                isSurgeOrPeak,
-                priorMax
+                isUsedInPlaylist,
+                usedInPlaylistName,
+                isFromPastStage,
+                isPastYear: isUsedInPlaylist,
+                isSurgeOrPeak: false,
+                priorMax: 0
             });
         }
     }
 
+    // Incluir canciones nuevas provenientes solo del delta reciente de Last.fm
+    for (const [k, deltaCount] of deltaMap.entries()) {
+        if (seenTrackKeys.has(k) || deltaCount <= 0) continue;
+        const meta = deltaMetaMap.get(k);
+        if (!meta) continue;
+
+        const usedInPlaylistName = usedByKey.get(k) || '';
+        const isUsedInPlaylist = Boolean(usedInPlaylistName);
+
+        allCandidates.push({
+            name: meta.name,
+            artist: meta.artist,
+            album: meta.album,
+            uri: '',
+            plays: deltaCount,
+            first: meta.first,
+            isUsedInPlaylist,
+            usedInPlaylistName,
+            isFromPastStage: false,
+            isPastYear: isUsedInPlaylist,
+            isSurgeOrPeak: false,
+            priorMax: 0
+        });
+    }
+
     allCandidates.sort((a, b) => b.plays - a.plays);
 
-    curatorSelectedTracks = [];
-    curatorBenchTracks = [];
+    // Top 25 candidatas: solo canciones que NUNCA han entrado en playlists guardadas (Molva/Supabase)
+    curatorUpcomingCandidates = allCandidates
+        .filter(item => !item.isUsedInPlaylist)
+        .slice(0, 25);
 
-    if (autoSelect) {
-        for (const item of allCandidates) {
-            if (excludePast && item.isPastYear) {
-                curatorBenchTracks.push(item);
-            } else {
-                if (curatorSelectedTracks.length < targetCount) {
-                    curatorSelectedTracks.push(item);
-                } else {
+    if (preserveSelected && Array.isArray(curatorSelectedTracks) && curatorSelectedTracks.length > 0) {
+        const selectedKeys = new Set(curatorSelectedTracks.map(t => `${normalizeKey(t.name)}:::${normalizeKey(t.artist)}`));
+        curatorBenchTracks = allCandidates.filter(item => !selectedKeys.has(`${normalizeKey(item.name)}:::${normalizeKey(item.artist)}`));
+    } else {
+        curatorSelectedTracks = [];
+        curatorBenchTracks = [];
+
+        if (autoSelect) {
+            for (const item of allCandidates) {
+                if (excludePast && item.isUsedInPlaylist) {
                     curatorBenchTracks.push(item);
+                } else {
+                    if (curatorSelectedTracks.length < targetCount) {
+                        curatorSelectedTracks.push(item);
+                    } else {
+                        curatorBenchTracks.push(item);
+                    }
                 }
             }
+        } else {
+            curatorBenchTracks = allCandidates;
         }
-    } else {
-        curatorBenchTracks = allCandidates;
     }
 
     renderCuratorView();
@@ -8244,12 +8463,131 @@ window.shuffleCuratorTracklist = function() {
     }
 };
 
+window.toggleCuratorUpcomingBody = function() {
+    curatorUpcomingCollapsed = !curatorUpcomingCollapsed;
+    const bodyEl = document.getElementById('curator-upcoming-body');
+    const toggleBtn = document.getElementById('curator-upcoming-toggle');
+    if (bodyEl) bodyEl.classList.toggle('d-none', curatorUpcomingCollapsed);
+    if (toggleBtn) toggleBtn.textContent = curatorUpcomingCollapsed ? 'Mostrar' : 'Ocultar';
+};
+
+window.addUpcomingCandidateToTracklist = function(index) {
+    const candidate = curatorUpcomingCandidates[index];
+    if (!candidate) return;
+    const key = `${normalizeKey(candidate.name)}:::${normalizeKey(candidate.artist)}`;
+    const alreadyInList = curatorSelectedTracks.some(t => `${normalizeKey(t.name)}:::${normalizeKey(t.artist)}` === key);
+    if (alreadyInList) return;
+
+    const bIdx = curatorBenchTracks.findIndex(t => `${normalizeKey(t.name)}:::${normalizeKey(t.artist)}` === key);
+    if (bIdx !== -1) {
+        const [item] = curatorBenchTracks.splice(bIdx, 1);
+        curatorSelectedTracks.push(item);
+    } else {
+        curatorSelectedTracks.push({ ...candidate });
+    }
+    renderCuratorView();
+    triggerGoogleDriveAutoSync();
+};
+
+function renderCuratorUpcomingPanel() {
+    const panelEl = document.getElementById('curator-upcoming-panel');
+    const listEl = document.getElementById('curator-upcoming-list');
+    const progressEl = document.getElementById('curator-upcoming-progress');
+    const cutBadgeEl = document.getElementById('curator-upcoming-cut-badge');
+    if (!panelEl || !listEl) return;
+
+    const { year, half, cycleWindowStartMs, cycleWindowEndMs } = curatorCurrentCycleInfo;
+    if (!isUpcomingCuratorCycle(year, half)) {
+        panelEl.classList.add('d-none');
+        return;
+    }
+
+    panelEl.classList.remove('d-none');
+
+    if (progressEl && cycleWindowStartMs && cycleWindowEndMs) {
+        const nowMs = Date.now();
+        const totalDays = Math.max(1, Math.round((cycleWindowEndMs - cycleWindowStartMs) / 86400000));
+        const elapsedDays = Math.min(totalDays, Math.max(1, Math.floor((nowMs - cycleWindowStartMs) / 86400000) + 1));
+        const pct = Math.min(100, Math.round((elapsedDays / totalDays) * 100));
+        const checkedTxt = curatorCurrentCycleInfo.checkedPlaylistsCount
+            ? ` · ${curatorCurrentCycleInfo.checkedPlaylistsCount} playlists filtradas`
+            : '';
+        progressEl.textContent = `Día ${elapsedDays} de ${totalDays} (${pct}%)${checkedTxt}`;
+    }
+
+    const targetCount = parseInt(curatorTargetCount?.value, 10) || 25;
+    const candidates = curatorUpcomingCandidates || [];
+
+    if (candidates.length === 0) {
+        if (cutBadgeEl) cutBadgeEl.textContent = 'Sin streams aún';
+        listEl.innerHTML = '<div class="text-center text-secondary py-3 small">Aún no hay reproducciones acumuladas desde el inicio de este ciclo.</div>';
+        return;
+    }
+
+    const cutIndex = Math.min(targetCount, candidates.length) - 1;
+    const cutPlays = candidates[cutIndex]?.plays || 0;
+    if (cutBadgeEl) {
+        cutBadgeEl.textContent = `Corte Top ${targetCount}: ${cutPlays} streams`;
+    }
+
+    const selectedKeys = new Set(curatorSelectedTracks.map(t => `${normalizeKey(t.name)}:::${normalizeKey(t.artist)}`));
+
+    let html = '';
+    candidates.forEach((t, idx) => {
+        const rank = idx + 1;
+        const inCut = rank <= targetCount;
+        if (idx === targetCount) {
+            html += `<div class="curator-cut-divider">Línea de corte (Top ${targetCount}) · En pelea hacia #${targetCount}</div>`;
+        }
+
+        const trackName = t.name || 'Sin título';
+        const trackArtist = t.artist || 'Artista desconocido';
+        const key = `${normalizeKey(trackName)}:::${normalizeKey(trackArtist)}`;
+        const isInTracklist = selectedKeys.has(key);
+        const artKey = `track::${normalizeKey(trackName)}::${normalizeKey(trackArtist)}`;
+        const coverImg = artCache[artKey] || FALLBACK_ART_SVG;
+        const imgId = `curator-art-up-${idx}`;
+        const diff = t.plays - cutPlays;
+        const diffLabel = inCut
+            ? (rank === targetCount ? 'En corte' : `+${diff}`)
+            : (diff === 0 ? 'Empate' : `${diff}`);
+
+        html += `
+            <div class="curator-upcoming-row ${inCut ? 'is-in-cut' : 'is-bubble'}">
+                <span class="curator-rank-pill ${inCut ? 'in-cut' : 'bubble'}">#${rank}</span>
+                <img id="${imgId}" src="${coverImg}" loading="lazy" decoding="async" class="rounded flex-shrink-0" style="width: 30px; height: 30px; object-fit: cover;" onerror="safeImgError(this)" alt="Cover">
+                <div class="curator-track-info">
+                    <div class="curator-track-title" style="font-size: 0.78rem;" title="${trackName}">${trackName}</div>
+                    <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                        <span class="curator-track-artist" style="font-size: 0.69rem;" title="${trackArtist}">${trackArtist}</span>
+                        ${t.isFromPastStage ? `<span class="curator-badge-past" title="De etapa anterior, nunca usada en playlist previa">Elegible</span>` : ''}
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-1.5 flex-shrink-0 ms-auto">
+                    <span class="text-secondary" style="font-size: 0.68rem;" title="Diferencia vs puesto de corte #${targetCount}">${diffLabel}</span>
+                    <span class="curator-badge-plays" title="${t.plays} streams en esta etapa">${t.plays}</span>
+                    ${isInTracklist
+                        ? '<span class="badge rounded-pill" style="background: rgba(34,197,94,0.16); color: #4ade80; border: 1px solid rgba(34,197,94,0.35); font-size: 0.64rem;">En lista</span>'
+                        : `<button type="button" class="btn btn-sm btn-outline-brand rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 24px; height: 24px;" onclick="addUpcomingCandidateToTracklist(${idx})" title="Añadir a Mi Tracklist"><i class="fa-solid fa-plus" style="font-size: 0.66rem;"></i></button>`
+                    }
+                </div>
+            </div>
+        `;
+
+        if (!artCache[artKey]) {
+            resolveSpotifyArtwork(trackName, trackArtist, 'track', imgId);
+        }
+    });
+
+    listEl.innerHTML = html;
+}
+
 function renderCuratorView() {
     if (curatorPeriodBadge) {
         curatorPeriodBadge.innerHTML = `<i class="fa-regular fa-clock me-1"></i> ${curatorCurrentCycleInfo.periodStr}`;
     }
 
-    const targetCount = parseInt(curatorTargetCount?.value, 10) || 18;
+    const targetCount = parseInt(curatorTargetCount?.value, 10) || 25;
     const selectedCount = curatorSelectedTracks.length;
     const exportCount = document.getElementById('curator-export-count');
     if (exportCount) {
@@ -8278,6 +8616,7 @@ function renderCuratorView() {
     const benchBadge = document.getElementById('curator-bench-count-badge');
     if (benchBadge) benchBadge.textContent = curatorBenchTracks.length;
 
+    renderCuratorUpcomingPanel();
     renderCuratorSelectedList();
     renderCuratorBenchList();
 }
@@ -8363,7 +8702,7 @@ function renderCuratorSelectedList() {
                     <div class="curator-track-title" title="${trackName}">${trackName}</div>
                     <div class="d-flex align-items-center gap-1.5 flex-wrap">
                         <span class="curator-track-artist" title="${trackArtist}">${trackArtist}</span>
-                        ${t.isSurgeOrPeak ? `<span class="curator-badge-peak" title="Pico de escuchas en esta etapa (${t.plays} plays vs récord previo de ${t.priorMax || 0})"><i class="fa-solid fa-arrow-trend-up"></i> Pico</span>` : (t.isPastYear ? '<span class="curator-badge-past">Año Pasado</span>' : '')}
+                        ${t.isUsedInPlaylist ? `<span class="curator-badge-past" title="Ya pertenece a: ${t.usedInPlaylistName}">En: ${t.usedInPlaylistName}</span>` : ''}
                     </div>
                 </div>
                 <div class="d-flex align-items-center gap-1.5 flex-shrink-0 ms-auto">
@@ -8424,6 +8763,7 @@ function renderCuratorBenchList() {
 
         const catalogMatches = [];
         const activeDb = currentSource === 'unified' ? unifiedDb : spotifyDb;
+        const { usedByKey, usedByUri } = getUsedTracksFromSavedPlaylists(curatorCurrentCycleInfo.year, curatorCurrentCycleInfo.half);
         if (activeDb && activeDb.tracksLookup) {
             for (const t of Object.values(activeDb.tracksLookup)) {
                 const k = `${normalizeKey(t.name)}:::${normalizeKey(t.artist)}`;
@@ -8431,6 +8771,7 @@ function renderCuratorBenchList() {
                 if ((t.name || '').toLowerCase().includes(query) ||
                     (t.artist || '').toLowerCase().includes(query) ||
                     (t.album || '').toLowerCase().includes(query)) {
+                    const usedName = usedByKey.get(k) || (t.uri ? usedByUri.get(t.uri) : '') || '';
                     catalogMatches.push({
                         name: t.name,
                         artist: t.artist,
@@ -8438,7 +8779,9 @@ function renderCuratorBenchList() {
                         uri: t.uri,
                         plays: t.plays || 0,
                         first: t.first,
-                        isPastYear: true,
+                        isUsedInPlaylist: Boolean(usedName),
+                        usedInPlaylistName: usedName,
+                        isPastYear: Boolean(usedName),
                         isSurgeOrPeak: false,
                         fromFullCatalog: true
                     });
@@ -8487,7 +8830,7 @@ function renderCuratorBenchList() {
                     <div class="curator-track-title" title="${trackName}">${trackName}</div>
                     <div class="d-flex align-items-center gap-1 flex-wrap">
                         <span class="curator-track-artist" title="${trackArtist}">${trackArtist}</span>
-                        ${t.fromFullCatalog ? '<span class="curator-badge-past" title="Canción de tu catálogo completo">Catálogo Total</span>' : (t.isSurgeOrPeak ? `<span class="curator-badge-peak" title="Pico de escuchas en esta etapa"><i class="fa-solid fa-arrow-trend-up"></i> Pico</span>` : (t.isPastYear ? `<span class="curator-badge-past">Año Pasado</span>` : ''))}
+                        ${t.isUsedInPlaylist ? `<span class="curator-badge-past" title="Ya está en la playlist: ${t.usedInPlaylistName}">En: ${t.usedInPlaylistName}</span>` : (t.fromFullCatalog ? '<span class="curator-badge-past" title="Canción de tu catálogo completo">Catálogo Total</span>' : (t.isFromPastStage ? '<span class="curator-badge-past" title="De etapa anterior, sin usar en playlists">Elegible</span>' : ''))}
                     </div>
                 </div>
                 <div class="d-flex align-items-center gap-1.5 flex-shrink-0 ms-auto">
@@ -8845,13 +9188,14 @@ async function saveToCloudDatabase(isSilent = false, customName = '') {
             user_id: 'Vrak_23',
             cycle_year: curatorCurrentCycleInfo.year || (curatorYear?.value || ''),
             cycle_half: curatorCurrentCycleInfo.half || (curatorHalf?.value || ''),
-            target_count: parseInt(curatorTargetCount?.value || '18', 10),
+            target_count: parseInt(curatorTargetCount?.value || '25', 10),
             selected_tracks: curatorSelectedTracks || [],
             honorable_mentions: window.curatorHonorableTracks || [],
             year_favorites: window.curatorYearFavorites || [],
             settings: {
                 excludePast: curatorExcludePast ? curatorExcludePast.checked : true,
-                playlist_name: playlistName
+                playlist_name: playlistName,
+                ...(curatorDefaultMolvaSettings ? { molva: curatorDefaultMolvaSettings } : {})
             },
             updated_at: new Date().toISOString()
         };
@@ -8870,6 +9214,7 @@ async function saveToCloudDatabase(isSilent = false, customName = '') {
         if (res.ok) {
             const nowIso = new Date().toISOString();
             localStorage.setItem(CLOUD_LAST_SYNC_KEY, nowIso);
+            loadUsedPlaylistTracksFromSupabase(true).catch(() => {});
             updateCloudUI('active', 'Nube Sincronizada');
             if (!isSilent) {
                 showCloudAlert(`¡Guardado exitoso en Supabase! "${playlistName}" (${payload.selected_tracks.length} canciones sincronizadas)`, 'success');
@@ -8933,7 +9278,8 @@ async function loadFromCloudDatabase() {
                     : 'Sin periodo seleccionado';
 
                 if (row.cycle_year && row.cycle_half) {
-                    await loadCuratorCandidates(false);
+                    syncCuratorCycleSelectors();
+                    await loadCuratorCandidates(false, true);
                 } else {
                     renderCuratorView();
                 }
