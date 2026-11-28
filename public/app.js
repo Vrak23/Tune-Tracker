@@ -1903,8 +1903,9 @@ async function loadUnifiedDatabase(requireFull = false) {
                 if (parsed?.yearlyTops?.['2026']?.months) {
                     Object.values(parsed.yearlyTops['2026'].months).forEach(m => mSum26 += (m?.plays || 0));
                 }
-                // Si la caché fast guardada tenía los meses de 2026 desunificados, invalidarla
-                if (parsed?.yearlyTops?.['2026'] && mSum26 < 10000) {
+                // Si la caché fast guardada tenía los meses de 2026 desunificados o tracks con valores inválidos, invalidarla
+                const hasInvalid26Tracks = Object.values(parsed?.yearlyTops?.['2026']?.months || {}).some(m => (m?.tracks || []).some(t => (t?.plays || 0) <= 0));
+                if (parsed?.yearlyTops?.['2026'] && (mSum26 < 10000 || hasInvalid26Tracks)) {
                     localStorage.removeItem('tunetracker_fast_home_cache');
                 } else if (parsed && parsed.summary && parsed.yearlyTops) {
                     parsed._isFastCache = true;
@@ -3922,8 +3923,11 @@ function getStaticItemBasePlays(type, name, artist, baseItem = null, periodRange
                     tidalContribution = trackEntry.plays || 0;
                 } else if (periodRange.startsWith('year-')) {
                     tidalContribution = trackEntry.years?.[periodRange.replace('year-', '')] || 0;
-                } else if (periodRange.startsWith('month-')) {
-                    tidalContribution = trackEntry.months?.[periodRange.replace('month-', '')] || 0;
+                } else if (periodRange.startsWith('month-2025-')) {
+                    const ym = periodRange.replace('month-', '');
+                    const [cy, cm] = ym.split('-');
+                    const paddedYm = `${cy}-${String(cm).padStart(2, '0')}`;
+                    tidalContribution = trackEntry.months?.[paddedYm] || 0;
                 }
             }
         } else if (type === 'artist') {
@@ -4196,7 +4200,7 @@ async function loadStats(silent = false) {
                             addPlays = tEntry.years?.['2025'] || 0;
                         } else if (currentRange === 'year-2026') {
                             addPlays = tEntry.years?.['2026'] || 0;
-                        } else if (currentRange.startsWith('month-2025-') || currentRange.startsWith('month-2026-')) {
+                        } else if (currentRange.startsWith('month-2025-')) {
                             const ym = currentRange.replace('month-', '');
                             const [cy, cm] = ym.split('-');
                             const paddedYm = `${cy}-${String(cm).padStart(2, '0')}`;
@@ -4205,6 +4209,8 @@ async function loadStats(silent = false) {
                             const [fromD, toD] = currentRange.replace('dates_', '').split('_to_');
                             if (tEntry.months) {
                                 Object.entries(tEntry.months).forEach(([ym, cnt]) => {
+                                    // Los meses de 2026 ya contienen los scrobbles unificados de Last.fm en yearlyTops
+                                    if (!ym.startsWith('2025-')) return;
                                     const mStart = `${ym}-01`;
                                     const mEnd = `${ym}-31`;
                                     if (mEnd >= fromD && mStart <= toD) {
@@ -4313,7 +4319,7 @@ async function loadStats(silent = false) {
                             addPlays = aEntry.years?.['2025'] || 0;
                         } else if (currentRange === 'year-2026') {
                             addPlays = aEntry.years?.['2026'] || 0;
-                        } else if (currentRange.startsWith('month-2025-') || currentRange.startsWith('month-2026-')) {
+                        } else if (currentRange.startsWith('month-2025-')) {
                             const ym = currentRange.replace('month-', '');
                             const [cy, cm] = ym.split('-');
                             const paddedYm = `${cy}-${String(cm).padStart(2, '0')}`;
@@ -4324,6 +4330,8 @@ async function loadStats(silent = false) {
                             const [fromD, toD] = currentRange.replace('dates_', '').split('_to_');
                             if (tidal.months) {
                                 Object.entries(tidal.months).forEach(([ym, mObj]) => {
+                                    // Los meses de 2026 ya contienen los scrobbles unificados de Last.fm en yearlyTops
+                                    if (!ym.startsWith('2025-')) return;
                                     const mStart = `${ym}-01`;
                                     const mEnd = `${ym}-31`;
                                     if (mEnd >= fromD && mStart <= toD && mObj.artists?.[artName]) {
@@ -5516,17 +5524,25 @@ async function showItemStats(type, name, artist, isBack = false) {
     let peakMonthsHtml = '';
     let monthsObj = { ...(data?.months || {}) };
     
-    // Si es un artista y no tiene meses o solo tiene meses de 2026, reconstruir con la historia completa de tracksLookup
-    const monthYears = new Set(Object.keys(monthsObj).map(k => k.split('-')[0]));
-    if (type === 'artist' && (Object.keys(monthsObj).length === 0 || (monthYears.size === 1 && monthYears.has('2026'))) && activeDb?.tracksLookup) {
+    // Si es un artista y no tiene meses registrados, reconstruir desde tracksLookup (sin duplicar los ya existentes)
+    if (type === 'artist' && Object.keys(monthsObj).length === 0 && activeDb?.tracksLookup) {
         const normCurrentArt = normalizeKey(name);
+        const exactMatches = [];
+        const partialMatches = [];
         Object.values(activeDb.tracksLookup).forEach(t => {
+            if (!t.months) return;
             const normTArt = normalizeKey(t.artist);
-            if ((normTArt === normCurrentArt || normTArt.startsWith(normCurrentArt) || normCurrentArt.startsWith(normTArt)) && t.months) {
-                Object.entries(t.months).forEach(([mk, cnt]) => {
-                    monthsObj[mk] = (monthsObj[mk] || 0) + cnt;
-                });
+            if (normTArt === normCurrentArt) {
+                exactMatches.push(t);
+            } else if (normTArt.includes(normCurrentArt) || normCurrentArt.includes(normTArt)) {
+                partialMatches.push(t);
             }
+        });
+        const sourceTracks = exactMatches.length > 0 ? exactMatches : partialMatches;
+        sourceTracks.forEach(t => {
+            Object.entries(t.months).forEach(([mk, cnt]) => {
+                monthsObj[mk] = (monthsObj[mk] || 0) + cnt;
+            });
         });
     }
     Object.entries(deltaMonths).forEach(([mk, c]) => { monthsObj[mk] = (monthsObj[mk] || 0) + c; });

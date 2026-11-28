@@ -1,24 +1,89 @@
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
 const UNIFIED_PATH = path.join(__dirname, '..', 'public', 'data', 'unified_history.json');
 const FAST_HOME_PATH = path.join(__dirname, '..', 'public', 'data', 'fast_home.json');
 const JAN_JUL_PATH = 'C:/Users/Rodrigo Llanos/.gemini/antigravity/brain/82d94d0d-7255-432e-ab28-7cafa1ddc1ac/scratch/lastfm_2026_jan_jul.json';
 
-console.log('Reading files...');
-const u = JSON.parse(fs.readFileSync(UNIFIED_PATH, 'utf8'));
-const fastHome = JSON.parse(fs.readFileSync(FAST_HOME_PATH, 'utf8'));
+console.log('Reading HEAD unified_history.json (preserving 4771b10 historical months) and f058ef5 Spotify Jan-Jul base...');
+const repoRoot = path.join(__dirname, '..');
+const u = JSON.parse(execSync('git show HEAD:public/data/unified_history.json', { cwd: repoRoot, maxBuffer: 64 * 1024 * 1024 }).toString('utf8'));
+const f058 = JSON.parse(execSync('git show f058ef5:public/data/unified_history.json', { cwd: repoRoot, maxBuffer: 64 * 1024 * 1024 }).toString('utf8'));
+const fastHome = JSON.parse(execSync('git show HEAD:public/data/fast_home.json', { cwd: repoRoot, maxBuffer: 16 * 1024 * 1024 }).toString('utf8'));
 const lfTracks = JSON.parse(fs.readFileSync(JAN_JUL_PATH, 'utf8'));
 
 function stripKey(s) {
     return (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
-// Build track lookup map for URI and exact metadata matching
+/**
+ * Hamilton largest-remainder allocation so integer plays sum strictly to targetTotal
+ * without ever producing negative values or penalizing the #1 item.
+ */
+function allocateProportionally(items, targetTotal) {
+    const rawSum = items.reduce((acc, it) => acc + it.rawPlays, 0);
+    if (rawSum <= 0 || targetTotal <= 0 || items.length === 0) {
+        return items.map(it => ({ ...it, plays: 0 }));
+    }
+    const factor = targetTotal / rawSum;
+    const allocated = items.map((it, idx) => {
+        const exact = it.rawPlays * factor;
+        const floored = Math.floor(exact);
+        return {
+            ...it,
+            _idx: idx,
+            _rem: exact - floored,
+            plays: floored
+        };
+    });
+    let currentSum = allocated.reduce((acc, it) => acc + it.plays, 0);
+    let remaining = targetTotal - currentSum;
+
+    const byRemainder = [...allocated].sort((a, b) => (b._rem - a._rem) || (b.rawPlays - a.rawPlays) || (a._idx - b._idx));
+    for (let i = 0; i < byRemainder.length && remaining > 0; i++) {
+        byRemainder[i].plays += 1;
+        remaining -= 1;
+    }
+
+    return allocated
+        .filter(it => it.plays > 0)
+        .sort((a, b) => (b.plays - a.plays) || (b.rawPlays - a.rawPlays));
+}
+
+// Build lookup maps on HEAD
 const trackLookupMap = new Map();
 Object.keys(u.tracksLookup || {}).forEach(k => {
     trackLookupMap.set(stripKey(k), u.tracksLookup[k]);
 });
+const artistLookupMap = new Map();
+Object.keys(u.artistsLookup || {}).forEach(k => {
+    artistLookupMap.set(stripKey(k), u.artistsLookup[k]);
+});
+const albumLookupMap = new Map();
+Object.keys(u.albumsLookup || {}).forEach(k => {
+    albumLookupMap.set(stripKey(k), u.albumsLookup[k]);
+});
+
+// Reset 2026-01..2026-07 in lookups back to pristine f058ef5 values before re-applying cleanly
+const janJulKeys = ['2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06', '2026-07'];
+for (const [dictName, f058Dict] of [
+    ['tracksLookup', f058.tracksLookup || {}],
+    ['artistsLookup', f058.artistsLookup || {}],
+    ['albumsLookup', f058.albumsLookup || {}]
+]) {
+    Object.entries(u[dictName] || {}).forEach(([k, entry]) => {
+        if (!entry.months) return;
+        const orig = f058Dict[k]?.months || {};
+        janJulKeys.forEach(ym => {
+            if (orig[ym]) {
+                entry.months[ym] = orig[ym];
+            } else {
+                delete entry.months[ym];
+            }
+        });
+    });
+}
 
 // Group Last.fm tracks by month 1 to 7
 const byMonth = {};
@@ -33,36 +98,22 @@ lfTracks.forEach(t => {
     }
 });
 
-// Target gap for Jan-Jul is 4842 (already added to yearlyTops['2026'].plays)
 const targetGap = 4842;
-const totalLf = lfTracks.length; // 5252
-const scale = targetGap / totalLf;
-
-console.log(`Scaling ${totalLf} Last.fm scrobbles to target gap of ${targetGap} (scale = ${scale.toFixed(6)})`);
-
-// Build monthly tops and aggregate counts for each month
-const monthAllocations = {};
-let allocatedSum = 0;
+const monthItems = [];
 for (let m = 1; m <= 7; m++) {
-    const rawLen = byMonth[m].length;
-    let scaled = Math.round(rawLen * scale);
-    monthAllocations[m] = scaled;
-    allocatedSum += scaled;
+    monthItems.push({ m, rawPlays: byMonth[m].length });
 }
-// Adjust any rounding difference to month 7
-if (allocatedSum !== targetGap) {
-    monthAllocations[7] += (targetGap - allocatedSum);
-}
+const allocatedMonths = allocateProportionally(monthItems, targetGap);
+const monthAllocations = {};
+allocatedMonths.forEach(it => { monthAllocations[it.m] = it.plays; });
 
 console.log('Month allocations (gap):', monthAllocations);
 
-// Process each month 1 to 7
 for (let m = 1; m <= 7; m++) {
     const mStr = String(m);
-    const monthTargetPlays = monthAllocations[m];
+    const monthTargetPlays = monthAllocations[m] || 0;
     const rawList = byMonth[m];
 
-    // Aggregations
     const trackCounts = new Map();
     const artistCounts = new Map();
     const albumCounts = new Map();
@@ -74,12 +125,7 @@ for (let m = 1; m <= 7; m++) {
 
         const trKey = `${stripKey(tName)}:::${stripKey(aName)}`;
         if (!trackCounts.has(trKey)) {
-            trackCounts.set(trKey, {
-                name: tName,
-                artist: aName,
-                album: alName,
-                rawPlays: 0
-            });
+            trackCounts.set(trKey, { name: tName, artist: aName, album: alName, rawPlays: 0 });
         }
         trackCounts.get(trKey).rawPlays++;
 
@@ -100,59 +146,42 @@ for (let m = 1; m <= 7; m++) {
         }
     });
 
-    // Scale track plays so their sum equals monthTargetPlays
-    const sortedTracks = Array.from(trackCounts.values()).sort((a, b) => b.rawPlays - a.rawPlays);
-    let trackSum = 0;
-    const finalTracks = sortedTracks.map(st => {
-        const p = Math.max(1, Math.round(st.rawPlays * scale));
-        trackSum += p;
+    const finalTracks = allocateProportionally(Array.from(trackCounts.values()), monthTargetPlays).map(st => {
         const lookup = trackLookupMap.get(`${stripKey(st.name)}:::${stripKey(st.artist)}`);
         return {
             name: lookup?.name || st.name,
             artist: lookup?.artist || st.artist,
             album: lookup?.album || st.album,
-            plays: p,
-            ms: p * 210000,
+            plays: st.plays,
+            ms: st.plays * 210000,
             uri: lookup?.uri || null
         };
     });
-    // Adjust diff to top track if needed
-    if (finalTracks.length > 0 && trackSum !== monthTargetPlays) {
-        finalTracks[0].plays += (monthTargetPlays - trackSum);
-        finalTracks[0].ms = finalTracks[0].plays * 210000;
-    }
 
-    // Artists
-    const sortedArtists = Array.from(artistCounts.values())
-        .sort((a, b) => b.rawPlays - a.rawPlays)
-        .map(sa => {
-            const p = Math.max(1, Math.round(sa.rawPlays * scale));
-            return {
-                name: sa.name,
-                plays: p,
-                ms: p * 210000
-            };
-        });
+    const sortedArtists = allocateProportionally(Array.from(artistCounts.values()), monthTargetPlays).map(sa => {
+        const lookup = artistLookupMap.get(stripKey(sa.name));
+        return {
+            name: lookup?.name || sa.name,
+            plays: sa.plays,
+            ms: sa.plays * 210000
+        };
+    });
 
-    // Albums
-    const sortedAlbums = Array.from(albumCounts.values())
-        .sort((a, b) => b.rawPlays - a.rawPlays)
-        .map(sal => {
-            const p = Math.max(1, Math.round(sal.rawPlays * scale));
-            return {
-                name: sal.name,
-                artist: sal.artist,
-                plays: p,
-                ms: p * 210000
-            };
-        });
+    const sortedAlbums = allocateProportionally(Array.from(albumCounts.values()), monthTargetPlays).map(sal => {
+        const lookup = albumLookupMap.get(`${stripKey(sal.name)}:::${stripKey(sal.artist)}`);
+        return {
+            name: lookup?.name || sal.name,
+            artist: lookup?.artist || sal.artist,
+            plays: sal.plays,
+            ms: sal.plays * 210000
+        };
+    });
 
-    // If month previously had Spotify plays (e.g. m=1 had 1, m=4 had 3, m=7 had 8), keep them merged
-    const existing = u.yearlyTops['2026'].months?.[mStr];
+    // Merge pristine Spotify Jan-Jul plays from f058ef5 (e.g. m=1: 1, m=4: 3, m=7: 8)
+    const existing = f058.yearlyTops?.['2026']?.months?.[mStr];
     const baseExistingPlays = existing?.plays || 0;
     const finalMonthPlays = monthTargetPlays + baseExistingPlays;
 
-    // Combine tracks if existing had tracks
     if (existing && Array.isArray(existing.tracks) && existing.tracks.length > 0) {
         existing.tracks.forEach(et => {
             const match = finalTracks.find(ft => stripKey(ft.name) === stripKey(et.name) && stripKey(ft.artist) === stripKey(et.artist));
@@ -160,10 +189,36 @@ for (let m = 1; m <= 7; m++) {
                 match.plays += et.plays;
                 match.ms += (et.ms || (et.plays * 210000));
             } else {
-                finalTracks.push(et);
+                finalTracks.push({ ...et });
             }
         });
         finalTracks.sort((a, b) => b.plays - a.plays);
+    }
+
+    if (existing && Array.isArray(existing.artists) && existing.artists.length > 0) {
+        existing.artists.forEach(ea => {
+            const match = sortedArtists.find(sa => stripKey(sa.name) === stripKey(ea.name));
+            if (match) {
+                match.plays += ea.plays;
+                match.ms += (ea.ms || (ea.plays * 210000));
+            } else {
+                sortedArtists.push({ ...ea });
+            }
+        });
+        sortedArtists.sort((a, b) => b.plays - a.plays);
+    }
+
+    if (existing && Array.isArray(existing.albums) && existing.albums.length > 0) {
+        existing.albums.forEach(eal => {
+            const match = sortedAlbums.find(sal => stripKey(sal.name) === stripKey(eal.name) && stripKey(sal.artist) === stripKey(eal.artist));
+            if (match) {
+                match.plays += eal.plays;
+                match.ms += (eal.ms || (eal.plays * 210000));
+            } else {
+                sortedAlbums.push({ ...eal });
+            }
+        });
+        sortedAlbums.sort((a, b) => b.plays - a.plays);
     }
 
     u.yearlyTops['2026'].months[mStr] = {
@@ -174,39 +229,33 @@ for (let m = 1; m <= 7; m++) {
         albums: sortedAlbums.slice(0, 50)
     };
 
-    // Also update months in tracksLookup for accurate song histories
+    const ym = `2026-${String(m).padStart(2, '0')}`;
+
     finalTracks.forEach(ft => {
-        const ym = `2026-${String(m).padStart(2, '0')}`;
         const lookup = trackLookupMap.get(`${stripKey(ft.name)}:::${stripKey(ft.artist)}`);
         if (lookup) {
             if (!lookup.months) lookup.months = {};
-            lookup.months[ym] = (lookup.months[ym] || 0) + ft.plays;
+            lookup.months[ym] = Math.max(lookup.months[ym] || 0, ft.plays);
         }
     });
 
-    // Update artistsLookup
     sortedArtists.forEach(sa => {
-        const ym = `2026-${String(m).padStart(2, '0')}`;
-        const lookup = u.artistsLookup?.[sa.name.toLowerCase()] || u.artistsLookup?.[sa.name];
+        const lookup = artistLookupMap.get(stripKey(sa.name));
         if (lookup) {
             if (!lookup.months) lookup.months = {};
-            lookup.months[ym] = (lookup.months[ym] || 0) + sa.plays;
+            lookup.months[ym] = Math.max(lookup.months[ym] || 0, sa.plays);
         }
     });
 
-    // Update albumsLookup
     sortedAlbums.forEach(sal => {
-        const ym = `2026-${String(m).padStart(2, '0')}`;
-        const albKey = `${sal.name.toLowerCase()}:::${sal.artist.toLowerCase()}`;
-        const lookup = u.albumsLookup?.[albKey];
+        const lookup = albumLookupMap.get(`${stripKey(sal.name)}:::${stripKey(sal.artist)}`);
         if (lookup) {
             if (!lookup.months) lookup.months = {};
-            lookup.months[ym] = (lookup.months[ym] || 0) + sal.plays;
+            lookup.months[ym] = Math.max(lookup.months[ym] || 0, sal.plays);
         }
     });
 }
 
-// Calculate sum of months in 2026
 let total2026Months = 0;
 for (let m = 1; m <= 12; m++) {
     total2026Months += (u.yearlyTops['2026'].months?.[String(m)]?.plays || 0);
@@ -221,41 +270,10 @@ if (u.yearlyTops['2026'].plays !== total2026Months) {
     process.exit(1);
 }
 
-// Aggregate complete multi-year months into artistsLookup from all tracks in tracksLookup
-const allArtTracksMap = new Map();
-Object.values(u.tracksLookup || {}).forEach(t => {
-    const normA = stripKey(t.artist);
-    if (!allArtTracksMap.has(normA)) allArtTracksMap.set(normA, []);
-    allArtTracksMap.get(normA).push(t);
-});
-
-Object.values(u.artistsLookup || {}).forEach(a => {
-    const normA = stripKey(a.name);
-    const existingM = a.months || {};
-    const fullMonths = {};
-    const trks = allArtTracksMap.get(normA) || [];
-    trks.forEach(t => {
-        if (t.months) {
-            Object.entries(t.months).forEach(([mk, cnt]) => {
-                fullMonths[mk] = (fullMonths[mk] || 0) + cnt;
-            });
-        }
-    });
-    for (const [mk, cnt] of Object.entries(existingM)) {
-        if (!fullMonths[mk] || cnt > fullMonths[mk]) {
-            fullMonths[mk] = cnt;
-        }
-    }
-    if (Object.keys(fullMonths).length > 0) {
-        a.months = fullMonths;
-    }
-});
-
-// Update fast_home.json snapshot
 fastHome.yearlyTops['2026'] = JSON.parse(JSON.stringify(u.yearlyTops['2026']));
 
 console.log('Writing updated unified_history.json and fast_home.json...');
 fs.writeFileSync(UNIFIED_PATH, JSON.stringify(u));
 fs.writeFileSync(FAST_HOME_PATH, JSON.stringify(fastHome));
 
-console.log('SUCCESS! Both unified_history.json and fast_home.json updated with perfect mathematical cuadratura.');
+console.log('SUCCESS! Both unified_history.json and fast_home.json updated with zero negatives and preserved 4771b10 historical months.');
